@@ -127,7 +127,7 @@ textarea.inp{resize:vertical;min-height:72px;}
 .faith-opt{flex:1;padding:12px;border:2px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;background:#fff;color:var(--muted);}
 .faith-opt.yes.sel{border-color:#3cbf8f;background:#eaf7f2;color:#2a9070;}
 .faith-opt.no.sel{border-color:var(--red);background:#f0e4e0;color:var(--red);}
-.faith-block{background:#f0e4e0;border:1.5px solid #e8b4aa;border-radius:9px;padding:.8rem;text-align:center;font-size:.8rem;color:var(--red);font-weight:500;line-height:1.6;margin-bottom:.8rem;}
+.faith-block{background:#f0e4e0;border:1.5px solid #e8b4aa;border-radius:9px;padding:1rem;text-align:left;font-size:.8rem;color:var(--red);font-weight:500;line-height:1.7;margin-bottom:.8rem;}
 
 /* PAYMENT */
 .plans{display:flex;gap:8px;margin-bottom:1.25rem;}
@@ -397,6 +397,49 @@ textarea.inp{resize:vertical;min-height:72px;}
 .dash-job-applicant-name{font-weight:600;font-size:.82rem;}
 .dash-job-applicant-meta{font-size:.72rem;color:var(--muted);}
 
+/* ── GUILD ─────────────────────────────────────── */
+.guild-hero{background:linear-gradient(135deg,#1a1a2e,#0f0e1a);border-radius:16px;padding:1.75rem 1.5rem;text-align:center;margin-bottom:1.25rem;position:relative;overflow:hidden;}
+.guild-hero::before{content:'⚔️';position:absolute;right:-10px;top:-10px;font-size:6rem;opacity:.06;pointer-events:none;}
+.guild-hero-icon{font-size:2.5rem;margin-bottom:.5rem;}
+.guild-hero-name{font-family:'Playfair Display',serif;font-size:1.4rem;color:#fff;margin-bottom:.3rem;}
+.guild-hero-sub{font-size:.78rem;color:#8a8278;line-height:1.5;}
+.guild-hero-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(201,151,58,.15);border:1px solid var(--gold);border-radius:20px;padding:3px 12px;font-size:.68rem;font-weight:600;color:var(--gold);margin-top:.75rem;}
+.guild-section-title{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;}
+.guild-create-btn{padding:7px 16px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;}
+.guild-create-btn:hover{background:#134f37;}
+.guild-code-card{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:1.1rem 1.25rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.guild-code-val{font-family:monospace;font-size:1.1rem;font-weight:700;letter-spacing:.12em;color:var(--ink);background:var(--cream);padding:6px 12px;border-radius:7px;border:1.5px dashed var(--border);}
+.guild-code-used{font-size:.68rem;color:var(--muted);margin-top:3px;}
+.guild-code-actions{display:flex;gap:6px;flex-shrink:0;}
+.guild-copy-btn{padding:6px 12px;background:var(--ink);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;}
+.guild-copy-btn:hover{background:var(--green);}
+.guild-copy-btn.copied{background:var(--green);}
+.guild-del-btn{padding:6px 10px;background:#fde8e4;color:var(--red);border:1.5px solid var(--red);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.72rem;cursor:pointer;}
+.guild-empty{text-align:center;padding:2rem;background:var(--cream);border-radius:12px;border:1.5px dashed var(--border);margin-bottom:.75rem;}
+.guild-empty-icon{font-size:1.8rem;opacity:.4;margin-bottom:.5rem;}
+.guild-empty-text{font-size:.82rem;color:var(--muted);}
+.guild-member-item{background:#fff;border-radius:11px;border:1.5px solid var(--border);padding:.875rem 1.1rem;margin-bottom:.6rem;display:flex;align-items:center;gap:.875rem;}
+.guild-member-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--gold));display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:#fff;flex-shrink:0;}
+.guild-member-name{font-weight:600;font-size:.84rem;}
+.guild-member-meta{font-size:.72rem;color:var(--muted);}
+.guild-member-role{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:20px;}
+.gmr-leader{background:#fdf3e3;color:var(--gold);}
+.gmr-member{background:#e0f0ea;color:var(--green);}
+.guild-join-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.25rem;margin-bottom:.75rem;}
+.guild-join-title{font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:.75rem;}
+.guild-join-row{display:flex;gap:8px;}
+.guild-join-inp{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;outline:none;background:var(--cream);text-transform:uppercase;letter-spacing:.08em;}
+.guild-join-inp:focus{border-color:var(--green);background:#fff;}
+.guild-join-btn{padding:9px 16px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;}
+.no-guild-wrap{text-align:center;padding:2.5rem 1rem;}
+.no-guild-icon{font-size:3rem;margin-bottom:.75rem;}
+.no-guild-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:.5rem;}
+.no-guild-sub{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1.5rem;max-width:300px;margin-left:auto;margin-right:auto;}
+.guild-action-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.1rem 1.25rem;margin-bottom:.75rem;display:flex;align-items:center;gap:1rem;cursor:pointer;transition:all .2s;}
+.guild-action-card:hover{border-color:var(--green);box-shadow:0 4px 16px rgba(0,0,0,.08);}
+.guild-action-icon{font-size:1.5rem;flex-shrink:0;}
+.guild-action-label{font-weight:600;font-size:.88rem;color:var(--ink);}
+.guild-action-sub{font-size:.73rem;color:var(--muted);margin-top:2px;}
 /* ── ADMIN PANEL ─────────────────────────────── */
 .admin-screen{min-height:100vh;background:#f0f2f5;padding-bottom:70px;}
 #screen-admin{padding-bottom:0;}
@@ -507,6 +550,7 @@ body.admin-mode{padding-bottom:0;}
 <div class="modal-overlay" id="eventModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('eventModal')">×</button><div id="eventModalContent"></div></div></div>
 <div class="modal-overlay" id="jobModal"><div class="modal-box" style="max-width:500px;"><button class="modal-close-btn" onclick="closeModal('jobModal')">×</button><div id="jobModalContent"></div></div></div>
 <div class="modal-overlay" id="applyModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('applyModal')">×</button><div id="applyModalContent"></div></div></div>
+<div class="modal-overlay" id="guildModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('guildModal')">×</button><div id="guildModalContent"></div></div></div>
 
 <!-- ADMIN SIGN IN MODAL -->
 <div class="modal-overlay" id="adminSignInModal">
@@ -642,9 +686,13 @@ body.admin-mode{padding-bottom:0;}
       <div class="faith-q">"Do you testify that Jesus Christ is the one and only way to the Father?"</div>
       <div class="faith-opts">
         <button class="faith-opt yes" id="faith-yes" onclick="selectFaith('yes')">✓ Yes</button>
-        <button class="faith-opt no" id="faith-no" onclick="selectFaith('no')">✗ No</button>
+        <button class="faith-opt no" id="faith-no" onclick="selectFaith('no')">✗ Not Yet</button>
       </div>
-      <div class="faith-block hidden" id="faith-block">Christ One's United is rooted in the belief that Jesus Christ is the way, the truth, and the life. This affirmation is required to continue.</div>
+      <div class="faith-block hidden" id="faith-block">
+        <p style="margin-bottom:.75rem;">We thank you for your interest. This app has been developed to share Evangelism and Discipleship opportunities. Without a faith rooted in Christ, this app would not be of use for someone who has yet to receive salvation through our Lord Jesus Christ.</p>
+        <p style="margin-bottom:.75rem;">Please watch this short video to learn more about salvation through Christ:</p>
+        <p style="font-style:italic;opacity:.8;">(future video coming)</p>
+      </div>
       <button class="btn btn-mt" id="faith-btn" onclick="doFaith()">Continue →</button>
     </div>
   </div>
@@ -674,7 +722,7 @@ body.admin-mode{padding-bottom:0;}
       </div>
       <div class="processing hidden" id="pay-processing">
         <div class="spinner">⟳</div><div>Connecting to Stripe…</div>
-        <div style="font-size:.7rem;margin-top:3px;color:#bbb;">Processing webhook · returning to app…</div>
+        <div style="font-size:.7rem;margin-top:3px;color:#bbb;">You'll be redirected to Stripe's secure checkout.</div>
       </div>
     </div>
   </div>
@@ -852,11 +900,18 @@ body.admin-mode{padding-bottom:0;}
       <button class="btn btn-ink btn-mt" onclick="doSignOut()">Sign Out</button>
     </div>
   </div>
+  <div id="dir-tab-guild" class="hidden">
+    <div class="page-body" style="max-width:640px;">
+      <div class="page-title">My Guild</div>
+      <div class="page-sub">Faith-based groups with invite-only membership</div>
+      <div id="guild-content"></div>
+    </div>
+  </div>
   <div class="botnav">
     <button class="botnav-tab active-ind" id="dir-btn-home" onclick="switchDirTab('home')"><span class="botnav-tab-icon">🏠</span><span class="botnav-tab-lbl">Home</span></button>
     <button class="botnav-tab" id="dir-btn-jobs" onclick="switchDirTab('jobs')"><span class="botnav-tab-icon">💼</span><span class="botnav-tab-lbl">Jobs</span></button>
-    <button class="botnav-tab" id="dir-btn-saved" onclick="switchDirTab('saved')"><span class="botnav-tab-icon">♥</span><span class="botnav-tab-lbl">Saved</span><span class="botnav-cnt hidden" id="saved-cnt"></span></button>
     <button class="botnav-tab" id="dir-btn-community" onclick="switchDirTab('community')"><span class="botnav-tab-icon">🙏</span><span class="botnav-tab-lbl">Community</span></button>
+    <button class="botnav-tab" id="dir-btn-guild" onclick="switchDirTab('guild')"><span class="botnav-tab-icon">⚔️</span><span class="botnav-tab-lbl">Guild</span></button>
     <button class="botnav-tab" id="dir-btn-messages" onclick="switchDirTab('messages')"><span class="botnav-tab-icon">💬</span><span class="botnav-tab-lbl">Messages</span><span class="botnav-cnt hidden" id="msg-cnt"></span></button>
     <button class="botnav-tab" id="dir-btn-account" onclick="switchDirTab('account')"><span class="botnav-tab-icon">👤</span><span class="botnav-tab-lbl">Account</span></button>
   </div>
@@ -1041,13 +1096,57 @@ function updatePayBtn(){
   btn.className='btn btn-mt '+(state.profileType==='business'?'btn-green':'btn-red');
 }
 function doPay(){
-  document.getElementById('pay-form').classList.add('hidden');document.getElementById('pay-processing').classList.remove('hidden');
-  setTimeout(function(){
-    state.plan=selectedPlan?selectedPlan.id:'monthly';
-    if(state.profileType==='business'){makeDots(4,'g','bp-stepdots');populateBizForm();showScreen('screen-biz-profile');}
-    else{makeDots(4,'r','ip-stepdots');document.getElementById('ip-title').textContent='Almost there, '+state.user.name+'!';populateIndCats();showScreen('screen-ind-profile');}
-  },2200);
+  document.getElementById('pay-form').classList.add('hidden');
+  document.getElementById('pay-processing').classList.remove('hidden');
+  // Build the plan key to send to our serverless function
+  var isBiz = state.profileType === 'business';
+  var planKey = (isBiz ? 'business' : 'individual') + '_' + (selectedPlan ? selectedPlan.id : 'monthly');
+  // Call our Vercel serverless function
+  fetch('/api/create-checkout-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      planKey:     planKey,
+      email:       state.user ? state.user.email : '',
+      name:        state.user ? state.user.name  : '',
+      profileType: state.profileType,
+    }),
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    if(data.url){
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    } else {
+      // Stripe returned an error
+      document.getElementById('pay-form').classList.remove('hidden');
+      document.getElementById('pay-processing').classList.add('hidden');
+      alert('Payment error: ' + (data.error || 'Please try again.'));
+    }
+  })
+  .catch(function(err){
+    document.getElementById('pay-form').classList.remove('hidden');
+    document.getElementById('pay-processing').classList.add('hidden');
+    alert('Connection error. Please check your internet and try again.');
+  });
 }
+
+// ═══════════════ STRIPE RETURN HANDLER
+// Runs on page load — checks if user was redirected back from Stripe
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  if(params.get('cancelled')==='true'){
+    // User cancelled Stripe checkout — show landing with a gentle message
+    window.history.replaceState({},'','/');
+    setTimeout(function(){
+      var msg = document.createElement('div');
+      msg.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #ddd8ce;border-radius:12px;padding:.875rem 1.25rem;font-family:DM Sans,sans-serif;font-size:.82rem;color:#7a7369;box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:999;text-align:center;max-width:320px;';
+      msg.innerHTML = 'No problem — your information is saved.<br/><strong style="color:#0f0e0c;">Complete your membership anytime.</strong>';
+      document.body.appendChild(msg);
+      setTimeout(function(){msg.remove();}, 5000);
+    }, 500);
+  }
+})();
 
 // ═══════════════ IND PROFILE
 function populateIndCats(){
@@ -1158,12 +1257,19 @@ function renderSaved(){
 }
 function updateSavedCount(){var cnt=document.getElementById('saved-cnt');if(state.savedIds.length>0){cnt.textContent=state.savedIds.length;cnt.classList.remove('hidden');}else cnt.classList.add('hidden');}
 function switchDirTab(tab){
-  ['home','saved','community','messages','jobs','account'].forEach(function(t){document.getElementById('dir-tab-'+t).classList[t===tab?'remove':'add']('hidden');document.getElementById('dir-btn-'+t).classList.remove('active-ind');});
-  document.getElementById('dir-btn-'+tab).classList.add('active-ind');
+  ['home','saved','community','messages','jobs','guild','account'].forEach(function(t){
+    var panel=document.getElementById('dir-tab-'+t);
+    if(panel)panel.classList[t===tab?'remove':'add']('hidden');
+    var btn=document.getElementById('dir-btn-'+t);
+    if(btn)btn.classList.remove('active-ind');
+  });
+  var activeBtn=document.getElementById('dir-btn-'+tab);
+  if(activeBtn)activeBtn.classList.add('active-ind');
   if(tab==='saved')renderSaved();
   if(tab==='community'){renderPrayerBoard();renderEvents();renderLeaderboard();}
   if(tab==='messages')renderMessages('individual');
   if(tab==='jobs'){initJobFilters();renderJobs();}
+  if(tab==='guild')renderGuild();
 }
 
 // ═══════════════ PRAYER BOARD
@@ -1889,10 +1995,197 @@ function renderAdminAudit(){
     '</div>';
 }
 
+// ═══════════════ GUILD STATE
+state.guild = null; // null = not in a guild yet
+state.allGuilds = [
+  {id:1,name:"Grace Builders",description:"A guild for Christian entrepreneurs and business owners in the Grace Community Church family.",leader:"Marcus J.",members:[{name:"Marcus J.",role:"leader",joined:"Jan 2024"},{name:"Sarah M.",role:"member",joined:"Feb 2024"},{name:"Linda P.",role:"member",joined:"Mar 2024"}],codes:[],church:"Grace Community Church",created:"Jan 2024"},
+  {id:2,name:"Harvest Network",description:"Connecting faith-based professionals across Harvest Fellowship to grow together in business and ministry.",leader:"Thomas R.",members:[{name:"Thomas R.",role:"leader",joined:"Feb 2024"},{name:"Kevin W.",role:"member",joined:"Mar 2024"}],codes:[],church:"Harvest Fellowship",created:"Feb 2024"},
+];
+
+// ═══════════════ GUILD FUNCTIONS
+function genCode(){
+  var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var code='';for(var i=0;i<8;i++){if(i===4)code+='-';code+=chars[Math.floor(Math.random()*chars.length)];}
+  return code;
+}
+function renderGuild(){
+  var el=document.getElementById('guild-content');if(!el)return;
+  if(state.guild){
+    renderMyGuild(el);
+  } else {
+    renderNoGuild(el);
+  }
+}
+function renderNoGuild(el){
+  el.innerHTML=
+    '<div class="no-guild-wrap">'+
+      '<div class="no-guild-icon">⚔️</div>'+
+      '<div class="no-guild-title">You\'re not in a Guild yet</div>'+
+      '<p class="no-guild-sub">Guilds are invite-only faith communities within Christ One\'s United. Join one with an invite code or create your own.</p>'+
+    '</div>'+
+    '<div class="guild-join-card">'+
+      '<div class="guild-join-title">🔑 Join a Guild</div>'+
+      '<div style="font-size:.78rem;color:var(--muted);margin-bottom:.875rem;">Enter an invite code shared by a Guild leader.</div>'+
+      '<div class="guild-join-row">'+
+        '<input class="guild-join-inp" id="guild-code-input" placeholder="XXXX-XXXX" maxlength="9" oninput="formatGuildCode(this)"/>'+
+        '<button class="guild-join-btn" onclick="joinGuild()">Join →</button>'+
+      '</div>'+
+      '<div id="guild-join-err" style="color:var(--red);font-size:.72rem;margin-top:6px;display:none;"></div>'+
+    '</div>'+
+    '<div class="guild-action-card" onclick="openCreateGuildModal()">'+
+      '<div class="guild-action-icon">➕</div>'+
+      '<div><div class="guild-action-label">Create a New Guild</div><div class="guild-action-sub">Start your own invite-only faith community group</div></div>'+
+      '<div style="color:var(--muted);font-size:1.2rem;">›</div>'+
+    '</div>';
+}
+function formatGuildCode(el){
+  var v=el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,8);
+  if(v.length>4)v=v.slice(0,4)+'-'+v.slice(4);
+  el.value=v;
+}
+function joinGuild(){
+  var code=document.getElementById('guild-code-input').value.trim().toUpperCase();
+  var errEl=document.getElementById('guild-join-err');
+  errEl.style.display='none';
+  if(code.length<9){errEl.textContent='Please enter a valid 8-character invite code.';errEl.style.display='block';return;}
+  // search all guilds for matching code
+  var found=null;var foundGuild=null;
+  state.allGuilds.forEach(function(g){
+    g.codes.forEach(function(c){
+      if(c.code===code&&!c.used){found=c;foundGuild=g;}
+    });
+  });
+  if(!foundGuild){errEl.textContent='Invalid or expired invite code. Please check with your Guild leader.';errEl.style.display='block';return;}
+  // Mark code as used and join
+  found.used=true;found.usedBy=state.user.name;found.usedTime='Just now';
+  foundGuild.members.push({name:state.user.name,role:'member',joined:'Just now'});
+  state.guild=foundGuild;
+  addNotif('🎉 You joined the Guild "'+foundGuild.name+'"!');
+  renderGuild();
+}
+function openCreateGuildModal(){
+  document.getElementById('guildModalContent').innerHTML=
+    '<div class="modal-icon">⚔️</div>'+
+    '<div class="modal-title">Create a Guild</div>'+
+    '<div style="font-size:.73rem;color:var(--muted);margin-bottom:1.25rem;">Build your own invite-only faith community within Christ One\'s United.</div>'+
+    '<div class="form-group"><label class="lbl">Guild Name <span class="req">*</span></label><input class="inp" id="cg-name" placeholder="e.g. Grace Builders"/></div>'+
+    '<div class="form-group"><label class="lbl">Description <span class="req">*</span></label><textarea class="inp" id="cg-desc" style="min-height:72px;" placeholder="What is your Guild about? Who is it for?"></textarea></div>'+
+    '<div class="form-group"><label class="lbl">Church Affiliation</label><input class="inp" id="cg-church" placeholder="e.g. First Baptist Church (optional)"/></div>'+
+    '<button class="btn btn-green btn-mt" onclick="createGuild()">Create Guild →</button>';
+  document.getElementById('guildModal').classList.add('open');
+}
+function createGuild(){
+  var name=document.getElementById('cg-name').value.trim();
+  var desc=document.getElementById('cg-desc').value.trim();
+  if(!name||!desc){alert('Please fill in the Guild name and description.');return;}
+  var newGuild={
+    id:Date.now(),name:name,description:desc,
+    leader:state.user.name,
+    members:[{name:state.user.name,role:'leader',joined:'Just now'}],
+    codes:[],church:document.getElementById('cg-church').value.trim(),
+    created:'Just now'
+  };
+  state.allGuilds.push(newGuild);
+  state.guild=newGuild;
+  closeModal('guildModal');
+  addNotif('⚔️ Your Guild "'+name+'" has been created!');
+  renderGuild();
+}
+function renderMyGuild(el){
+  var g=state.guild;
+  var isLeader=g.leader===state.user.name;
+  var activeCodes=g.codes.filter(c=>!c.used);
+  var usedCodes=g.codes.filter(c=>c.used);
+  el.innerHTML=
+    // Hero
+    '<div class="guild-hero">'+
+      '<div class="guild-hero-icon">⚔️</div>'+
+      '<div class="guild-hero-name">'+g.name+'</div>'+
+      '<div class="guild-hero-sub">'+g.description+'</div>'+
+      (g.church?'<div class="guild-hero-badge">⛪ '+g.church+'</div>':'')+
+    '</div>'+
+    // Invite Codes section (leader only)
+    (isLeader?
+      '<div class="guild-section-title">🔑 Invite Codes'+
+        '<button class="guild-create-btn" onclick="createInviteCode()">+ New Code</button>'+
+      '</div>'+
+      (activeCodes.length?
+        activeCodes.map(function(c,i){
+          return '<div class="guild-code-card">'+
+            '<div>'+
+              '<div class="guild-code-val">'+c.code+'</div>'+
+              '<div class="guild-code-used">Single-use · Created '+c.created+'</div>'+
+            '</div>'+
+            '<div class="guild-code-actions">'+
+              '<button class="guild-copy-btn" id="copy-btn-'+c.code+'" onclick="copyCode(\''+c.code+'\')">📋 Copy</button>'+
+              '<button class="guild-del-btn" onclick="deleteCode(\''+c.code+'\')">✕</button>'+
+            '</div>'+
+          '</div>';
+        }).join(''):
+        '<div class="guild-empty"><div class="guild-empty-icon">🔑</div><div class="guild-empty-text">No active invite codes.<br/>Create one to invite someone to your Guild.</div></div>'
+      )+
+      (usedCodes.length?
+        '<div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin:.875rem 0 .5rem;">Used Codes</div>'+
+        usedCodes.map(function(c){return '<div class="guild-code-card" style="opacity:.5;"><div><div class="guild-code-val" style="text-decoration:line-through;">'+c.code+'</div><div class="guild-code-used">Used by '+c.usedBy+' · '+c.usedTime+'</div></div></div>';}).join('')
+      :'')+
+    '':
+    // Non-leader: show join info
+    '<div style="background:#e0f0ea;border-radius:10px;padding:.875rem;margin-bottom:1.25rem;font-size:.8rem;color:var(--green);font-weight:500;">✓ You are a member of this Guild</div>'
+    )+
+    // Members
+    '<div class="guild-section-title" style="margin-top:1.25rem;">👥 Members ('+g.members.length+')</div>'+
+    g.members.map(function(m){
+      var initials=m.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+      return '<div class="guild-member-item">'+
+        '<div class="guild-member-avatar">'+initials+'</div>'+
+        '<div style="flex:1;"><div class="guild-member-name">'+m.name+'</div><div class="guild-member-meta">Joined '+m.joined+'</div></div>'+
+        '<span class="guild-member-role '+(m.role==='leader'?'gmr-leader':'gmr-member')+'">'+(m.role==='leader'?'👑 Leader':'Member')+'</span>'+
+      '</div>';
+    }).join('')+
+    // Leave guild button (non-leaders)
+    (!isLeader?'<button class="btn btn-warm btn-mt" onclick="leaveGuild()" style="margin-top:1.25rem;">Leave Guild</button>':''+
+    // Disband (leader only)
+    '<button class="btn btn-mt" style="background:#fde8e4;color:var(--red);margin-top:1rem;" onclick="disbandGuild()">Disband Guild</button>');
+}
+function createInviteCode(){
+  if(!state.guild)return;
+  var code=genCode();
+  state.guild.codes.unshift({code:code,created:'Just now',used:false,usedBy:null,usedTime:null});
+  addNotif('🔑 New invite code '+code+' created for "'+state.guild.name+'"');
+  renderGuild();
+}
+function copyCode(code){
+  var btn=document.getElementById('copy-btn-'+code);
+  // Copy to clipboard
+  if(navigator.clipboard){navigator.clipboard.writeText(code);}
+  if(btn){btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(function(){btn.textContent='📋 Copy';btn.classList.remove('copied');},2000);}
+}
+function deleteCode(code){
+  if(!state.guild)return;
+  state.guild.codes=state.guild.codes.filter(c=>c.code!==code);
+  renderGuild();
+}
+function leaveGuild(){
+  if(!state.guild)return;
+  state.guild.members=state.guild.members.filter(m=>m.name!==state.user.name);
+  var name=state.guild.name;
+  state.guild=null;
+  addNotif('You have left the Guild "'+name+'".');
+  renderGuild();
+}
+function disbandGuild(){
+  if(!state.guild)return;
+  var name=state.guild.name;
+  state.allGuilds=state.allGuilds.filter(g=>g.id!==state.guild.id);
+  state.guild=null;
+  addNotif('Guild "'+name+'" has been disbanded.');
+  renderGuild();
+}
+
 // ═══════════════ SIGN OUT
 function doSignOut(){
   state.user=null;state.profileType=null;state.plan=null;state.faithAnswer=null;
-  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;
+  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;
   showScreen('screen-landing');
 }
 </script>
