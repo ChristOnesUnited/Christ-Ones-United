@@ -1,7 +1,2197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<style><!DOCTYPE html>
+<html lang="en">
+<head>
 <style>
+.logo-img{height:40px;width:auto;object-fit:contain;display:block;}
+.logo-img-sm{height:30px;width:auto;object-fit:contain;display:block;}
+.logo-img-lg{height:90px;width:auto;object-fit:contain;display:block;margin:0 auto .75rem;}
+.logo-img-xl{height:130px;width:auto;object-fit:contain;display:block;margin:0 auto 1.1rem;}
+/* override topnav background to white when logo shown */
+.topnav-logo-wrap{display:flex;align-items:center;}
+</style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Christ One's United</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:#f7f4ef;color:#0f0e0c;padding-bottom:70px;}
+:root{--red:#c8452d;--green:#1a6b4a;--ink:#0f0e0c;--cream:#f7f4ef;--warm:#ede8df;--muted:#7a7369;--border:#ddd8ce;--gold:#c9973a;}
+.hidden{display:none!important;}
+.screen{display:none;} .screen.active{display:block;}
+
+/* INFO BUBBLE */
+.info-wrap{position:relative;display:inline-flex;align-items:center;gap:5px;}
+.info-btn{width:18px;height:18px;border-radius:50%;background:#2d9cdb;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;color:#fff;flex-shrink:0;line-height:1;}
+.info-bubble{position:absolute;left:26px;top:50%;transform:translateY(-50%);background:#1a4a6b;color:#fff;font-size:.75rem;line-height:1.55;padding:.75rem 1rem;border-radius:10px;width:230px;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:50;display:none;}
+.info-bubble::before{content:'';position:absolute;left:-7px;top:50%;transform:translateY(-50%);border:7px solid transparent;border-right-color:#1a4a6b;border-left:none;}
+.info-btn.active+.info-bubble{display:block;}
+
+/* NAV */
+.topnav{background:var(--ink);padding:0 1.25rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topnav-logo{font-family:'Playfair Display',serif;font-size:1.25rem;color:#f7f4ef;letter-spacing:-.02em;}
+.topnav-logo span{color:var(--red);}
+.topnav-right{display:flex;align-items:center;gap:8px;}
+.badge-ind{font-size:.68rem;background:var(--red);color:#fff;padding:2px 8px;border-radius:20px;font-weight:600;}
+.badge-biz{font-size:.68rem;background:var(--green);color:#fff;padding:2px 8px;border-radius:20px;font-weight:600;}
+.bell-btn{background:none;border:none;cursor:pointer;color:#888;font-size:1rem;position:relative;padding:4px;}
+.bell-dot{position:absolute;top:2px;right:2px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--ink);}
+.signout-btn{font-size:.72rem;background:none;border:1px solid #444;border-radius:6px;padding:4px 10px;cursor:pointer;color:#bbb;}
+.signout-btn:hover{border-color:var(--red);color:var(--red);}
+.botnav{position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--ink);display:flex;border-top:1px solid #1a1a1a;z-index:100;}
+.botnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;color:#484543;font-family:'DM Sans',sans-serif;position:relative;}
+.botnav-tab.active-ind{color:var(--red);}
+.botnav-tab.active-biz{color:#4dbb8a;}
+.botnav-tab-icon{font-size:1.1rem;}
+.botnav-tab-lbl{font-size:.52rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+.botnav-cnt{position:absolute;top:6px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:.5rem;font-weight:700;padding:1px 4px;border-radius:20px;min-width:14px;text-align:center;}
+
+/* LANDING */
+.landing{min-height:100vh;background:var(--ink);display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.land-glow-a{position:absolute;top:-120px;right:-100px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(200,69,45,.13),transparent 68%);pointer-events:none;}
+.land-glow-b{position:absolute;bottom:-100px;left:-80px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(26,107,74,.11),transparent 68%);pointer-events:none;}
+.land-cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-52%);font-size:28rem;opacity:.025;pointer-events:none;user-select:none;color:#f7f4ef;line-height:1;}
+.land-nav{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.75rem;position:relative;z-index:2;}
+.land-logo{font-family:'Playfair Display',serif;font-size:1.5rem;color:#f7f4ef;}
+.land-logo span{color:var(--red);}
+.land-signin-link{font-size:.8rem;background:none;border:1px solid #333;border-radius:7px;padding:6px 14px;cursor:pointer;color:#777;font-family:'DM Sans',sans-serif;}
+.land-signin-link:hover{color:#ccc;border-color:#666;}
+.land-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem 3.5rem;text-align:center;position:relative;z-index:2;}
+.land-eyebrow{font-size:.68rem;text-transform:uppercase;letter-spacing:.18em;color:var(--gold);font-weight:600;margin-bottom:1.1rem;}
+.land-title{font-family:'Playfair Display',serif;font-size:clamp(2rem,6vw,3.6rem);color:#f7f4ef;line-height:1.08;margin-bottom:.9rem;max-width:600px;}
+.land-title em{font-style:italic;color:var(--gold);}
+.land-sub{color:#504d4a;font-size:.9rem;line-height:1.7;margin-bottom:2.75rem;max-width:360px;font-weight:300;}
+.land-cards{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;width:100%;max-width:580px;}
+.land-card{flex:1;min-width:210px;max-width:275px;background:rgba(255,255,255,.035);border:1.5px solid rgba(255,255,255,.08);border-radius:18px;padding:1.75rem 1.4rem;cursor:pointer;text-align:center;transition:all .25s;}
+.land-card:hover{transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.4);}
+.land-card.ind:hover{border-color:rgba(200,69,45,.5);}
+.land-card.biz:hover{border-color:rgba(26,107,74,.5);}
+.land-card-icon{font-size:2rem;margin-bottom:.75rem;}
+.land-card-title{font-family:'Playfair Display',serif;font-size:1.15rem;color:#f7f4ef;margin-bottom:.45rem;}
+.land-card-desc{font-size:.76rem;color:#524f4c;line-height:1.6;margin-bottom:1rem;}
+.land-card-price{font-size:.74rem;font-weight:600;margin-bottom:1.25rem;}
+.land-card-price.r{color:rgba(220,100,80,.9);}
+.land-card-price.g{color:rgba(80,190,140,.9);}
+.land-card-btn{width:100%;padding:10px;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.84rem;cursor:pointer;}
+.land-card-btn.ind{background:var(--red);color:#fff;}
+.land-card-btn.biz{background:var(--green);color:#fff;}
+.land-footer{text-align:center;padding:1.1rem;color:#272523;font-size:.7rem;position:relative;z-index:2;}
+
+/* ONBOARDING */
+.ob-wrap{min-height:100vh;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.75rem;position:relative;overflow:hidden;}
+.ob-wrap::before{content:'';position:absolute;top:-80px;right:-80px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(200,69,45,.09),transparent 70%);pointer-events:none;}
+.ob-logo{font-family:'Playfair Display',serif;font-size:1.65rem;color:#f7f4ef;margin-bottom:.25rem;text-align:center;}
+.ob-logo span{color:var(--red);}
+.ob-subtitle{color:#3e3c3a;font-size:.72rem;margin-bottom:1.6rem;text-align:center;letter-spacing:.08em;text-transform:uppercase;font-weight:500;}
+.ob-card{background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:440px;box-shadow:0 20px 56px rgba(0,0,0,.32);position:relative;z-index:1;}
+.ob-title{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--ink);margin-bottom:.35rem;}
+.ob-desc{color:var(--muted);font-size:.84rem;margin-bottom:1.5rem;line-height:1.6;font-weight:300;}
+.ob-chip{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:20px;margin-bottom:1rem;}
+.ob-chip.r{background:#f0e4e0;color:var(--red);}
+.ob-chip.g{background:#e0f0ea;color:var(--green);}
+.step-dots{display:flex;align-items:center;margin-bottom:20px;}
+.step-dot{width:24px;height:24px;border-radius:50%;border:2px solid #252525;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;color:#3a3a3a;transition:all .3s;}
+.step-dot.done{background:var(--green);border-color:var(--green);color:#fff;}
+.step-dot.active-r{background:var(--red);border-color:var(--red);color:#fff;}
+.step-dot.active-g{background:var(--green);border-color:var(--green);color:#fff;}
+.step-line{width:26px;height:2px;background:#1a1a1a;}
+.step-line.done{background:var(--green);}
+
+/* FORMS */
+.form-group{margin-bottom:.75rem;}
+label.lbl{display:block;font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:4px;}
+.req{color:var(--red);}
+input.inp,select.inp,textarea.inp{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;background:var(--cream);color:var(--ink);}
+input.inp:focus,select.inp:focus,textarea.inp:focus{border-color:var(--green);background:#fff;}
+textarea.inp{resize:vertical;min-height:72px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.err-msg{color:var(--red);font-size:.68rem;margin-top:3px;}
+.hint-msg{color:var(--muted);font-size:.68rem;margin-top:3px;}
+.ob-error{color:var(--red);font-size:.73rem;text-align:center;margin-bottom:8px;}
+.ob-toggle{text-align:center;font-size:.76rem;color:var(--muted);margin-top:10px;}
+.ob-toggle button{background:none;border:none;color:var(--red);font-weight:600;cursor:pointer;font-size:.76rem;}
+.section-div{font-size:.67rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600;margin:1rem 0 .75rem;padding-bottom:.35rem;border-bottom:1px solid var(--border);}
+
+/* BUTTONS */
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;text-align:center;}
+.btn-ink{background:var(--ink);color:#fff;} .btn-ink:hover{background:var(--red);}
+.btn-red{background:var(--red);color:#fff;} .btn-red:hover{background:#a83522;}
+.btn-green{background:var(--green);color:#fff;} .btn-green:hover{background:#134f37;}
+.btn-warm{background:var(--warm);color:var(--muted);}
+.btn:disabled{background:#ccc;cursor:not-allowed;} .btn-mt{margin-top:8px;}
+
+/* FAITH */
+.faith-icon{font-size:2rem;text-align:center;margin-bottom:.75rem;}
+.faith-q{font-size:.94rem;font-style:italic;font-weight:500;line-height:1.7;padding:1rem;background:var(--cream);border-radius:9px;border-left:3px solid var(--red);margin-bottom:1.4rem;}
+.faith-opts{display:flex;gap:9px;margin-bottom:1.25rem;}
+.faith-opt{flex:1;padding:12px;border:2px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;background:#fff;color:var(--muted);}
+.faith-opt.yes.sel{border-color:#3cbf8f;background:#eaf7f2;color:#2a9070;}
+.faith-opt.no.sel{border-color:var(--red);background:#f0e4e0;color:var(--red);}
+.faith-block{background:#f0e4e0;border:1.5px solid #e8b4aa;border-radius:9px;padding:1rem;text-align:left;font-size:.8rem;color:var(--red);font-weight:500;line-height:1.7;margin-bottom:.8rem;}
+
+/* PAYMENT */
+.plans{display:flex;gap:8px;margin-bottom:1.25rem;}
+.plan-opt{flex:1;border:2px solid var(--border);border-radius:11px;padding:.85rem .6rem;cursor:pointer;text-align:center;background:#fff;position:relative;transition:all .2s;}
+.plan-opt.sel-r{border-color:var(--red);background:#f0e4e0;}
+.plan-opt.sel-g{border-color:var(--green);background:#e0f0ea;}
+.plan-badge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:.56rem;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;text-transform:uppercase;color:#fff;}
+.plan-badge.r{background:var(--red);} .plan-badge.g{background:var(--green);}
+.plan-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:3px;}
+.plan-price{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--ink);}
+.plan-period{font-size:.66rem;color:var(--muted);}
+.plan-desc{font-size:.62rem;color:var(--muted);margin-top:2px;}
+.stripe-box{background:var(--cream);border:1.5px solid var(--border);border-radius:9px;padding:1rem;margin-bottom:1rem;}
+.stripe-lbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:.6rem;}
+.stripe-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.processing{text-align:center;padding:1.5rem;color:var(--muted);font-size:.84rem;}
+.spinner{display:inline-block;animation:spin 1s linear infinite;font-size:1.3rem;margin-bottom:.4rem;}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* TAGS */
+.tag-row{display:flex;gap:6px;margin-bottom:6px;}
+.tag-add-btn{padding:8px 11px;background:var(--warm);border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:500;white-space:nowrap;}
+.tag-add-btn:hover{background:var(--green);color:#fff;border-color:var(--green);}
+.tag-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+.tag-pill{display:inline-flex;align-items:center;gap:3px;font-size:.7rem;padding:3px 7px;border-radius:20px;font-weight:500;background:#e0f0ea;color:var(--green);}
+.tag-remove{cursor:pointer;opacity:.6;}
+
+/* DIRECTORY */
+.dir-hero{background:var(--ink);padding:2.5rem 1.25rem 4rem;text-align:center;position:relative;overflow:hidden;}
+.dir-hero::before{content:'';position:absolute;top:-50px;right:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(200,69,45,.14),transparent 70%);pointer-events:none;}
+.dir-eyebrow{font-size:.67rem;text-transform:uppercase;letter-spacing:.15em;color:var(--red);font-weight:600;margin-bottom:.75rem;}
+.dir-title{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,5vw,2.8rem);color:#f7f4ef;line-height:1.1;margin-bottom:.75rem;}
+.dir-sub{color:#8a8278;font-size:.86rem;margin-bottom:2rem;font-weight:300;}
+.search-bar{display:flex;max-width:520px;margin:0 auto;background:#fff;border-radius:11px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.14);}
+.search-input{flex:1;padding:.85rem 1rem;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--ink);}
+.search-btn{padding:.65rem 1.1rem;background:var(--red);color:#fff;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.82rem;}
+.feat-strip{padding:1.25rem 1.25rem .25rem;max-width:1100px;margin:0 auto;}
+.feat-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);font-weight:700;margin-bottom:.75rem;}
+.feat-row{display:flex;gap:9px;overflow-x:auto;padding-bottom:.4rem;}
+.feat-card{flex-shrink:0;width:180px;background:#fff;border-radius:11px;padding:.875rem;border:1.5px solid var(--gold);cursor:pointer;}
+.feat-name{font-family:'Playfair Display',serif;font-size:.9rem;margin-bottom:.2rem;}
+.feat-cat{font-size:.65rem;color:var(--muted);}
+.dir-body{padding:1.25rem;max-width:1100px;margin:0 auto;}
+.filter-bar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.cat-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:.75rem;}
+.cat-chip{padding:4px 12px;border-radius:20px;font-size:.76rem;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--muted);}
+.cat-chip.active{background:var(--red);color:#fff;border-color:var(--red);}
+.church-filter-wrap{display:flex;align-items:center;gap:6px;margin-bottom:1rem;}
+.church-filter-label{font-size:.72rem;color:var(--muted);font-weight:600;white-space:nowrap;}
+.church-filter-sel{padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.76rem;background:#fff;color:var(--ink);outline:none;cursor:pointer;}
+.church-filter-sel:focus{border-color:var(--red);}
+.result-meta{font-size:.75rem;color:var(--muted);margin-bottom:1.1rem;}
+.result-meta strong{color:var(--ink);}
+.biz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:1rem;}
+
+/* BIZ CARD */
+.biz-card{background:#fff;border-radius:13px;padding:1.2rem;border:1.5px solid var(--border);position:relative;overflow:hidden;transition:all .22s;}
+.biz-card:hover{box-shadow:0 8px 40px rgba(0,0,0,.14);transform:translateY(-2px);}
+.biz-card.featured{border-color:var(--gold);}
+.biz-card.new-this-week{border-color:#3cbf8f;}
+.biz-topbar{position:absolute;top:0;left:0;right:0;height:3px;}
+.biz-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.55rem;}
+.biz-name{font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;line-height:1.3;padding-right:8px;}
+.biz-cat-badge{font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.biz-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:.55rem;}
+.biz-verified{font-size:.62rem;color:var(--green);font-weight:700;background:#e0f0ea;padding:2px 7px;border-radius:20px;display:inline-block;}
+.biz-new{font-size:.62rem;color:#2a9070;font-weight:700;background:#eaf7f2;padding:2px 7px;border-radius:20px;border:1px solid #3cbf8f;display:inline-block;}
+.biz-pending{font-size:.62rem;color:var(--gold);font-weight:700;background:#fdf3e3;padding:2px 7px;border-radius:20px;border:1px solid var(--gold);display:inline-block;}
+.biz-desc{font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:.75rem;font-weight:300;}
+.biz-meta{display:flex;flex-direction:column;gap:3px;margin-bottom:.75rem;}
+.biz-meta-row{font-size:.73rem;color:#9a9186;}
+.biz-meta-row a{color:#9a9186;text-decoration:none;}
+.biz-meta-row a:hover{color:var(--ink);}
+.biz-hours{font-size:.72rem;color:var(--green);font-weight:600;margin-bottom:.5rem;}
+.biz-hours.closed{color:var(--red);}
+.biz-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.75rem;}
+.biz-tag{font-size:.65rem;padding:2px 6px;background:var(--warm);border-radius:4px;color:var(--muted);font-weight:500;}
+.testimonials{margin-top:.7rem;border-top:1px solid var(--border);padding-top:.7rem;}
+.testimonial{background:var(--cream);border-radius:7px;padding:.55rem .7rem;margin-bottom:.35rem;}
+.testimonial-text{font-size:.72rem;color:var(--muted);font-style:italic;line-height:1.5;margin-bottom:.15rem;}
+.testimonial-author{font-size:.65rem;font-weight:600;color:var(--ink);}
+.biz-actions{display:flex;gap:5px;margin-top:.7rem;flex-wrap:wrap;}
+.biz-btn{flex:1;min-width:60px;padding:7px 4px;font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:600;border:none;border-radius:6px;cursor:pointer;}
+.biz-btn-save{background:var(--warm);color:var(--muted);}
+.biz-btn-save.saved{background:#fdf3e3;color:var(--gold);}
+.biz-btn-ref{background:var(--ink);color:#f7f4ef;}
+.biz-btn-ref:hover{background:var(--red);}
+.biz-btn-testify{background:#e0f0ea;color:var(--green);}
+.biz-btn-testify:hover{background:var(--green);color:#fff;}
+.biz-btn-msg{background:#f0e8ff;color:#7c3aed;}
+.biz-btn-msg:hover{background:#7c3aed;color:#fff;}
+.empty-state{text-align:center;padding:3.5rem;color:var(--muted);}
+.empty-icon{font-size:2rem;opacity:.35;margin-bottom:.5rem;}
+.empty-title{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--ink);margin-bottom:.35rem;}
+
+/* PAGES */
+.page-body{padding:1.25rem;max-width:1100px;margin:0 auto;}
+.page-title{font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:.25rem;}
+.page-sub{font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;font-weight:300;}
+.info-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.4rem;margin-bottom:.875rem;}
+.info-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:.4rem;}
+.info-val{font-family:'Playfair Display',serif;font-size:1.15rem;margin-bottom:.15rem;}
+.info-sub{font-size:.8rem;color:var(--muted);}
+
+/* PRAYER BOARD */
+.prayer-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.2rem;margin-bottom:.875rem;}
+.prayer-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem;}
+.prayer-author{font-weight:600;font-size:.84rem;}
+.prayer-time{font-size:.65rem;color:var(--muted);}
+.prayer-text{font-size:.82rem;color:var(--ink);line-height:1.6;margin-bottom:.6rem;}
+.prayer-prayed{font-size:.72rem;color:var(--muted);}
+.prayer-pray-btn{background:none;border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-family:'DM Sans',sans-serif;font-size:.7rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s;}
+.prayer-pray-btn:hover,.prayer-pray-btn.prayed{background:#f0e4e0;border-color:var(--red);color:var(--red);}
+
+/* EVENTS */
+.event-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.2rem;margin-bottom:.875rem;display:flex;gap:1rem;align-items:flex-start;}
+.event-date-box{background:var(--red);border-radius:10px;padding:.5rem .75rem;text-align:center;flex-shrink:0;min-width:50px;}
+.event-month{font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.8);font-weight:600;}
+.event-day{font-family:'Playfair Display',serif;font-size:1.4rem;color:#fff;line-height:1;}
+.event-body{flex:1;}
+.event-title{font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:.2rem;}
+.event-meta{font-size:.74rem;color:var(--muted);line-height:1.5;}
+.event-host{font-size:.68rem;color:var(--green);font-weight:600;margin-top:.2rem;}
+
+/* NEWSLETTER */
+.newsletter-card{background:linear-gradient(135deg,var(--ink),#1a1612);border-radius:16px;padding:1.5rem;color:#f7f4ef;margin-bottom:1.25rem;position:relative;overflow:hidden;}
+.newsletter-card::before{content:'✝';position:absolute;right:-10px;top:-10px;font-size:8rem;opacity:.04;pointer-events:none;}
+.newsletter-eyebrow{font-size:.62rem;text-transform:uppercase;letter-spacing:.15em;color:var(--gold);font-weight:700;margin-bottom:.4rem;}
+.newsletter-title{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:.4rem;}
+.newsletter-sub{font-size:.78rem;color:#8a8278;line-height:1.5;margin-bottom:1rem;}
+.newsletter-inp{width:100%;padding:9px 12px;border:1.5px solid #333;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;background:#1a1612;color:#f7f4ef;outline:none;margin-bottom:.6rem;}
+.newsletter-inp:focus{border-color:var(--gold);}
+.newsletter-btn{width:100%;padding:10px;background:var(--gold);color:var(--ink);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.84rem;cursor:pointer;}
+
+/* REFERRAL REWARDS */
+.reward-bar{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem;}
+.reward-icon{font-size:1.5rem;flex-shrink:0;}
+.reward-label{font-size:.8rem;font-weight:600;color:var(--ink);margin-bottom:.15rem;}
+.reward-sub{font-size:.72rem;color:var(--muted);}
+.reward-count{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--red);font-weight:700;margin-left:auto;flex-shrink:0;}
+.leaderboard-item{display:flex;align-items:center;gap:.75rem;padding:.65rem 0;border-bottom:1px solid var(--border);}
+.lb-rank{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--muted);width:24px;text-align:center;flex-shrink:0;}
+.lb-rank.top{color:var(--gold);}
+.lb-name{font-size:.84rem;font-weight:600;flex:1;}
+.lb-count{font-size:.78rem;color:var(--red);font-weight:600;}
+.lb-badge{font-size:.6rem;background:#fdf3e3;color:var(--gold);border:1px solid var(--gold);border-radius:20px;padding:1px 6px;font-weight:700;}
+
+/* MESSAGING */
+.msg-thread{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1rem;margin-bottom:.75rem;cursor:pointer;transition:all .2s;}
+.msg-thread:hover{border-color:var(--muted);box-shadow:var(--sh);}
+.msg-thread.unread{border-color:#7c3aed;background:#faf8ff;}
+.msg-thread-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem;}
+.msg-thread-name{font-weight:600;font-size:.84rem;}
+.msg-thread-time{font-size:.65rem;color:var(--muted);}
+.msg-thread-preview{font-size:.76rem;color:var(--muted);line-height:1.4;}
+.msg-dot{width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0;}
+.msg-bubble-wrap{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;max-height:320px;overflow-y:auto;padding:.5rem;}
+.msg-bubble{max-width:80%;padding:.6rem .875rem;border-radius:14px;font-size:.8rem;line-height:1.5;}
+.msg-bubble.sent{background:var(--ink);color:#f7f4ef;align-self:flex-end;border-bottom-right-radius:4px;}
+.msg-bubble.recv{background:var(--warm);color:var(--ink);align-self:flex-start;border-bottom-left-radius:4px;}
+.msg-input-row{display:flex;gap:6px;}
+.msg-input{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;outline:none;background:var(--cream);}
+.msg-input:focus{border-color:#7c3aed;background:#fff;}
+.msg-send-btn{padding:9px 14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.84rem;font-weight:600;font-family:'DM Sans',sans-serif;}
+
+/* ADMIN */
+.admin-item{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:1.1rem;margin-bottom:.75rem;}
+.admin-item-name{font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:.2rem;}
+.admin-item-meta{font-size:.76rem;color:var(--muted);margin-bottom:.6rem;line-height:1.5;}
+.admin-actions{display:flex;gap:8px;}
+.admin-approve{padding:7px 16px;background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;}
+.admin-reject{padding:7px 16px;background:#f0e4e0;color:var(--red);border:1.5px solid var(--red);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;}
+
+/* DASHBOARD */
+.dash-body{max-width:720px;margin:0 auto;padding:1.75rem 1.25rem 2.5rem;}
+.dash-header-eyebrow{font-size:.67rem;text-transform:uppercase;letter-spacing:.14em;color:var(--green);font-weight:600;margin-bottom:.25rem;}
+.dash-header-title{font-family:'Playfair Display',serif;font-size:1.6rem;margin-bottom:.2rem;}
+.dash-plan-chip{display:inline-flex;align-items:center;gap:4px;background:#e0f0ea;color:var(--green);font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid #a8d9c4;margin-bottom:1.1rem;}
+.dash-tabs{display:flex;gap:3px;background:var(--warm);border-radius:9px;padding:3px;margin-bottom:1.5rem;overflow-x:auto;}
+.dash-tab{flex:1;padding:7px 5px;text-align:center;border:none;background:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.7rem;font-weight:600;cursor:pointer;color:var(--muted);white-space:nowrap;}
+.dash-tab.active{background:#fff;color:var(--green);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.dash-tab-badge{margin-left:3px;background:var(--green);color:#fff;font-size:.56rem;padding:1px 5px;border-radius:20px;}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.5rem;}
+.stat-card{background:#fff;border-radius:11px;padding:.95rem;border:1.5px solid var(--border);text-align:center;}
+.stat-val{font-family:'Playfair Display',serif;font-size:1.65rem;}
+.stat-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-top:2px;}
+.dash-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.5rem;margin-bottom:1rem;}
+.dash-card-title{font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:.75rem;}
+.ref-item{background:var(--cream);border-radius:9px;padding:.8rem;margin-bottom:.55rem;}
+.ref-name{font-weight:600;font-size:.84rem;margin-bottom:.15rem;}
+.ref-detail{font-size:.75rem;color:var(--muted);line-height:1.5;}
+.ref-faith-tag{display:inline-block;font-size:.65rem;font-weight:600;padding:2px 7px;border-radius:20px;margin-top:.25rem;}
+.rf-believer{background:#e0f0ea;color:var(--green);}
+.rf-exploring{background:#fdf3e3;color:var(--gold);}
+.rf-other{background:var(--warm);color:var(--muted);}
+
+/* NOTIFICATIONS */
+.notif-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;display:none;}
+.notif-overlay.open{display:block;}
+.notif-panel{position:fixed;top:58px;right:0;width:300px;max-height:calc(100vh - 58px);background:#fff;box-shadow:0 8px 40px rgba(0,0,0,.18);overflow-y:auto;z-index:151;display:none;}
+.notif-panel.open{display:block;}
+.notif-header{padding:.875rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.notif-header-title{font-family:'Playfair Display',serif;font-size:1rem;}
+.notif-close{background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;}
+.notif-item{padding:.8rem 1.1rem;border-bottom:1px solid var(--border);display:flex;gap:.65rem;cursor:pointer;}
+.notif-item.unread{background:#fdf9f8;}
+.notif-dot{width:7px;height:7px;border-radius:50%;background:var(--red);margin-top:5px;flex-shrink:0;}
+.notif-dot.read{background:var(--border);}
+.notif-text{font-size:.79rem;line-height:1.5;}
+.notif-time{font-size:.67rem;color:var(--muted);margin-top:2px;}
+.notif-empty{padding:2rem;text-align:center;color:var(--muted);font-size:.82rem;}
+.notif-badge{font-size:.65rem;background:var(--red);color:#fff;padding:1px 6px;border-radius:20px;margin-left:5px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:none;align-items:center;justify-content:center;padding:1.1rem;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:#fff;border-radius:16px;padding:1.6rem;width:100%;max-width:420px;box-shadow:0 20px 56px rgba(0,0,0,.3);position:relative;max-height:90vh;overflow-y:auto;}
+.modal-close-btn{position:absolute;top:.8rem;right:.8rem;background:var(--warm);border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;color:var(--muted);font-size:.9rem;}
+.modal-icon{font-size:1.5rem;margin-bottom:.6rem;}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.15rem;margin-bottom:.2rem;}
+.modal-for{font-size:.73rem;color:var(--muted);margin-bottom:1.1rem;}
+.modal-for strong{color:var(--red);}
+
+/* JOBS */
+.job-search-bar{display:flex;gap:8px;margin-bottom:.875rem;flex-wrap:wrap;}
+.job-search-inp{flex:2;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;outline:none;background:#fff;color:var(--ink);}
+.job-search-inp:focus{border-color:var(--ink);}
+.job-loc-inp{flex:1;min-width:110px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;outline:none;background:#fff;color:var(--ink);}
+.job-loc-inp:focus{border-color:var(--ink);}
+.job-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
+.job-filter-sel{padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.76rem;background:#fff;color:var(--ink);outline:none;cursor:pointer;}
+.job-filter-sel:focus{border-color:var(--ink);}
+.job-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.2rem;margin-bottom:.875rem;position:relative;transition:all .22s;}
+.job-card:hover{box-shadow:0 6px 28px rgba(0,0,0,.1);transform:translateY(-1px);}
+.job-card.new-job{border-left:3px solid #3cbf8f;}
+.job-card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.3rem;}
+.job-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;line-height:1.3;padding-right:8px;}
+.job-type-badge{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.jt-full{background:#e0f0ea;color:var(--green);}
+.jt-part{background:#fdf3e3;color:var(--gold);}
+.jt-contract{background:#f0e8ff;color:#7c3aed;}
+.jt-volunteer{background:#f0e4e0;color:var(--red);}
+.job-company{font-size:.82rem;font-weight:600;color:var(--ink);margin-bottom:.2rem;}
+.job-meta-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:.6rem;}
+.job-meta-item{font-size:.73rem;color:var(--muted);display:flex;align-items:center;gap:3px;}
+.job-desc{font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:.75rem;font-weight:300;}
+.job-faith-note{background:#e0f0ea;border-left:3px solid var(--green);border-radius:0 8px 8px 0;padding:.5rem .75rem;font-size:.75rem;color:var(--green);font-style:italic;margin-bottom:.75rem;line-height:1.5;}
+.job-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.75rem;}
+.job-tag{font-size:.65rem;padding:2px 6px;background:var(--warm);border-radius:4px;color:var(--muted);font-weight:500;}
+.job-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.job-apply-btn{flex:1;padding:9px;background:var(--ink);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.job-apply-btn:hover{background:var(--green);}
+.job-save-btn{padding:9px 12px;background:var(--warm);color:var(--muted);border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.job-save-btn.saved{background:#fdf3e3;color:var(--gold);}
+.job-new-badge{font-size:.6rem;color:#2a9070;font-weight:700;background:#eaf7f2;padding:2px 7px;border-radius:20px;border:1px solid #3cbf8f;display:inline-block;margin-bottom:.4rem;}
+.job-report-wrap{display:inline-flex;align-items:center;margin-left:4px;}
+.job-report-btn{width:17px;height:17px;border-radius:50%;background:#2d9cdb;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;color:#fff;flex-shrink:0;}
+.job-report-bubble{position:absolute;right:0;top:2rem;background:#1a4a6b;color:#fff;font-size:.73rem;line-height:1.55;padding:.7rem .9rem;border-radius:10px;width:220px;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:50;display:none;text-align:left;}
+.job-report-btn.active~.job-report-bubble{display:block;}
+/* Dash job card */
+.dash-job-item{background:var(--cream);border-radius:10px;padding:.875rem;margin-bottom:.65rem;position:relative;}
+.dash-job-title{font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:.2rem;}
+.dash-job-meta{font-size:.75rem;color:var(--muted);margin-bottom:.4rem;}
+.dash-job-actions{display:flex;gap:7px;margin-top:.5rem;}
+.dash-job-close-btn{padding:5px 12px;background:#f0e4e0;color:var(--red);border:1.5px solid var(--red);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;}
+.dash-job-applicant{background:#fff;border-radius:8px;padding:.6rem .875rem;margin-bottom:.4rem;border:1px solid var(--border);}
+.dash-job-applicant-name{font-weight:600;font-size:.82rem;}
+.dash-job-applicant-meta{font-size:.72rem;color:var(--muted);}
+
+/* ── GUILD ─────────────────────────────────────── */
+.guild-hero{background:linear-gradient(135deg,#1a1a2e,#0f0e1a);border-radius:16px;padding:1.75rem 1.5rem;text-align:center;margin-bottom:1.25rem;position:relative;overflow:hidden;}
+.guild-hero::before{content:'⚔️';position:absolute;right:-10px;top:-10px;font-size:6rem;opacity:.06;pointer-events:none;}
+.guild-hero-icon{font-size:2.5rem;margin-bottom:.5rem;}
+.guild-hero-name{font-family:'Playfair Display',serif;font-size:1.4rem;color:#fff;margin-bottom:.3rem;}
+.guild-hero-sub{font-size:.78rem;color:#8a8278;line-height:1.5;}
+.guild-hero-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(201,151,58,.15);border:1px solid var(--gold);border-radius:20px;padding:3px 12px;font-size:.68rem;font-weight:600;color:var(--gold);margin-top:.75rem;}
+.guild-section-title{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;}
+.guild-create-btn{padding:7px 16px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;}
+.guild-create-btn:hover{background:#134f37;}
+.guild-code-card{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:1.1rem 1.25rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.guild-code-val{font-family:monospace;font-size:1.1rem;font-weight:700;letter-spacing:.12em;color:var(--ink);background:var(--cream);padding:6px 12px;border-radius:7px;border:1.5px dashed var(--border);}
+.guild-code-used{font-size:.68rem;color:var(--muted);margin-top:3px;}
+.guild-code-actions{display:flex;gap:6px;flex-shrink:0;}
+.guild-copy-btn{padding:6px 12px;background:var(--ink);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;}
+.guild-copy-btn:hover{background:var(--green);}
+.guild-copy-btn.copied{background:var(--green);}
+.guild-del-btn{padding:6px 10px;background:#fde8e4;color:var(--red);border:1.5px solid var(--red);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.72rem;cursor:pointer;}
+.guild-empty{text-align:center;padding:2rem;background:var(--cream);border-radius:12px;border:1.5px dashed var(--border);margin-bottom:.75rem;}
+.guild-empty-icon{font-size:1.8rem;opacity:.4;margin-bottom:.5rem;}
+.guild-empty-text{font-size:.82rem;color:var(--muted);}
+.guild-member-item{background:#fff;border-radius:11px;border:1.5px solid var(--border);padding:.875rem 1.1rem;margin-bottom:.6rem;display:flex;align-items:center;gap:.875rem;}
+.guild-member-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--gold));display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:#fff;flex-shrink:0;}
+.guild-member-name{font-weight:600;font-size:.84rem;}
+.guild-member-meta{font-size:.72rem;color:var(--muted);}
+.guild-member-role{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:20px;}
+.gmr-leader{background:#fdf3e3;color:var(--gold);}
+.gmr-member{background:#e0f0ea;color:var(--green);}
+.guild-join-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.25rem;margin-bottom:.75rem;}
+.guild-join-title{font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:.75rem;}
+.guild-join-row{display:flex;gap:8px;}
+.guild-join-inp{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;outline:none;background:var(--cream);text-transform:uppercase;letter-spacing:.08em;}
+.guild-join-inp:focus{border-color:var(--green);background:#fff;}
+.guild-join-btn{padding:9px 16px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;}
+.no-guild-wrap{text-align:center;padding:2.5rem 1rem;}
+.no-guild-icon{font-size:3rem;margin-bottom:.75rem;}
+.no-guild-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:.5rem;}
+.no-guild-sub{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1.5rem;max-width:300px;margin-left:auto;margin-right:auto;}
+.guild-action-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.1rem 1.25rem;margin-bottom:.75rem;display:flex;align-items:center;gap:1rem;cursor:pointer;transition:all .2s;}
+.guild-action-card:hover{border-color:var(--green);box-shadow:0 4px 16px rgba(0,0,0,.08);}
+.guild-action-icon{font-size:1.5rem;flex-shrink:0;}
+.guild-action-label{font-weight:600;font-size:.88rem;color:var(--ink);}
+.guild-action-sub{font-size:.73rem;color:var(--muted);margin-top:2px;}
+/* ── ADMIN PANEL ─────────────────────────────── */
+.admin-screen{min-height:100vh;background:#f0f2f5;padding-bottom:70px;}
+#screen-admin{padding-bottom:0;}
+#screen-admin .admin-screen{display:block;}
+/* hide global bottom nav when admin screen is active */
+body.admin-mode .botnav{display:none!important;}
+body.admin-mode{padding-bottom:0;}
+.admin-topnav{background:#1a1a2e;padding:0 1.25rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.admin-logo{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff;letter-spacing:-.01em;}
+.admin-logo span{color:#f59e0b;}
+.admin-badge{font-size:.65rem;background:#f59e0b;color:#1a1a2e;padding:2px 8px;border-radius:20px;font-weight:700;letter-spacing:.04em;}
+.admin-botnav{position:fixed;bottom:0;left:0;right:0;height:62px;background:#1a1a2e;display:flex;border-top:1px solid #2a2a40;z-index:100;}
+.admin-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;color:#555577;font-family:'DM Sans',sans-serif;position:relative;transition:color .2s;}
+.admin-btn.on{color:#f59e0b;}
+.admin-btn-icon{font-size:1.1rem;}
+.admin-btn-lbl{font-size:.5rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+.admin-btn-cnt{position:absolute;top:6px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:.5rem;font-weight:700;padding:1px 4px;border-radius:20px;min-width:14px;text-align:center;}
+.admin-body{padding:1.25rem;max-width:900px;margin:0 auto;}
+.admin-page-title{font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:.25rem;}
+.admin-page-sub{font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;}
+/* stat grid */
+.admin-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.75rem;margin-bottom:1.5rem;}
+.admin-stat{background:#fff;border-radius:12px;padding:1rem;border:1.5px solid var(--border);text-align:center;}
+.admin-stat-val{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;}
+.admin-stat-val.red{color:var(--red);}
+.admin-stat-val.green{color:var(--green);}
+.admin-stat-val.gold{color:var(--gold);}
+.admin-stat-val.blue{color:#2d9cdb;}
+.admin-stat-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-top:3px;}
+/* chart bar */
+.admin-chart{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:1.25rem;margin-bottom:1rem;}
+.admin-chart-title{font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:1rem;}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:80px;}
+.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.chart-bar{width:100%;border-radius:4px 4px 0 0;transition:height .3s;}
+.chart-bar-lbl{font-size:.6rem;color:var(--muted);font-weight:600;}
+.chart-bar-val{font-size:.6rem;color:var(--ink);font-weight:700;}
+/* queue cards */
+.admin-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.25rem;margin-bottom:.875rem;}
+.admin-card.flagged{border-color:var(--red);border-left:4px solid var(--red);}
+.admin-card.pending{border-color:var(--gold);border-left:4px solid var(--gold);}
+.admin-card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem;gap:.5rem;}
+.admin-card-title{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:600;}
+.admin-card-badge{font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.ab-red{background:#fde8e4;color:var(--red);}
+.ab-gold{background:#fdf3e3;color:var(--gold);}
+.ab-green{background:#e0f0ea;color:var(--green);}
+.ab-blue{background:#e3f2fd;color:#1565c0;}
+.ab-purple{background:#f3e8ff;color:#7c3aed;}
+.admin-card-meta{font-size:.76rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;}
+.admin-card-content{font-size:.82rem;color:var(--ink);line-height:1.6;margin-bottom:.75rem;background:var(--cream);border-radius:7px;padding:.6rem .875rem;}
+.admin-actions{display:flex;gap:7px;flex-wrap:wrap;}
+.adm-approve{padding:7px 14px;background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;}
+.adm-reject{padding:7px 14px;background:#fde8e4;color:var(--red);border:1.5px solid var(--red);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;}
+.adm-remove{padding:7px 14px;background:var(--red);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;}
+.adm-warn{padding:7px 14px;background:#fdf3e3;color:var(--gold);border:1.5px solid var(--gold);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;}
+.adm-suspend{padding:7px 14px;background:var(--ink);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;}
+.adm-restore{padding:7px 14px;background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;}
+/* member table */
+.member-search{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;outline:none;background:#fff;margin-bottom:1rem;}
+.member-search:focus{border-color:#f59e0b;}
+.member-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;border:1.5px solid var(--border);}
+.member-table th{background:#f0f2f5;padding:.6rem .875rem;text-align:left;font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);}
+.member-table td{padding:.7rem .875rem;font-size:.78rem;color:var(--ink);border-bottom:1px solid var(--border);vertical-align:middle;}
+.member-table tr:last-child td{border-bottom:none;}
+.member-table tr:hover td{background:#fafaf8;}
+.member-status{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:20px;}
+.ms-active{background:#e0f0ea;color:var(--green);}
+.ms-suspended{background:#fde8e4;color:var(--red);}
+.ms-pending{background:#fdf3e3;color:var(--gold);}
+/* audit log */
+.audit-item{display:flex;gap:.75rem;padding:.65rem 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+.audit-icon{font-size:1rem;flex-shrink:0;margin-top:1px;}
+.audit-text{font-size:.78rem;color:var(--ink);line-height:1.5;flex:1;}
+.audit-time{font-size:.65rem;color:var(--muted);white-space:nowrap;margin-top:1px;}
+/* newsletter compose */
+.nl-compose{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.25rem;margin-bottom:1rem;}
+.nl-compose-title{font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:.875rem;}
+.nl-stats{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;}
+.nl-stat{font-size:.78rem;color:var(--muted);}
+.nl-stat strong{color:var(--ink);}
+/* appeals */
+.appeal-item{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:1.1rem;margin-bottom:.75rem;}
+.appeal-name{font-weight:600;font-size:.84rem;margin-bottom:.2rem;}
+.appeal-reason{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:.5rem;}
+
+@media(max-width:520px){
+  .admin-stats{grid-template-columns:repeat(2,1fr);}
+  .member-table th:nth-child(3),.member-table td:nth-child(3){display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- MODALS -->
+<div class="notif-overlay" id="notifOverlay" onclick="closeNotifs()"></div>
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-header">
+    <div class="notif-header-title">Notifications <span class="notif-badge hidden" id="notifBadgePanel"></span></div>
+    <button class="notif-close" onclick="closeNotifs()">×</button>
+  </div>
+  <div id="notifList"><div class="notif-empty">No notifications yet.</div></div>
+</div>
+<div class="modal-overlay" id="refModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('refModal')">×</button><div id="refModalContent"></div></div></div>
+<div class="modal-overlay" id="revModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('revModal')">×</button><div id="revModalContent"></div></div></div>
+<div class="modal-overlay" id="msgModal"><div class="modal-box" style="max-width:480px;"><button class="modal-close-btn" onclick="closeModal('msgModal')">×</button><div id="msgModalContent"></div></div></div>
+<div class="modal-overlay" id="prayerModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('prayerModal')">×</button><div id="prayerModalContent"></div></div></div>
+<div class="modal-overlay" id="eventModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('eventModal')">×</button><div id="eventModalContent"></div></div></div>
+<div class="modal-overlay" id="jobModal"><div class="modal-box" style="max-width:500px;"><button class="modal-close-btn" onclick="closeModal('jobModal')">×</button><div id="jobModalContent"></div></div></div>
+<div class="modal-overlay" id="applyModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('applyModal')">×</button><div id="applyModalContent"></div></div></div>
+<div class="modal-overlay" id="guildModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('guildModal')">×</button><div id="guildModalContent"></div></div></div>
+
+<!-- ADMIN SIGN IN MODAL -->
+<div class="modal-overlay" id="adminSignInModal">
+  <div class="modal-box" style="max-width:380px;">
+    <button class="modal-close-btn" onclick="closeModal('adminSignInModal')">×</button>
+    <div style="font-size:1.5rem;margin-bottom:.5rem;">🔐</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.15rem;margin-bottom:.2rem;">Admin Access</div>
+    <div style="font-size:.73rem;color:var(--muted);margin-bottom:1.1rem;">Enter admin credentials to continue.</div>
+    <div class="form-group"><label class="lbl">Admin Email</label><input class="inp" id="adm-email" placeholder="admin@christonesunited.com" type="email"/></div>
+    <div class="form-group"><label class="lbl">Password</label><input class="inp" id="adm-pass" placeholder="Password" type="password"/></div>
+    <div style="color:var(--red);font-size:.73rem;margin-bottom:.5rem;display:none;" id="adm-err">Invalid credentials. Try: admin@cou.com / admin123</div>
+    <button class="btn btn-mt" style="background:#1a1a2e;color:#fff;" onclick="doAdminLogin()">Sign In to Admin →</button>
+    <div style="font-size:.7rem;color:var(--muted);margin-top:.75rem;text-align:center;">Demo: admin@cou.com / admin123</div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="screen" id="screen-admin">
+  <div class="admin-screen">
+    <div class="admin-topnav">
+      <div style="display:flex;align-items:center;gap:8px;"><div style="background:#fff;border-radius:8px;padding:2px 7px;"><img src="/logo.png" alt="Christ One's United" class="logo-img-sm"/></div><span style="font-size:.7rem;color:#f59e0b;font-weight:700;letter-spacing:.04em;">ADMIN</span></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="admin-badge">ADMIN</span>
+        <button onclick="doAdminSignOut()" style="font-size:.72rem;background:none;border:1px solid #444;border-radius:6px;padding:4px 10px;cursor:pointer;color:#bbb;">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- TAB PANELS -->
+    <div id="adm-tab-overview" class="admin-body"></div>
+    <div id="adm-tab-approvals" class="admin-body hidden"></div>
+    <div id="adm-tab-reports" class="admin-body hidden"></div>
+    <div id="adm-tab-members" class="admin-body hidden"></div>
+    <div id="adm-tab-jobs" class="admin-body hidden"></div>
+    <div id="adm-tab-newsletter" class="admin-body hidden"></div>
+    <div id="adm-tab-appeals" class="admin-body hidden"></div>
+    <div id="adm-tab-audit" class="admin-body hidden"></div>
+
+    <div class="admin-botnav">
+      <button class="admin-btn on" id="adm-btn-overview" onclick="switchAdminTab('overview')"><span class="admin-btn-icon">📊</span><span class="admin-btn-lbl">Overview</span></button>
+      <button class="admin-btn" id="adm-btn-approvals" onclick="switchAdminTab('approvals')"><span class="admin-btn-icon">✅</span><span class="admin-btn-lbl">Approvals</span><span class="admin-btn-cnt hidden" id="adm-cnt-approvals"></span></button>
+      <button class="admin-btn" id="adm-btn-reports" onclick="switchAdminTab('reports')"><span class="admin-btn-icon">🚨</span><span class="admin-btn-lbl">Reports</span><span class="admin-btn-cnt hidden" id="adm-cnt-reports"></span></button>
+      <button class="admin-btn" id="adm-btn-members" onclick="switchAdminTab('members')"><span class="admin-btn-icon">👥</span><span class="admin-btn-lbl">Members</span></button>
+      <button class="admin-btn" id="adm-btn-jobs" onclick="switchAdminTab('jobs')"><span class="admin-btn-icon">💼</span><span class="admin-btn-lbl">Jobs</span></button>
+      <button class="admin-btn" id="adm-btn-newsletter" onclick="switchAdminTab('newsletter')"><span class="admin-btn-icon">📬</span><span class="admin-btn-lbl">Newsletter</span></button>
+      <button class="admin-btn" id="adm-btn-appeals" onclick="switchAdminTab('appeals')"><span class="admin-btn-icon">⚖️</span><span class="admin-btn-lbl">Appeals</span><span class="admin-btn-cnt hidden" id="adm-cnt-appeals"></span></button>
+      <button class="admin-btn" id="adm-btn-audit" onclick="switchAdminTab('audit')"><span class="admin-btn-icon">📋</span><span class="admin-btn-lbl">Audit</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- LANDING -->
+<div class="screen active" id="screen-landing">
+  <div class="landing">
+    <div class="land-glow-a"></div><div class="land-glow-b"></div>
+    <div class="land-cross">✝</div>
+    <nav class="land-nav">
+      <div class="land-logo" style="display:inline-block;background:#fff;border-radius:12px;padding:8px 14px;"><img src="/logo.png" alt="Christ One's United" class="logo-img-lg"/></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="land-signin-link" onclick="showScreen('screen-signin')">Sign In</button>
+        <button class="land-signin-link" style="color:#f59e0b;border-color:#f59e0b44;" onclick="document.getElementById('adminSignInModal').classList.add('open')">Admin</button>
+      </div>
+    </nav>
+    <div class="land-hero">
+      <div class="land-eyebrow">Faith-Based Community Directory</div>
+      <h1 class="land-title">Connect with businesses<br/>rooted in <em>faith</em>.</h1>
+      <p class="land-sub">A verified directory of Christian-owned businesses and the faith community members who support them.</p>
+      <div class="land-cards">
+        <div class="land-card ind" onclick="selectType('individual')">
+          <div class="land-card-icon">🔍</div>
+          <div class="land-card-title">I'm an Individual</div>
+          <div class="land-card-desc">Search and discover verified Christian-owned businesses near you and across the country.</div>
+          <div class="land-card-price r">From $1.29 / month</div>
+          <button class="land-card-btn ind">Join as Individual →</button>
+        </div>
+        <div class="land-card biz" onclick="selectType('business')">
+          <div class="land-card-icon">🏢</div>
+          <div class="land-card-title">I'm a Business</div>
+          <div class="land-card-desc">List your business and be discovered by thousands of faith-community members.</div>
+          <div class="land-card-price g">From $29.99 / month</div>
+          <button class="land-card-btn biz">List My Business →</button>
+        </div>
+      </div>
+    </div>
+    <div class="land-footer">© Christ One's United · Faith. Community. Business.</div>
+  </div>
+</div>
+
+<!-- SIGN IN -->
+<div class="screen" id="screen-signin">
+  <div class="ob-wrap">
+    <div class="ob-logo" style="display:inline-block;background:#fff;border-radius:10px;padding:6px 12px;"><img src="/logo.png" alt="Christ One's United" class="logo-img-lg"/></div>
+    <div class="ob-subtitle">Sign In</div>
+    <div class="ob-card">
+      <h2 class="ob-title">Welcome back</h2>
+      <p class="ob-desc">Sign in to your Christ One's United account.</p>
+      <div class="form-group"><label class="lbl">Email</label><input class="inp" type="email" id="si-email" placeholder="Email address"/></div>
+      <div class="form-group"><label class="lbl">Password</label><input class="inp" type="password" id="si-pass" placeholder="Password"/></div>
+      <div class="ob-error hidden" id="si-err"></div>
+      <button class="btn btn-ink btn-mt" onclick="doSignIn()">Sign In →</button>
+      <div class="ob-toggle">New here? <button onclick="showScreen('screen-landing')">Create an account</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNUP -->
+<div class="screen" id="screen-signup">
+  <div class="ob-wrap">
+    <div class="ob-logo" style="display:inline-block;background:#fff;border-radius:10px;padding:6px 12px;"><img src="/logo.png" alt="Christ One's United" class="logo-img-lg"/></div>
+    <div class="ob-subtitle" id="su-subtitle">Individual Sign Up</div>
+    <div class="step-dots" id="su-stepdots"></div>
+    <div class="ob-card">
+      <div class="ob-chip r" id="su-chip">🔍 Individual Member</div>
+      <h2 class="ob-title">Create your account</h2>
+      <p class="ob-desc" id="su-desc">Join the Christ One's United community directory.</p>
+      <div class="form-group"><label class="lbl">Full Name</label><input class="inp" id="su-name" placeholder="Full name"/></div>
+      <div class="form-group"><label class="lbl">Email</label><input class="inp" type="email" id="su-email" placeholder="Email address"/></div>
+      <div class="form-group"><label class="lbl">Password</label><input class="inp" type="password" id="su-pass" placeholder="Create a password (min 6)"/></div>
+      <div class="ob-error hidden" id="su-err"></div>
+      <button class="btn btn-mt" id="su-btn" onclick="doSignup()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAITH -->
+<div class="screen" id="screen-faith">
+  <div class="ob-wrap">
+    <div class="ob-logo" style="display:inline-block;background:#fff;border-radius:10px;padding:6px 12px;"><img src="/logo.png" alt="Christ One's United" class="logo-img-lg"/></div>
+    <div class="ob-subtitle">Faith Verification</div>
+    <div class="step-dots" id="faith-stepdots"></div>
+    <div class="ob-card">
+      <div class="faith-icon">✝️</div>
+      <h2 class="ob-title" style="text-align:center;margin-bottom:1rem;">One question before we continue</h2>
+      <div class="faith-q">"Do you testify that Jesus Christ is the one and only way to the Father?"</div>
+      <div class="faith-opts">
+        <button class="faith-opt yes" id="faith-yes" onclick="selectFaith('yes')">✓ Yes</button>
+        <button class="faith-opt no" id="faith-no" onclick="selectFaith('no')">✗ Not Yet</button>
+      </div>
+      <div class="faith-block hidden" id="faith-block">
+        <p style="margin-bottom:.75rem;">We thank you for your interest. This app has been developed to share Evangelism and Discipleship opportunities. Without a faith rooted in Christ, this app would not be of use for someone who has yet to receive salvation through our Lord Jesus Christ.</p>
+        <p style="margin-bottom:.75rem;">Please watch this short video to learn more about salvation through Christ:</p>
+        <p style="font-style:italic;opacity:.8;">(future video coming)</p>
+      </div>
+      <button class="btn btn-mt" id="faith-btn" onclick="doFaith()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT -->
+<div class="screen" id="screen-payment">
+  <div class="ob-wrap">
+    <div class="ob-logo" style="display:inline-block;background:#fff;border-radius:10px;padding:6px 12px;"><img src="/logo.png" alt="Christ One's United" class="logo-img-lg"/></div>
+    <div class="ob-subtitle" id="pay-subtitle">Individual Membership</div>
+    <div class="step-dots" id="pay-stepdots"></div>
+    <div class="ob-card">
+      <div class="ob-chip r" id="pay-chip">🔍 Individual Member</div>
+      <h2 class="ob-title">Choose your plan</h2>
+      <p class="ob-desc">Payments processed securely via Stripe. Cancel anytime.</p>
+      <div class="plans" id="pay-plans"></div>
+      <div id="pay-form">
+        <div style="background:var(--cream);border:1.5px solid var(--border);border-radius:11px;padding:1.25rem;margin-bottom:1rem;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:.5rem;">🔒</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:.35rem;">Secure Checkout via Stripe</div>
+          <div style="font-size:.78rem;color:var(--muted);line-height:1.6;">You'll be taken to Stripe's secure payment page to complete your membership. Your card details are never stored by Christ One's United.</div>
+        </div>
+        <button class="btn btn-mt" id="pay-btn" onclick="doPay()">Proceed to Checkout →</button>
+      </div>
+      <div class="processing hidden" id="pay-processing">
+        <div class="spinner">⟳</div><div>Connecting to Stripe…</div>
+        <div style="font-size:.7rem;margin-top:3px;color:#bbb;">You'll be redirected to Stripe's secure checkout.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IND PROFILE -->
+<div class="screen" id="screen-ind-profile">
+  <div class="ob-wrap">
+    <div class="ob-logo" style="display:inline-block;background:#fff;border-radius:10px;padding:6px 12px;"><img src="/logo.png" alt="Christ One's United" class="logo-img-lg"/></div>
+    <div class="ob-subtitle">Complete Your Profile</div>
+    <div class="step-dots" id="ip-stepdots"></div>
+    <div class="ob-card">
+      <div class="ob-chip r">🔍 Individual Member</div>
+      <h2 class="ob-title" id="ip-title">Almost there!</h2>
+      <p class="ob-desc">Personalize your experience — takes 30 seconds.</p>
+      <div class="section-div">Your Location</div>
+      <div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="ip-zip" placeholder="e.g. 90210" maxlength="10"/></div>
+      <div class="form-group"><label class="lbl"><span class="info-wrap">Your Church (optional) <button class="info-btn" type="button" onclick="toggleInfo(this)">?</button><span class="info-bubble">We collect your Church information to help identify your closest Networking opportunities and to make favorite recommendations to individual users.</span></span></label><input class="inp" id="ip-church" placeholder="e.g. First Baptist Church"/><div class="hint-msg">Helps you find businesses from your congregation</div></div>
+      <div class="section-div">Interests (optional)</div>
+      <div id="ip-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:1.4rem;"></div>
+      <button class="btn btn-ink btn-mt" onclick="doIndProfile()">Save & Enter →</button>
+    </div>
+  </div>
+</div>
+
+<!-- BIZ PROFILE -->
+<div class="screen" id="screen-biz-profile">
+  <div style="min-height:100vh;background:var(--ink);padding:2rem 1.5rem 3rem;display:flex;flex-direction:column;align-items:center;">
+    <div class="ob-logo" style="display:inline-block;background:#fff;border-radius:10px;padding:6px 12px;"><img src="/logo.png" alt="Christ One's United" class="logo-img-lg"/></div>
+    <div class="ob-subtitle">Complete Your Listing</div>
+    <div class="step-dots" id="bp-stepdots"></div>
+    <div class="ob-card" style="max-width:480px;">
+      <div class="ob-chip g" id="bp-chip">🏢 Business Member</div>
+      <h2 class="ob-title">Set up your listing</h2>
+      <p class="ob-desc">Your listing goes to admin review before going live — usually within 24 hours.</p>
+      <div class="section-div">Business Info</div>
+      <div class="form-group"><label class="lbl">Business Name <span class="req">*</span></label><input class="inp" id="bp-name" placeholder="e.g. The Golden Fork"/><div class="err-msg hidden" id="bp-name-err">Required</div></div>
+      <div class="form-group"><label class="lbl">Category <span class="req">*</span></label><select class="inp" id="bp-cat"><option value="">Select a category…</option></select><div class="err-msg hidden" id="bp-cat-err">Required</div></div>
+      <div class="form-group"><label class="lbl">Description <span class="req">*</span></label><textarea class="inp" id="bp-desc" placeholder="Describe your business and what makes it unique…"></textarea><div class="err-msg hidden" id="bp-desc-err">Required</div></div>
+      <div class="form-group"><label class="lbl"><span class="info-wrap">Church / Faith Affiliation <span class="req">*</span> <button class="info-btn" type="button" onclick="toggleInfo(this)">?</button><span class="info-bubble">We collect your Church information to help identify your closest Networking opportunities and to make favorite recommendations to individual users.</span></span></label><input class="inp" id="bp-church" placeholder="e.g. First Baptist Church"/><div class="hint-msg">Helps identify fellow congregation members.</div><div class="err-msg hidden" id="bp-church-err">Required</div></div>
+      <div class="form-group"><label class="lbl">Church Address <span class="req">*</span></label><input class="inp" id="bp-church-addr" placeholder="123 Church St, City, State"/><div class="err-msg hidden" id="bp-church-addr-err">Required</div></div>
+      <div class="section-div">Contact & Location</div>
+      <div class="form-group"><label class="lbl">Street Address <span class="req">*</span></label><input class="inp" id="bp-addr" placeholder="123 Main St, City, State"/><div class="err-msg hidden" id="bp-addr-err">Required</div></div>
+      <div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="bp-zip" placeholder="e.g. 90210" maxlength="10"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="lbl">Phone <span class="req">*</span></label><input class="inp" id="bp-phone" placeholder="(555) 000-0000"/><div class="err-msg hidden" id="bp-phone-err">Required</div></div>
+        <div class="form-group"><label class="lbl">Email <span class="req">*</span></label><input class="inp" type="email" id="bp-email" placeholder="hello@biz.com"/><div class="err-msg hidden" id="bp-email-err">Required</div></div>
+      </div>
+      <div class="form-group"><label class="lbl">Website</label><input class="inp" id="bp-web" placeholder="www.yourbiz.com"/><div class="hint-msg">Optional</div></div>
+      <div class="form-group"><label class="lbl">Facebook</label><input class="inp" id="bp-facebook" placeholder="facebook.com/yourbusiness"/><div class="hint-msg">Optional</div></div>
+      <div class="form-group"><label class="lbl">LinkedIn</label><input class="inp" id="bp-linkedin" placeholder="linkedin.com/company/yourbusiness"/><div class="hint-msg">Optional</div></div>
+      <div class="section-div">Business Hours</div>
+      <div id="bp-hours-rows"></div>
+      <div class="section-div">Tags & Keywords</div>
+      <div class="form-group">
+        <label class="lbl">Tags (up to 8)</label>
+        <div class="tag-row"><input class="inp" id="bp-tag-input" placeholder="e.g. family-friendly…" onkeydown="if(event.key==='Enter')addBizTag()"/><button class="tag-add-btn" onclick="addBizTag()">Add</button></div>
+        <div class="tag-list" id="bp-tags"></div>
+      </div>
+      <button class="btn btn-green btn-mt" onclick="doBizProfile()">Submit for Review →</button>
+    </div>
+  </div>
+</div>
+
+<!-- DIRECTORY -->
+<div class="screen" id="screen-directory">
+  <div class="topnav">
+    <div class="topnav-logo-wrap" style="background:#fff;border-radius:8px;padding:3px 8px;"><img src="/logo.png" alt="Christ One's United" class="logo-img"/></div>
+    <div class="topnav-right">
+      <span class="badge-ind">Member</span>
+      <button class="bell-btn" onclick="toggleNotifs()">🔔<span class="bell-dot hidden" id="bell-dot-dir"></span></button>
+      <button class="signout-btn" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </div>
+  <div id="dir-tab-home">
+    <div class="dir-hero">
+      <div class="dir-eyebrow">Christ One's United Directory</div>
+      <h1 class="dir-title">Find businesses<br/>your community trusts.</h1>
+      <p class="dir-sub" id="dir-count-sub">Browsing listings</p>
+      <div class="search-bar">
+        <input class="search-input" id="dir-search" placeholder="Search by name, category, keyword…" oninput="renderDirectory()"/>
+        <button class="search-btn">🔍</button>
+      </div>
+    </div>
+    <div class="feat-strip hidden" id="feat-strip">
+      <div class="feat-label">⭐ Featured Listings</div>
+      <div class="feat-row" id="feat-row"></div>
+    </div>
+    <div class="dir-body">
+      <div class="newsletter-card">
+        <div class="newsletter-eyebrow">Weekly Newsletter</div>
+        <div class="newsletter-title">The Christ One's United Weekly</div>
+        <div class="newsletter-sub">New listings, testimonials, prayer highlights & community events — every week in your inbox.</div>
+        <input class="newsletter-inp" id="nl-email" placeholder="Your email address"/>
+        <button class="newsletter-btn" onclick="subscribeNewsletter()">Subscribe — It's Free</button>
+      </div>
+      <div class="church-filter-wrap">
+        <span class="church-filter-label">⛪ Filter by Church:</span>
+        <select class="church-filter-sel" id="church-filter" onchange="renderDirectory()">
+          <option value="">All Churches</option>
+        </select>
+      </div>
+      <div class="cat-chips" id="cat-chips"></div>
+      <div class="result-meta" id="result-meta"></div>
+      <div class="biz-grid" id="biz-grid"></div>
+    </div>
+  </div>
+  <div id="dir-tab-saved" class="hidden">
+    <div class="page-body">
+      <div class="page-title">Saved Businesses</div>
+      <div class="page-sub" id="saved-sub">0 saved listings</div>
+      <div class="biz-grid" id="saved-grid"></div>
+    </div>
+  </div>
+  <div id="dir-tab-community" class="hidden">
+    <div class="page-body">
+      <div class="page-title">Community</div>
+      <div class="page-sub">Prayer requests, events & referral rewards</div>
+      <!-- PRAYER BOARD -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">🙏 Prayer Board</div>
+        <button onclick="openPrayerModal()" style="padding:6px 14px;background:var(--red);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;">+ Post Request</button>
+      </div>
+      <div id="prayer-list"></div>
+      <!-- EVENTS -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:1.5rem 0 .75rem;">
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">📅 Community Events</div>
+        <button onclick="openEventModal()" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;">+ Post Event</button>
+      </div>
+      <div id="events-list"></div>
+      <!-- REFERRAL REWARDS -->
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin:1.5rem 0 .75rem;">🏅 Referral Leaderboard</div>
+      <div id="leaderboard"></div>
+    </div>
+  </div>
+  <div id="dir-tab-messages" class="hidden">
+    <div class="page-body" style="max-width:640px;">
+      <div class="page-title">Messages</div>
+      <div class="page-sub">Private conversations with businesses</div>
+      <div id="messages-list"></div>
+    </div>
+  </div>
+  <div id="dir-tab-jobs" class="hidden">
+    <div class="page-body" style="max-width:760px;">
+      <div class="page-title">Job Board</div>
+      <div class="page-sub">Faith-based employment opportunities from verified businesses</div>
+      <div class="job-search-bar">
+        <input class="job-search-inp" id="job-search" placeholder="🔍  Job title, keyword, or company…" oninput="renderJobs()"/>
+        <input class="job-loc-inp" id="job-loc" placeholder="📍  City, State or ZIP" oninput="renderJobs()"/>
+      </div>
+      <div class="job-filters">
+        <select class="job-filter-sel" id="job-type-filter" onchange="renderJobs()">
+          <option value="">All Types</option>
+          <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Volunteer</option>
+        </select>
+        <select class="job-filter-sel" id="job-cat-filter" onchange="renderJobs()">
+          <option value="">All Categories</option>
+        </select>
+        <select class="job-filter-sel" id="job-sort" onchange="renderJobs()">
+          <option value="newest">Newest First</option>
+          <option value="relevant">Most Relevant</option>
+        </select>
+      </div>
+      <div id="job-result-meta" class="result-meta"></div>
+      <div id="jobs-grid"></div>
+    </div>
+  </div>
+  <div id="dir-tab-account" class="hidden">
+    <div class="page-body" style="max-width:600px;">
+      <div class="page-title">My Account</div>
+      <div class="page-sub">Individual Member</div>
+      <div class="info-card"><div class="info-label">Profile</div><div class="info-val" id="acc-name"></div><div class="info-sub" id="acc-email"></div></div>
+      <div class="info-card" style="background:#f0e4e0;border-color:#e8b4aa;"><div class="info-label" style="color:var(--red);">Membership</div><div class="info-sub" id="acc-plan"></div></div>
+      <div class="reward-bar"><div class="reward-icon">🤝</div><div><div class="reward-label">My Referrals</div><div class="reward-sub">Keep referring to earn your badge!</div></div><div class="reward-count" id="my-ref-count">0</div></div>
+      <button class="btn btn-ink btn-mt" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </div>
+  <div id="dir-tab-guild" class="hidden">
+    <div class="page-body" style="max-width:640px;">
+      <div class="page-title">My Guild</div>
+      <div class="page-sub">Faith-based groups with invite-only membership</div>
+      <div id="guild-content"></div>
+    </div>
+  </div>
+  <div class="botnav">
+    <button class="botnav-tab active-ind" id="dir-btn-home" onclick="switchDirTab('home')"><span class="botnav-tab-icon">🏠</span><span class="botnav-tab-lbl">Home</span></button>
+    <button class="botnav-tab" id="dir-btn-jobs" onclick="switchDirTab('jobs')"><span class="botnav-tab-icon">💼</span><span class="botnav-tab-lbl">Jobs</span></button>
+    <button class="botnav-tab" id="dir-btn-community" onclick="switchDirTab('community')"><span class="botnav-tab-icon">🙏</span><span class="botnav-tab-lbl">Community</span></button>
+    <button class="botnav-tab" id="dir-btn-guild" onclick="switchDirTab('guild')"><span class="botnav-tab-icon">⚔️</span><span class="botnav-tab-lbl">Guild</span></button>
+    <button class="botnav-tab" id="dir-btn-messages" onclick="switchDirTab('messages')"><span class="botnav-tab-icon">💬</span><span class="botnav-tab-lbl">Messages</span><span class="botnav-cnt hidden" id="msg-cnt"></span></button>
+    <button class="botnav-tab" id="dir-btn-account" onclick="switchDirTab('account')"><span class="botnav-tab-icon">👤</span><span class="botnav-tab-lbl">Account</span></button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="screen" id="screen-dashboard">
+  <div class="topnav">
+    <div class="topnav-logo-wrap" style="background:#fff;border-radius:8px;padding:3px 8px;"><img src="/logo.png" alt="Christ One's United" class="logo-img"/></div>
+    <div class="topnav-right">
+      <span class="badge-biz">Business</span>
+      <button class="bell-btn" onclick="toggleNotifs()">🔔<span class="bell-dot hidden" id="bell-dot-dash"></span></button>
+      <button class="signout-btn" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </div>
+  <div class="dash-body">
+    <div class="dash-header-eyebrow">Business Owner Portal</div>
+    <div class="dash-header-title" id="dash-biz-name">Your Business</div>
+    <div class="dash-plan-chip" id="dash-plan-chip">✓ Business Member</div>
+    <div id="dash-pending-banner" class="hidden" style="background:#fdf3e3;border:1.5px solid var(--gold);border-radius:10px;padding:.875rem;margin-bottom:1rem;font-size:.82rem;color:#7a5c00;">⏳ <strong>Pending Review</strong> — Your listing is awaiting admin approval. You'll be notified once it goes live.</div>
+    <div class="dash-tabs">
+      <button class="dash-tab active" id="dash-tab-overview" onclick="switchDashTab('overview')">Overview</button>
+      <button class="dash-tab" id="dash-tab-jobs" onclick="switchDashTab('jobs')">Jobs<span class="dash-tab-badge hidden" id="dash-jobs-cnt"></span></button>
+      <button class="dash-tab" id="dash-tab-referrals" onclick="switchDashTab('referrals')">Referrals<span class="dash-tab-badge hidden" id="dash-ref-cnt"></span></button>
+      <button class="dash-tab" id="dash-tab-testimonials" onclick="switchDashTab('testimonials')">Testimonials</button>
+      <button class="dash-tab" id="dash-tab-messages" onclick="switchDashTab('messages')">Messages<span class="dash-tab-badge hidden" id="dash-msg-cnt"></span></button>
+      <button class="dash-tab" id="dash-tab-listing" onclick="switchDashTab('listing')">Listing</button>
+    </div>
+    <div id="dash-panel-overview"></div>
+    <div id="dash-panel-jobs" class="hidden"></div>
+    <div id="dash-panel-referrals" class="hidden"></div>
+    <div id="dash-panel-testimonials" class="hidden"></div>
+    <div id="dash-panel-messages" class="hidden"></div>
+    <div id="dash-panel-listing" class="hidden"></div>
+  </div>
+  <div class="botnav">
+    <button class="botnav-tab active-biz" id="dash-btn-overview" onclick="switchDashTab('overview')"><span class="botnav-tab-icon">📊</span><span class="botnav-tab-lbl">Overview</span></button>
+    <button class="botnav-tab" id="dash-btn-jobs" onclick="switchDashTab('jobs')"><span class="botnav-tab-icon">💼</span><span class="botnav-tab-lbl">Jobs</span></button>
+    <button class="botnav-tab" id="dash-btn-referrals" onclick="switchDashTab('referrals')"><span class="botnav-tab-icon">🤝</span><span class="botnav-tab-lbl">Referrals</span></button>
+    <button class="botnav-tab" id="dash-btn-testimonials" onclick="switchDashTab('testimonials')"><span class="botnav-tab-icon">✍️</span><span class="botnav-tab-lbl">Testify</span></button>
+    <button class="botnav-tab" id="dash-btn-messages" onclick="switchDashTab('messages')"><span class="botnav-tab-icon">💬</span><span class="botnav-tab-lbl">Messages</span></button>
+    <button class="botnav-tab" id="dash-btn-listing" onclick="switchDashTab('listing')"><span class="botnav-tab-icon">📋</span><span class="botnav-tab-lbl">Listing</span></button>
+  </div>
+</div>
+
+<script>
+// ═══════════════ STATE
+var DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+var CATS = ["All","Restaurant","Retail","Health & Wellness","Technology","Legal","Finance","Education","Home Services","Beauty","Fitness","Other"];
+var CAT_COLORS = {"Restaurant":"#e8603c","Retail":"#6c63ff","Health & Wellness":"#3cbf8f","Technology":"#2d9cdb","Legal":"#8b5cf6","Finance":"#f59e0b","Education":"#ec4899","Home Services":"#10b981","Beauty":"#f472b6","Fitness":"#f97316","Other":"#6b7280"};
+var IND_PLANS = [{id:"monthly",label:"Monthly",price:"$1.29",period:"/mo",desc:"Billed monthly."},{id:"annual",label:"Annual",price:"$9.99",period:"/yr",desc:"Save 35%.",badge:"Best Value"}];
+var BIZ_PLANS = [{id:"monthly",label:"Monthly",price:"$29.99",period:"/mo",desc:"Billed monthly."},{id:"annual",label:"Annual",price:"$239.99",period:"/yr",desc:"Save 33%.",badge:"Best Value"}];
+var NOW = new Date();
+
+var state = {
+  profileType:null, user:null, plan:null, faithAnswer:null, bizTags:[], activeCat:'All',
+  savedIds:[], myReferralCount:0,
+  notifications:[{id:1,text:"Welcome to Christ One's United! Your membership is active.",time:"Just now",read:false}],
+  businesses:[
+    {id:1,name:"The Golden Fork",category:"Restaurant",description:"Farm-to-table dining with seasonal menus and a curated wine list.",address:"42 Elm Street, Portland, OR",phone:"(503) 555-0101",email:"hello@goldenfork.com",website:"goldenfork.com",facebook:"facebook.com/goldenfork",linkedin:"",tags:["vegan options","wine bar","outdoor seating"],church:"Grace Community Church",churchAddress:"10 Grace Ave, Portland, OR",hours:{Mon:"9am–9pm",Tue:"9am–9pm",Wed:"9am–9pm",Thu:"9am–9pm",Fri:"9am–10pm",Sat:"10am–10pm",Sun:"Closed"},featured:false,verified:true,approved:true,joinedDate:new Date(Date.now()-20*86400000),views:142,referrals:[],testimonials:[{author:"Sarah M.",text:"Best meal I've had in Portland. Truly a blessing of a place!"}]},
+    {id:2,name:"Pixel & Co.",category:"Technology",description:"Full-stack web design and development studio specializing in startups.",address:"88 Innovation Blvd, Austin, TX",phone:"(512) 555-0234",email:"studio@pixelco.dev",website:"pixelco.dev",facebook:"",linkedin:"linkedin.com/company/pixelco",tags:["web design","React","branding"],church:"Harvest Fellowship",churchAddress:"55 Harvest Rd, Austin, TX",hours:{Mon:"8am–6pm",Tue:"8am–6pm",Wed:"8am–6pm",Thu:"8am–6pm",Fri:"8am–5pm",Sat:"Closed",Sun:"Closed"},featured:true,verified:true,approved:true,joinedDate:new Date(Date.now()-3*86400000),views:98,referrals:[],testimonials:[]},
+    {id:3,name:"Bloom Wellness Spa",category:"Health & Wellness",description:"Holistic treatments, massage therapy, and mindfulness sessions.",address:"15 Serenity Lane, Asheville, NC",phone:"(828) 555-0378",email:"book@bloomwellness.com",website:"bloomwellness.com",facebook:"facebook.com/bloomwellness",linkedin:"",tags:["massage","meditation","facials"],church:"Mountain Hope Church",churchAddress:"200 Summit Dr, Asheville, NC",hours:{Mon:"Closed",Tue:"10am–7pm",Wed:"10am–7pm",Thu:"10am–7pm",Fri:"10am–8pm",Sat:"9am–8pm",Sun:"11am–5pm"},featured:true,verified:true,approved:true,joinedDate:new Date(Date.now()-45*86400000),views:210,referrals:[],testimonials:[{author:"James T.",text:"A place of true peace and healing. Highly recommend."}]},
+    {id:4,name:"Ironwood Legal",category:"Legal",description:"Business and estate law firm with 20+ years of experience.",address:"200 Commerce Dr, Chicago, IL",phone:"(312) 555-0456",email:"info@ironwoodlegal.com",website:"ironwoodlegal.com",facebook:"",linkedin:"linkedin.com/company/ironwoodlegal",tags:["business law","estate planning","contracts"],church:"Grace Community Church",churchAddress:"40 Grace Blvd, Chicago, IL",hours:{Mon:"9am–5pm",Tue:"9am–5pm",Wed:"9am–5pm",Thu:"9am–5pm",Fri:"9am–4pm",Sat:"Closed",Sun:"Closed"},featured:false,verified:true,approved:true,joinedDate:new Date(Date.now()-60*86400000),views:67,referrals:[],testimonials:[]},
+    {id:5,name:"Harbor Fitness",category:"Fitness",description:"Waterfront gym with personal training, yoga, and group classes.",address:"9 Harbor View, Seattle, WA",phone:"(206) 555-0512",email:"join@harborfitness.com",website:"harborfitness.com",facebook:"facebook.com/harborfitness",linkedin:"",tags:["personal training","yoga","group classes"],church:"Cornerstone Church",churchAddress:"88 Harbor Blvd, Seattle, WA",hours:{Mon:"5am–10pm",Tue:"5am–10pm",Wed:"5am–10pm",Thu:"5am–10pm",Fri:"5am–9pm",Sat:"7am–8pm",Sun:"8am–6pm"},featured:false,verified:true,approved:true,joinedDate:new Date(Date.now()-5*86400000),views:185,referrals:[],testimonials:[]},
+    {id:6,name:"Sage & Shears",category:"Beauty",description:"Boutique hair salon focused on sustainable products and precision cuts.",address:"33 Main St, Denver, CO",phone:"(720) 555-0601",email:"hello@sageshears.com",website:"sageshears.com",facebook:"facebook.com/sageshears",linkedin:"",tags:["haircuts","color","eco-friendly"],church:"Harvest Fellowship",churchAddress:"22 Harvest Way, Denver, CO",hours:{Mon:"Closed",Tue:"9am–6pm",Wed:"9am–6pm",Thu:"9am–7pm",Fri:"9am–7pm",Sat:"8am–5pm",Sun:"Closed"},featured:false,verified:true,approved:true,joinedDate:new Date(Date.now()-55*86400000),views:93,referrals:[],testimonials:[{author:"Maria L.",text:"Love this salon. Faith-filled atmosphere and incredible work!"}]},
+  ],
+  pendingBusinesses:[
+    {id:99,name:"Sunrise Bakery",category:"Restaurant",description:"Christian-owned artisan bakery specializing in fresh breads and pastries.",address:"77 Sunrise Ave, Nashville, TN",phone:"(615) 555-0799",email:"hello@sunrisebakery.com",church:"New Life Church",churchAddress:"100 New Life Blvd, Nashville, TN",tags:["bakery","pastries","gluten-free"],approved:false}
+  ],
+  myBiz:null,
+  prayerRequests:[
+    {id:1,author:"Grace M.",text:"Please pray for my husband's recovery from surgery this week.",time:"2 hours ago",prayedBy:[],prayedByMe:false},
+    {id:2,author:"David K.",text:"Seeking God's guidance as I start my new business venture for His glory.",time:"Yesterday",prayedBy:[],prayedByMe:false},
+    {id:3,author:"Anonymous",text:"Prayers for unity in our congregation and strength for our pastor.",time:"2 days ago",prayedBy:[],prayedByMe:false},
+  ],
+  events:[
+    {id:1,title:"Community Business Mixer",date:new Date(Date.now()+7*86400000),time:"6:00 PM – 9:00 PM",location:"Grace Community Church Hall",host:"Christ One's United",desc:"Network with fellow faith-based business owners over light refreshments."},
+    {id:2,title:"Faith & Finance Workshop",date:new Date(Date.now()+14*86400000),time:"10:00 AM – 12:00 PM",location:"Harvest Fellowship Center",host:"Ironwood Legal",desc:"Biblical principles for managing your business finances. All welcome."},
+    {id:3,title:"Sunday Market",date:new Date(Date.now()+21*86400000),time:"12:00 PM – 4:00 PM",location:"Cornerstone Church Courtyard",host:"Cornerstone Church",desc:"Local Christian vendors, food, fellowship. Family friendly."},
+  ],
+  messages:[],
+  leaderboard:[
+    {name:"Marcus J.",count:12,badge:"🏆 Top Referrer"},
+    {name:"Linda P.",count:8,badge:"🥈 Silver"},
+    {name:"Thomas R.",count:5,badge:"🥉 Bronze"},
+    {name:"Angela S.",count:3,badge:""},
+    {name:"Kevin W.",count:2,badge:""},
+  ]
+};
+
+var selectedPlan = null;
+
+// ═══════════════ UTILS
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function toggleInfo(btn){
+  var isActive=btn.classList.contains('active');
+  document.querySelectorAll('.info-btn.active').forEach(function(b){b.classList.remove('active');});
+  if(!isActive)btn.classList.add('active');
+}
+document.addEventListener('click',function(e){
+  if(!e.target.classList.contains('info-btn'))document.querySelectorAll('.info-btn.active').forEach(function(b){b.classList.remove('active');});
+  if(!e.target.classList.contains('job-report-btn'))document.querySelectorAll('.job-report-btn.active').forEach(function(b){b.classList.remove('active');});
+});
+function makeDots(step,color,cid){var c=document.getElementById(cid);if(!c)return;c.innerHTML='';for(var i=1;i<=4;i++){var d=document.createElement('div');d.className='step-dot'+(i<step?' done':(i===step?' active-'+color:''));d.textContent=i<step?'✓':i;c.appendChild(d);if(i<4){var l=document.createElement('div');l.className='step-line'+(i<step?' done':'');c.appendChild(l);}}}
+function isNewThisWeek(b){return (Date.now()-new Date(b.joinedDate).getTime())<7*86400000;}
+function todayHours(b){if(!b.hours)return null;var d=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];return b.hours[d]||null;}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function addNotif(text){state.notifications.unshift({id:Date.now(),text:text,time:'Just now',read:false});updateNotifUI();}
+
+// ═══════════════ LANDING
+function selectType(type){
+  state.profileType=type;var isBiz=type==='business';
+  document.getElementById('su-subtitle').textContent=isBiz?'Business Sign Up':'Individual Sign Up';
+  document.getElementById('su-chip').className='ob-chip '+(isBiz?'g':'r');
+  document.getElementById('su-chip').textContent=isBiz?'🏢 Business Owner':'🔍 Individual Member';
+  document.getElementById('su-desc').textContent=isBiz?'Set up your Christ One\'s United business account.':'Join the Christ One\'s United community directory.';
+  document.getElementById('su-btn').className='btn btn-mt '+(isBiz?'btn-green':'btn-ink');
+  makeDots(1,isBiz?'g':'r','su-stepdots');
+  showScreen('screen-signup');
+}
+
+// ═══════════════ SIGN IN
+function doSignIn(){
+  var email=document.getElementById('si-email').value.trim(),pass=document.getElementById('si-pass').value,e=document.getElementById('si-err');
+  e.classList.add('hidden');
+  if(!email||!/\S+@\S+\.\S+/.test(email)){e.textContent='Enter a valid email.';e.classList.remove('hidden');return;}
+  if(!pass){e.textContent='Enter your password.';e.classList.remove('hidden');return;}
+  state.user={name:email.split('@')[0],email:email,plan:'monthly',church:''};state.profileType='individual';
+  enterDirectory();
+}
+
+// ═══════════════ SIGNUP
+function doSignup(){
+  var name=document.getElementById('su-name').value.trim(),email=document.getElementById('su-email').value.trim(),pass=document.getElementById('su-pass').value,e=document.getElementById('su-err');
+  e.classList.add('hidden');
+  if(!name){e.textContent='Enter your name.';e.classList.remove('hidden');return;}
+  if(!email||!/\S+@\S+\.\S+/.test(email)){e.textContent='Enter a valid email.';e.classList.remove('hidden');return;}
+  if(pass.length<6){e.textContent='Password must be 6+ characters.';e.classList.remove('hidden');return;}
+  state.user={name:name,email:email};
+  var isBiz=state.profileType==='business';
+  makeDots(2,isBiz?'g':'r','faith-stepdots');
+  document.getElementById('faith-btn').className='btn btn-mt '+(isBiz?'btn-green':'btn-ink');
+  state.faithAnswer=null;
+  document.getElementById('faith-yes').className='faith-opt yes';
+  document.getElementById('faith-no').className='faith-opt no';
+  document.getElementById('faith-block').classList.add('hidden');
+  showScreen('screen-faith');
+}
+
+// ═══════════════ FAITH
+function selectFaith(v){state.faithAnswer=v;document.getElementById('faith-yes').className='faith-opt yes'+(v==='yes'?' sel':'');document.getElementById('faith-no').className='faith-opt no'+(v==='no'?' sel':'');document.getElementById('faith-block').classList.add('hidden');}
+function doFaith(){if(!state.faithAnswer)return;if(state.faithAnswer==='no'){document.getElementById('faith-block').classList.remove('hidden');return;}goToPayment();}
+
+// ═══════════════ PAYMENT
+function goToPayment(){
+  var isBiz=state.profileType==='business';var plans=isBiz?BIZ_PLANS:IND_PLANS;
+  selectedPlan=plans.find(p=>p.id==='annual')||plans[0];
+  document.getElementById('pay-subtitle').textContent=isBiz?'Business Membership':'Individual Membership';
+  document.getElementById('pay-chip').className='ob-chip '+(isBiz?'g':'r');
+  document.getElementById('pay-chip').textContent=isBiz?'🏢 Business Owner':'🔍 Individual Member';
+  makeDots(3,isBiz?'g':'r','pay-stepdots');
+  renderPlans();
+  document.getElementById('pay-card').value='';document.getElementById('pay-exp').value='';document.getElementById('pay-cvc').value='';
+  document.getElementById('pay-form').classList.remove('hidden');document.getElementById('pay-processing').classList.add('hidden');
+  updatePayBtn();showScreen('screen-payment');
+}
+function renderPlans(){
+  var isBiz=state.profileType==='business';var plans=isBiz?BIZ_PLANS:IND_PLANS;var color=isBiz?'g':'r';
+  document.getElementById('pay-plans').innerHTML=plans.map(function(p){
+    var sel=selectedPlan&&selectedPlan.id===p.id;
+    return '<div class="plan-opt'+(sel?' sel-'+color:'')+'" onclick="selectPlan(\''+p.id+'\')">'+(p.badge?'<div class="plan-badge '+color+'">'+p.badge+'</div>':'')+'<div class="plan-label">'+p.label+'</div><div class="plan-price">'+p.price+'</div><div class="plan-period">'+p.period+'</div><div class="plan-desc">'+p.desc+'</div></div>';
+  }).join('');
+}
+function selectPlan(id){var isBiz=state.profileType==='business';selectedPlan=(isBiz?BIZ_PLANS:IND_PLANS).find(p=>p.id===id)||selectedPlan;renderPlans();updatePayBtn();}
+function updatePayBtn(){
+  var btn=document.getElementById('pay-btn');
+  if(!btn)return;
+  btn.disabled=false;
+  btn.style.opacity=1;
+  btn.style.cursor='pointer';
+  btn.textContent='Proceed to Checkout →';
+  btn.className='btn btn-mt '+(state.profileType==='business'?'btn-green':'btn-red');
+}
+function doPay(){
+  document.getElementById('pay-form').classList.add('hidden');
+  document.getElementById('pay-processing').classList.remove('hidden');
+  // Build the plan key to send to our serverless function
+  var isBiz = state.profileType === 'business';
+  var planKey = (isBiz ? 'business' : 'individual') + '_' + (selectedPlan ? selectedPlan.id : 'monthly');
+  // Call our Vercel serverless function
+  fetch('/api/create-checkout-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      planKey:     planKey,
+      email:       state.user ? state.user.email : '',
+      name:        state.user ? state.user.name  : '',
+      profileType: state.profileType,
+    }),
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    if(data.url){
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    } else {
+      // Stripe returned an error
+      document.getElementById('pay-form').classList.remove('hidden');
+      document.getElementById('pay-processing').classList.add('hidden');
+      alert('Payment error: ' + (data.error || 'Please try again.'));
+    }
+  })
+  .catch(function(err){
+    document.getElementById('pay-form').classList.remove('hidden');
+    document.getElementById('pay-processing').classList.add('hidden');
+    alert('Connection error. Please check your internet and try again.');
+  });
+}
+
+// ═══════════════ STRIPE RETURN HANDLER
+// Runs on page load — checks if user was redirected back from Stripe
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  if(params.get('cancelled')==='true'){
+    // User cancelled Stripe checkout — show landing with a gentle message
+    window.history.replaceState({},'','/');
+    setTimeout(function(){
+      var msg = document.createElement('div');
+      msg.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #ddd8ce;border-radius:12px;padding:.875rem 1.25rem;font-family:DM Sans,sans-serif;font-size:.82rem;color:#7a7369;box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:999;text-align:center;max-width:320px;';
+      msg.innerHTML = 'No problem — your information is saved.<br/><strong style="color:#0f0e0c;">Complete your membership anytime.</strong>';
+      document.body.appendChild(msg);
+      setTimeout(function(){msg.remove();}, 5000);
+    }, 500);
+  }
+})();
+
+// ═══════════════ IND PROFILE
+function populateIndCats(){
+  var el=document.getElementById('ip-cats');el.innerHTML='';var selected=[];
+  CATS.filter(c=>c!=='All').forEach(function(c){
+    var s=document.createElement('span');s.textContent=c;
+    s.style.cssText='padding:4px 11px;border-radius:20px;font-size:.73rem;font-weight:500;cursor:pointer;border:1.5px solid #ddd8ce;background:#fff;color:#7a7369;';
+    s.onclick=function(){var i=selected.indexOf(c);if(i>-1){selected.splice(i,1);s.style.borderColor='#ddd8ce';s.style.background='#fff';s.style.color='#7a7369';}else{selected.push(c);s.style.borderColor='#c8452d';s.style.background='#f0e4e0';s.style.color='#c8452d';}};
+    el.appendChild(s);
+  });
+}
+function doIndProfile(){
+  state.user.church=document.getElementById('ip-church').value.trim();
+  enterDirectory();
+}
+
+// ═══════════════ BIZ PROFILE
+function populateBizForm(){
+  var sel=document.getElementById('bp-cat');sel.innerHTML='<option value="">Select a category…</option>';
+  CATS.filter(c=>c!=='All').forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  var planLabel={monthly:'Monthly Plan',annual:'Annual Plan'}[state.plan]||'Business Member';
+  document.getElementById('bp-chip').textContent='🏢 '+planLabel;
+  // Hours rows
+  var hr=document.getElementById('bp-hours-rows');hr.innerHTML='';
+  DAYS.forEach(function(d){
+    hr.innerHTML+='<div style="display:grid;grid-template-columns:60px 1fr;gap:8px;margin-bottom:6px;align-items:center;"><label style="font-size:.76rem;font-weight:600;color:var(--muted);">'+d+'</label><input class="inp" id="hr-'+d+'" placeholder="e.g. 9am–5pm or Closed" style="padding:7px 10px;font-size:.8rem;"/></div>';
+  });
+}
+function addBizTag(){var inp=document.getElementById('bp-tag-input'),t=inp.value.trim();if(!t||state.bizTags.includes(t)||state.bizTags.length>=8)return;state.bizTags.push(t);inp.value='';renderBizTags();}
+function removeBizTag(t){state.bizTags=state.bizTags.filter(x=>x!==t);renderBizTags();}
+function renderBizTags(){document.getElementById('bp-tags').innerHTML=state.bizTags.map(t=>'<span class="tag-pill">'+t+' <span class="tag-remove" onclick="removeBizTag(\''+t+'\')">×</span></span>').join('');}
+function doBizProfile(){
+  var name=document.getElementById('bp-name').value.trim(),cat=document.getElementById('bp-cat').value,desc=document.getElementById('bp-desc').value.trim(),
+      addr=document.getElementById('bp-addr').value.trim(),phone=document.getElementById('bp-phone').value.trim(),email=document.getElementById('bp-email').value.trim(),
+      church=document.getElementById('bp-church').value.trim(),churchAddr=document.getElementById('bp-church-addr').value.trim();
+  var valid=true;
+  [['bp-name-err',!name],['bp-cat-err',!cat],['bp-desc-err',!desc],['bp-addr-err',!addr],['bp-phone-err',!phone],['bp-email-err',!email||!/\S+@\S+\.\S+/.test(email)],['bp-church-err',!church],['bp-church-addr-err',!churchAddr]].forEach(function(pair){document.getElementById(pair[0]).classList[pair[1]?'remove':'add']('hidden');if(pair[1])valid=false;});
+  if(!valid)return;
+  var hours={};DAYS.forEach(function(d){hours[d]=document.getElementById('hr-'+d).value.trim()||'Closed';});
+  var biz={id:Date.now(),name:name,category:cat,description:desc,address:addr,zip:document.getElementById('bp-zip').value,phone:phone,email:email,
+    website:document.getElementById('bp-web').value,facebook:document.getElementById('bp-facebook').value,linkedin:document.getElementById('bp-linkedin').value,
+    church:church,churchAddress:churchAddr,hours:hours,tags:state.bizTags.slice(),featured:false,verified:false,approved:false,
+    joinedDate:new Date(),views:0,referrals:[],testimonials:[]};
+  state.pendingBusinesses.push(biz);state.myBiz=biz;
+  addNotif('Your listing has been submitted for review!');
+  enterDashboard();
+}
+
+// ═══════════════ DIRECTORY
+function enterDirectory(){
+  state.activeCat='All';document.getElementById('dir-search').value='';
+  document.getElementById('dir-count-sub').textContent='Browsing '+state.businesses.filter(b=>b.approved).length+' verified listings';
+  document.getElementById('acc-name').textContent=state.user.name;
+  document.getElementById('acc-email').textContent=state.user.email;
+  document.getElementById('acc-plan').textContent='Individual · '+(state.plan==='annual'?'Annual ($9.99/yr)':'Monthly ($1.29/mo)');
+  populateChurchFilter();renderCatChips();renderDirectory();renderFeatured();
+  renderPrayerBoard();renderEvents();renderLeaderboard();renderMessages('individual');
+  updateNotifUI();showScreen('screen-directory');switchDirTab('home');
+}
+function populateChurchFilter(){
+  var sel=document.getElementById('church-filter');sel.innerHTML='<option value="">All Churches</option>';
+  var churches=[...new Set(state.businesses.filter(b=>b.approved&&b.church).map(b=>b.church))].sort();
+  churches.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  if(state.user&&state.user.church){sel.value=state.user.church;}
+}
+function renderCatChips(){
+  var el=document.getElementById('cat-chips');el.innerHTML='';
+  CATS.forEach(function(c){var btn=document.createElement('button');btn.className='cat-chip'+(state.activeCat===c?' active':'');btn.textContent=c;btn.onclick=function(){state.activeCat=c;renderCatChips();renderDirectory();};el.appendChild(btn);});
+}
+function renderFeatured(){
+  var featured=state.businesses.filter(b=>b.featured&&b.approved);
+  var strip=document.getElementById('feat-strip');
+  if(!featured.length){strip.classList.add('hidden');return;}
+  strip.classList.remove('hidden');
+  document.getElementById('feat-row').innerHTML=featured.map(b=>'<div class="feat-card"><div class="feat-name">'+b.name+'</div><div class="feat-cat">'+b.category+'</div></div>').join('');
+}
+function renderDirectory(){
+  var q=(document.getElementById('dir-search').value||'').toLowerCase();
+  var cf=document.getElementById('church-filter').value;
+  var filtered=state.businesses.filter(function(b){
+    if(!b.approved)return false;
+    var mc=state.activeCat==='All'||b.category===state.activeCat;
+    var cc=!cf||b.church===cf;
+    return mc&&cc&&(!q||b.name.toLowerCase().includes(q)||b.description.toLowerCase().includes(q)||b.category.toLowerCase().includes(q)||b.tags.some(t=>t.toLowerCase().includes(q)));
+  });
+  document.getElementById('result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> result'+(filtered.length!==1?'s':'')+(q?' for "<strong>'+q+'</strong>"':'')+(state.activeCat!=='All'?' in <strong>'+state.activeCat+'</strong>':'')+(cf?' · <strong>'+cf+'</strong>':'');
+  var grid=document.getElementById('biz-grid');
+  if(!filtered.length){grid.innerHTML='<div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-title">No results found</div><p>Try a different search or filter.</p></div>';return;}
+  grid.innerHTML='';filtered.forEach(function(b){grid.appendChild(makeBizCard(b));});
+  document.getElementById('feat-strip').classList[q||state.activeCat!=='All'||cf?'add':'remove']('hidden');
+}
+function makeBizCard(b){
+  var color=CAT_COLORS[b.category]||'#6b7280',saved=state.savedIds.includes(b.id),ntw=isNewThisWeek(b),hrs=todayHours(b);
+  var div=document.createElement('div');div.className='biz-card'+(b.featured?' featured':'')+(ntw?' new-this-week':'');
+  var badges='';if(b.verified)badges+='<span class="biz-verified">✓ Verified</span>';if(ntw)badges+='<span class="biz-new">🆕 New This Week</span>';
+  var hoursHtml=hrs?'<div class="biz-hours'+(hrs==='Closed'?' closed':'')+'">⏰ Today: '+hrs+'</div>':'';
+  var metaHtml='<div class="biz-meta"><div class="biz-meta-row">📍 '+b.address+'</div><div class="biz-meta-row">📞 '+b.phone+'</div>'+(b.website?'<div class="biz-meta-row">🌐 <a href="https://'+b.website+'" target="_blank">'+b.website+'</a></div>':'')+(b.facebook?'<div class="biz-meta-row">👥 <a href="https://'+b.facebook+'" target="_blank">'+b.facebook+'</a></div>':'')+(b.linkedin?'<div class="biz-meta-row">💼 <a href="https://'+b.linkedin+'" target="_blank">'+b.linkedin+'</a></div>':'')+'<div class="biz-meta-row">✉️ '+b.email+'</div></div>';
+  var tmsHtml=b.testimonials&&b.testimonials.length?'<div class="testimonials">'+b.testimonials.slice(0,2).map(t=>'<div class="testimonial"><div class="testimonial-text">"'+t.text+'"</div><div class="testimonial-author">— '+t.author+'</div></div>').join('')+'</div>':'';
+  div.innerHTML='<div class="biz-topbar" style="background:'+color+'"></div><div class="biz-head"><div class="biz-name">'+b.name+'</div><span class="biz-cat-badge" style="background:'+color+'1a;color:'+color+'">'+b.category+'</span></div>'+(badges?'<div class="biz-badges">'+badges+'</div>':'')+hoursHtml+'<p class="biz-desc">'+b.description+'</p>'+metaHtml+(b.tags.length?'<div class="biz-tags">'+b.tags.map(t=>'<span class="biz-tag">'+t+'</span>').join('')+'</div>':'')+tmsHtml+'<div class="biz-actions"><button class="biz-btn biz-btn-save'+(saved?' saved':'')+'" onclick="toggleSave('+b.id+')">'+(saved?'♥ Saved':'♡ Save')+'</button><button class="biz-btn biz-btn-ref" onclick="openRefModal('+b.id+')">🤝 Refer</button><button class="biz-btn biz-btn-testify" onclick="openRevModal('+b.id+')">✍️ Testify</button><button class="biz-btn biz-btn-msg" onclick="openMsgModal('+b.id+')">💬 Message</button></div>';
+  return div;
+}
+function toggleSave(id){var i=state.savedIds.indexOf(id);if(i>-1)state.savedIds.splice(i,1);else state.savedIds.push(id);renderDirectory();renderSaved();updateSavedCount();}
+function renderSaved(){
+  var grid=document.getElementById('saved-grid'),saved=state.businesses.filter(b=>state.savedIds.includes(b.id));
+  document.getElementById('saved-sub').textContent=saved.length+' saved listing'+(saved.length!==1?'s':'');
+  grid.innerHTML=saved.length?'':('<div class="empty-state"><div class="empty-icon">♡</div><div class="empty-title">Nothing saved yet</div><p>Tap ♡ Save on any card.</p></div>');
+  saved.forEach(function(b){grid.appendChild(makeBizCard(b));});
+}
+function updateSavedCount(){var cnt=document.getElementById('saved-cnt');if(state.savedIds.length>0){cnt.textContent=state.savedIds.length;cnt.classList.remove('hidden');}else cnt.classList.add('hidden');}
+function switchDirTab(tab){
+  ['home','saved','community','messages','jobs','guild','account'].forEach(function(t){
+    var panel=document.getElementById('dir-tab-'+t);
+    if(panel)panel.classList[t===tab?'remove':'add']('hidden');
+    var btn=document.getElementById('dir-btn-'+t);
+    if(btn)btn.classList.remove('active-ind');
+  });
+  var activeBtn=document.getElementById('dir-btn-'+tab);
+  if(activeBtn)activeBtn.classList.add('active-ind');
+  if(tab==='saved')renderSaved();
+  if(tab==='community'){renderPrayerBoard();renderEvents();renderLeaderboard();}
+  if(tab==='messages')renderMessages('individual');
+  if(tab==='jobs'){initJobFilters();renderJobs();}
+  if(tab==='guild')renderGuild();
+}
+
+// ═══════════════ PRAYER BOARD
+function renderPrayerBoard(){
+  document.getElementById('prayer-list').innerHTML=state.prayerRequests.map(function(p,i){
+    return '<div class="prayer-card"><div class="prayer-header"><div class="prayer-author">🙏 '+p.author+'</div><div class="prayer-time">'+p.time+'</div></div><p class="prayer-text">'+p.text+'</p><div style="display:flex;align-items:center;justify-content:space-between;"><span class="prayer-prayed">'+p.prayedBy.length+' praying</span><button class="prayer-pray-btn'+(p.prayedByMe?' prayed':'')+'" onclick="prayFor('+i+')">'+(p.prayedByMe?'🙏 Praying':'🙏 Pray')+' </button></div></div>';
+  }).join('');
+}
+function prayFor(i){if(!state.prayerRequests[i].prayedByMe){state.prayerRequests[i].prayedByMe=true;state.prayerRequests[i].prayedBy.push(state.user.name);}renderPrayerBoard();}
+function openPrayerModal(){
+  document.getElementById('prayerModalContent').innerHTML='<div class="modal-icon">🙏</div><div class="modal-title">Post a Prayer Request</div><div style="font-size:.73rem;color:var(--muted);margin-bottom:1rem;">Your request will be shared with the community anonymously if you choose.</div><div class="form-group"><label class="lbl">Your Name</label><input class="inp" id="pr-name" placeholder="Name or \'Anonymous\'"/></div><div class="form-group"><label class="lbl">Prayer Request</label><textarea class="inp" id="pr-text" placeholder="Share your prayer request…" style="min-height:80px;"></textarea></div><button class="btn btn-red btn-mt" onclick="submitPrayer()">Post Request</button>';
+  document.getElementById('prayerModal').classList.add('open');
+}
+function submitPrayer(){
+  var name=document.getElementById('pr-name').value.trim()||'Anonymous',text=document.getElementById('pr-text').value.trim();
+  if(!text)return;
+  state.prayerRequests.unshift({id:Date.now(),author:name,text:text,time:'Just now',prayedBy:[],prayedByMe:false});
+  closeModal('prayerModal');renderPrayerBoard();addNotif('Your prayer request has been posted.');
+}
+
+// ═══════════════ EVENTS
+function renderEvents(){
+  var el=document.getElementById('events-list');
+  el.innerHTML=state.events.map(function(e){
+    var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
+    return '<div class="event-card"><div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div><div class="event-body"><div class="event-title">'+e.title+'</div><div class="event-meta">🕐 '+e.time+'<br/>📍 '+e.location+'</div><div class="event-host">Hosted by '+e.host+'</div></div></div>';
+  }).join('');
+}
+function openEventModal(){
+  document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">Post an Event</div><div class="form-group"><label class="lbl">Event Title</label><input class="inp" id="ev-title" placeholder="e.g. Community Prayer Breakfast"/></div><div class="form-group"><label class="lbl">Date</label><input class="inp" type="date" id="ev-date"/></div><div class="form-group"><label class="lbl">Time</label><input class="inp" id="ev-time" placeholder="e.g. 10:00 AM – 12:00 PM"/></div><div class="form-group"><label class="lbl">Location</label><input class="inp" id="ev-loc" placeholder="Venue name and address"/></div><div class="form-group"><label class="lbl">Hosted By</label><input class="inp" id="ev-host" placeholder="Your name or organization"/></div><div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="ev-desc" placeholder="Tell people what to expect…"></textarea></div><button class="btn btn-green btn-mt" onclick="submitEvent()">Post Event</button>';
+  document.getElementById('eventModal').classList.add('open');
+}
+function submitEvent(){
+  var title=document.getElementById('ev-title').value.trim(),date=document.getElementById('ev-date').value;
+  if(!title||!date)return;
+  state.events.unshift({id:Date.now(),title:title,date:new Date(date),time:document.getElementById('ev-time').value||'TBD',location:document.getElementById('ev-loc').value||'TBD',host:document.getElementById('ev-host').value||state.user.name,desc:document.getElementById('ev-desc').value});
+  closeModal('eventModal');renderEvents();addNotif('Your event has been posted!');
+}
+
+// ═══════════════ NEWSLETTER
+function subscribeNewsletter(){
+  var email=document.getElementById('nl-email').value.trim();
+  if(!email||!/\S+@\S+\.\S+/.test(email)){alert('Please enter a valid email.');return;}
+  document.querySelector('.newsletter-card').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.5rem;">📬</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;color:#f7f4ef;margin-bottom:.4rem;">You\'re subscribed!</div><p style="font-size:.78rem;color:#8a8278;">The Christ One\'s United Weekly will land in your inbox every Monday morning.</p></div>';
+  addNotif('You\'ve subscribed to the weekly newsletter!');
+}
+
+// ═══════════════ LEADERBOARD
+function renderLeaderboard(){
+  document.getElementById('leaderboard').innerHTML='<div class="dash-card" style="padding:1rem 1.25rem;">'+state.leaderboard.map(function(l,i){return '<div class="leaderboard-item"><div class="lb-rank'+(i<3?' top':'')+'">'+[' 🥇',' 🥈',' 🥉'][i]||i+1+'</div><div class="lb-name">'+l.name+'</div>'+(l.badge?'<span class="lb-badge">'+l.badge+'</span>':'')+' <div class="lb-count">'+l.count+' referrals</div></div>';}).join('')+'</div>';
+}
+
+// ═══════════════ MESSAGING
+function openMsgModal(bizId){
+  var biz=state.businesses.find(b=>b.id===bizId);if(!biz)return;
+  var thread=state.messages.find(m=>m.bizId===bizId);
+  if(!thread){thread={bizId:bizId,bizName:biz.name,messages:[{from:'system',text:'This is a private conversation with '+biz.name+'. Messages are visible to both parties.',time:'Now'}],unread:false};state.messages.push(thread);}
+  document.getElementById('msgModalContent').innerHTML=
+    '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;"><div style="font-size:1.2rem;">💬</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;">'+biz.name+'</div></div>'+
+    '<div class="msg-bubble-wrap" id="modal-bubbles">'+thread.messages.map(function(m){return '<div class="msg-bubble '+(m.from==='user'?'sent':'recv')+'">'+m.text+'</div>';}).join('')+'</div>'+
+    '<div class="msg-input-row"><input class="msg-input" id="modal-msg-inp" placeholder="Type a message…" onkeydown="if(event.key===\'Enter\')sendModalMsg('+bizId+')"/><button class="msg-send-btn" onclick="sendModalMsg('+bizId+')">Send</button></div>';
+  document.getElementById('msgModal').classList.add('open');
+}
+function sendModalMsg(bizId){
+  var inp=document.getElementById('modal-msg-inp'),text=inp.value.trim();if(!text)return;
+  var thread=state.messages.find(m=>m.bizId===bizId);
+  if(thread){thread.messages.push({from:'user',text:text,time:'Now'});inp.value='';
+    var bubbles=document.getElementById('modal-bubbles');
+    bubbles.innerHTML+=('<div class="msg-bubble sent">'+text+'</div>');
+    bubbles.scrollTop=bubbles.scrollHeight;
+    setTimeout(function(){thread.messages.push({from:'biz',text:'Thanks for reaching out! We\'ll get back to you shortly. God bless! 🙏',time:'Now'});bubbles.innerHTML+=('<div class="msg-bubble recv">Thanks for reaching out! We\'ll get back to you shortly. God bless! 🙏</div>');bubbles.scrollTop=bubbles.scrollHeight;},1000);
+  }
+}
+function renderMessages(role){
+  var el=document.getElementById('messages-list');if(!el)return;
+  if(!state.messages.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><p>Tap 💬 Message on any business card to start a conversation.</p></div>';return;}
+  el.innerHTML=state.messages.map(function(t){var last=t.messages[t.messages.length-1];return '<div class="msg-thread" onclick="openMsgModal('+t.bizId+')"><div class="msg-thread-head"><div class="msg-thread-name">'+t.bizName+'</div><div class="msg-thread-time">'+(last?last.time:'')+'</div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';}).join('');
+}
+
+// ═══════════════ REF / REVIEW MODALS
+function openRefModal(bizId){
+  var biz=state.businesses.find(b=>b.id===bizId);if(!biz)return;
+  document.getElementById('refModalContent').innerHTML='<div class="modal-icon">🤝</div><div class="modal-title">Share a Referral</div><div class="modal-for">Referring someone to <strong>'+biz.name+'</strong></div><div class="form-group"><label class="lbl">Name</label><input class="inp" id="ref-name" placeholder="Referral\'s full name"/></div><div class="form-group"><label class="lbl">Phone #</label><input class="inp" type="tel" id="ref-phone" placeholder="(555) 000-0000"/></div><div class="form-group"><label class="lbl">Email</label><input class="inp" type="email" id="ref-email" placeholder="their@email.com"/></div><div class="form-group"><label class="lbl">Current Need</label><textarea class="inp" id="ref-need" placeholder="What are they looking for?"></textarea></div><div class="form-group"><label class="lbl">Faith Status</label><select class="inp" id="ref-faith"><option value="">Select…</option><option>Believer</option><option>Exploring faith</option><option>Not yet a believer</option><option>Prefer not to say</option></select></div><button class="btn btn-red btn-mt" onclick="submitRef('+bizId+')">Send Referral →</button>';
+  document.getElementById('refModal').classList.add('open');
+}
+function submitRef(bizId){
+  var name=document.getElementById('ref-name').value.trim(),phone=document.getElementById('ref-phone').value.trim();
+  if(!name||!phone){alert('Name and phone are required.');return;}
+  var ref={name:name,phone:phone,email:document.getElementById('ref-email').value,need:document.getElementById('ref-need').value,faith:document.getElementById('ref-faith').value,time:'Just now'};
+  var biz=state.businesses.find(b=>b.id===bizId);if(biz)biz.referrals.unshift(ref);
+  if(state.myBiz&&state.myBiz.id===bizId)state.myBiz.referrals.unshift(ref);
+  state.myReferralCount++;
+  document.getElementById('my-ref-count').textContent=state.myReferralCount;
+  // update leaderboard
+  var me=state.leaderboard.find(l=>l.name===state.user.name);
+  if(me){me.count++;}else{state.leaderboard.push({name:state.user.name,count:1,badge:''});}
+  state.leaderboard.sort((a,b)=>b.count-a.count);
+  addNotif('Your referral to '+(biz?biz.name:'the business')+' was received!');
+  document.getElementById('refModalContent').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.55rem;">🙏</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:.35rem;">Referral Sent!</div><p style="font-size:.8rem;color:#7a7369;">Your referral has been shared with <strong>'+(biz?biz.name:'the business')+'</strong>.</p></div>';
+  setTimeout(function(){closeModal('refModal');},2000);
+}
+function openRevModal(bizId){
+  var biz=state.businesses.find(b=>b.id===bizId);if(!biz)return;
+  document.getElementById('revModalContent').innerHTML='<div class="modal-icon">✍️</div><div class="modal-title">Leave a Word</div><div class="modal-for">Share your experience with <strong>'+biz.name+'</strong></div><div class="form-group"><label class="lbl">Your testimonial (1–3 sentences)</label><textarea class="inp" id="rev-text" style="min-height:80px;" placeholder="Share how this business has blessed you…"></textarea></div><button class="btn btn-green btn-mt" onclick="submitRev('+bizId+')">Share →</button>';
+  document.getElementById('revModal').classList.add('open');
+}
+function submitRev(bizId){
+  var txt=document.getElementById('rev-text').value.trim();if(!txt)return;
+  var tm={author:state.user?state.user.name:'Member',text:txt};
+  var biz=state.businesses.find(b=>b.id===bizId);if(biz)biz.testimonials.push(tm);
+  if(state.myBiz&&state.myBiz.id===bizId)state.myBiz.testimonials.push(tm);
+  document.getElementById('revModalContent').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.55rem;">✍️</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:.35rem;">Word shared!</div><p style="font-size:.8rem;color:#7a7369;">Thank you! Your testimonial has been added.</p></div>';
+  setTimeout(function(){closeModal('revModal');renderDirectory();},2000);
+}
+
+// ═══════════════ DASHBOARD
+function enterDashboard(){
+  document.getElementById('dash-biz-name').textContent=state.myBiz?state.myBiz.name:state.user.name;
+  var planLabel={monthly:'Monthly Plan',annual:'Annual Plan'}[state.plan]||'Business Member';
+  document.getElementById('dash-plan-chip').textContent='✓ '+planLabel;
+  if(state.myBiz&&!state.myBiz.approved)document.getElementById('dash-pending-banner').classList.remove('hidden');
+  updateNotifUI();renderDashOverview();renderDashMessages();
+  showScreen('screen-dashboard');switchDashTab('overview');
+}
+function renderDashOverview(){
+  var biz=state.myBiz,refs=biz?biz.referrals:[],tms=biz?biz.testimonials:[];
+  document.getElementById('dash-panel-overview').innerHTML=
+    '<div class="stats-row"><div class="stat-card"><div class="stat-val">'+(biz?biz.views:0)+'</div><div class="stat-lbl">Views</div></div><div class="stat-card"><div class="stat-val">'+refs.length+'</div><div class="stat-lbl">Referrals</div></div><div class="stat-card"><div class="stat-val">'+tms.length+'</div><div class="stat-lbl">Testimonials</div></div></div>'+
+    '<div class="dash-card"><div class="dash-card-title">Recent Referrals</div>'+(refs.length?refs.slice(0,3).map(renderRefItem).join(''):'<p style="font-size:.82rem;color:var(--muted);">No referrals yet.</p>')+'</div>'+
+    '<div class="dash-card" style="background:linear-gradient(135deg,var(--ink),#1a1612);color:#f7f4ef;"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);font-weight:700;margin-bottom:.4rem;">Weekly Newsletter</div><div style="font-family:\'Playfair Display\',serif;font-size:1rem;margin-bottom:.4rem;">The Christ One\'s United Weekly</div><p style="font-size:.78rem;color:#8a8278;margin-bottom:.875rem;">Your business may be featured in our weekly community digest. Keep your listing active!</p><div style="font-size:.76rem;color:#4dbb8a;font-weight:600;">✓ Active listing — eligible for weekly feature</div></div>';
+  var refBadge=document.getElementById('dash-ref-cnt');if(refs.length>0){refBadge.textContent=refs.length;refBadge.classList.remove('hidden');}else refBadge.classList.add('hidden');
+}
+function renderRefItem(r){
+  var fc=!r.faith?'rf-other':r.faith.toLowerCase().includes('believer')?'rf-believer':r.faith.toLowerCase().includes('exploring')?'rf-exploring':'rf-other';
+  return '<div class="ref-item"><div class="ref-name">'+r.name+'</div><div class="ref-detail">📞 '+r.phone+(r.email?' · ✉️ '+r.email:'')+'</div>'+(r.need?'<div class="ref-detail">Need: '+r.need+'</div>':'')+(r.faith?'<span class="ref-faith-tag '+fc+'">'+r.faith+'</span>':'')+'</div>';
+}
+function switchDashTab(tab){
+  ['overview','jobs','referrals','testimonials','messages','listing'].forEach(function(t){
+    document.getElementById('dash-panel-'+t).classList[t===tab?'remove':'add']('hidden');
+    document.getElementById('dash-tab-'+t).classList[t===tab?'add':'remove']('active');
+    var btn=document.getElementById('dash-btn-'+t);if(btn)btn.classList[t===tab?'add':'remove']('active-biz');
+  });
+  if(tab==='jobs')renderDashJobs();
+  if(tab==='referrals')renderDashReferrals();
+  if(tab==='testimonials')renderDashTestimonials();
+  if(tab==='messages')renderDashMessages();
+  if(tab==='listing')renderDashListing();
+}
+function renderDashReferrals(){
+  var refs=state.myBiz?state.myBiz.referrals:[];
+  document.getElementById('dash-panel-referrals').innerHTML='<div class="dash-card"><div class="dash-card-title">All Referrals ('+refs.length+')</div>'+(refs.length?refs.map(renderRefItem).join(''):'<p style="font-size:.82rem;color:var(--muted);">No referrals yet.</p>')+'</div>';
+}
+function renderDashTestimonials(){
+  var tms=state.myBiz?state.myBiz.testimonials:[];
+  document.getElementById('dash-panel-testimonials').innerHTML='<div class="dash-card"><div class="dash-card-title">Testimonials ('+tms.length+')</div>'+(tms.length?tms.map(t=>'<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+t.text+'"</div><div class="testimonial-author">— '+t.author+'</div></div>').join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet.</p>')+'</div>';
+}
+function renderDashMessages(){
+  var panel=document.getElementById('dash-panel-messages');if(!panel)return;
+  var msgs=state.messages.filter(m=>m.bizId===(state.myBiz?state.myBiz.id:null));
+  panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div>'+(msgs.length?msgs.map(function(t){var last=t.messages[t.messages.length-1];return '<div class="msg-thread"><div class="msg-thread-head"><div class="msg-thread-name">Member</div><div class="msg-thread-time">'+(last?last.time:'')+'</div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';}).join(''):'<p style="font-size:.82rem;color:var(--muted);">No messages yet. Messages from members will appear here.</p>')+'</div>';
+}
+function renderDashListing(){
+  var biz=state.myBiz;
+  document.getElementById('dash-panel-listing').innerHTML='<div class="dash-card"><div class="dash-card-title">Your Listing '+(biz&&!biz.approved?'<span class="biz-pending">⏳ Pending Review</span>':'<span class="biz-verified">✓ Live</span>')+'</div><p style="font-size:.84rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">'+(biz?biz.description:'No listing yet.')+'</p><div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="edit-desc" style="min-height:72px;">'+(biz?biz.description:'')+'</textarea></div><button class="btn btn-green btn-mt" onclick="saveListing()">Save Changes</button></div>';
+}
+function saveListing(){var desc=document.getElementById('edit-desc').value.trim();if(state.myBiz){state.myBiz.description=desc;var b=state.businesses.find(x=>x.id===state.myBiz.id);if(b)b.description=desc;}renderDashListing();}
+
+// ═══════════════ ADMIN (accessible for demo — in production would be auth-gated)
+// Simulated: pending listings get auto-reviewed after 3 seconds on dashboard entry
+function simulateAdminApproval(){
+  setTimeout(function(){
+    state.pendingBusinesses.forEach(function(b){
+      if(!b.approved){
+        b.approved=true;b.verified=true;
+        state.businesses.unshift(b);
+        if(state.myBiz&&state.myBiz.id===b.id){state.myBiz.approved=true;state.myBiz.verified=true;document.getElementById('dash-pending-banner').classList.add('hidden');}
+        addNotif('🎉 Your listing "'+b.name+'" has been approved and is now live!');
+      }
+    });
+    state.pendingBusinesses=[];
+    renderFeatured();populateChurchFilter();
+  },3000);
+}
+
+// ═══════════════ NOTIFICATIONS
+function updateNotifUI(){
+  var unread=state.notifications.filter(n=>!n.read).length;
+  ['bell-dot-dir','bell-dot-dash'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList[unread>0?'remove':'add']('hidden');});
+  var list=document.getElementById('notifList');
+  list.innerHTML=state.notifications.length?state.notifications.map(function(n){return '<div class="notif-item'+(n.read?'':' unread')+'" onclick="markRead('+n.id+')"><div class="notif-dot'+(n.read?' read':'')+'"></div><div><div class="notif-text">'+n.text+'</div><div class="notif-time">'+n.time+'</div></div></div>';}).join(''):'<div class="notif-empty">No notifications yet.</div>';
+  var badge=document.getElementById('notifBadgePanel');
+  if(unread>0){badge.textContent=unread;badge.classList.remove('hidden');}else badge.classList.add('hidden');
+}
+function markRead(id){state.notifications.forEach(function(n){if(n.id===id)n.read=true;});updateNotifUI();}
+function toggleNotifs(){document.getElementById('notifOverlay').classList.toggle('open');document.getElementById('notifPanel').classList.toggle('open');}
+function closeNotifs(){document.getElementById('notifOverlay').classList.remove('open');document.getElementById('notifPanel').classList.remove('open');}
+
+// ═══════════════ JOBS DATA
+state.jobs = [
+  {id:1,title:"Head Chef",company:"The Golden Fork",bizId:1,category:"Restaurant",type:"Full-time",location:"Portland, OR",zip:"97201",pay:"$55,000–$70,000/yr",description:"We're looking for a passionate Head Chef to lead our farm-to-table kitchen. You'll design seasonal menus, manage kitchen staff, and uphold our commitment to fresh, local ingredients.",faithNote:"We open every shift with a short prayer and maintain a respectful, faith-centered work environment.",tags:["culinary","management","seasonal menus"],applyMethod:"email",applyContact:"hiring@goldenfork.com",postedDate:new Date(Date.now()-2*86400000),savedByUsers:[],applicants:[]},
+  {id:2,title:"React Developer",company:"Pixel & Co.",bizId:2,category:"Technology",type:"Full-time",location:"Austin, TX",zip:"78701",pay:"$90,000–$120,000/yr",description:"Join our growing studio as a React Developer. You'll build beautiful web applications for faith-based and mission-driven clients. Remote-friendly with occasional in-person collaboration.",faithNote:"We open team meetings with scripture and prayer. Our work is our ministry.",tags:["React","JavaScript","remote-friendly"],applyMethod:"link",applyContact:"https://pixelco.dev/careers",postedDate:new Date(Date.now()-1*86400000),savedByUsers:[],applicants:[]},
+  {id:3,title:"Massage Therapist",company:"Bloom Wellness Spa",bizId:3,category:"Health & Wellness",type:"Part-time",location:"Asheville, NC",zip:"28801",pay:"$28–$35/hr",description:"Certified massage therapist needed for 20–30 hours per week. Experience in Swedish, deep tissue, and hot stone preferred. Join our team committed to holistic healing.",faithNote:"Our spa is a place of peace. We integrate faith and wellness in everything we do.",tags:["massage","certified","holistic"],applyMethod:"email",applyContact:"book@bloomwellness.com",postedDate:new Date(Date.now()-4*86400000),savedByUsers:[],applicants:[]},
+  {id:4,title:"Paralegal",company:"Ironwood Legal",bizId:4,category:"Legal",type:"Full-time",location:"Chicago, IL",zip:"60601",pay:"$48,000–$58,000/yr",description:"Experienced paralegal needed to support our business and estate law practice. Strong organizational skills, attention to detail, and experience with legal research required.",faithNote:"",tags:["paralegal","legal research","estate law"],applyMethod:"email",applyContact:"careers@ironwoodlegal.com",postedDate:new Date(Date.now()-6*86400000),savedByUsers:[],applicants:[]},
+  {id:5,title:"Personal Trainer",company:"Harbor Fitness",bizId:5,category:"Fitness",type:"Contract",location:"Seattle, WA",zip:"98101",pay:"$45–$65/hr",description:"Certified personal trainers wanted for one-on-one and small group sessions. Flexible scheduling. Build your client base within our established faith-community gym.",faithNote:"We close every session with an optional moment of gratitude and reflection.",tags:["personal training","certified","flexible"],applyMethod:"link",applyContact:"https://harborfitness.com/join-our-team",postedDate:new Date(Date.now()-3*86400000),savedByUsers:[],applicants:[]},
+  {id:6,title:"Volunteer Hair Stylist",company:"Sage & Shears",bizId:6,category:"Beauty",type:"Volunteer",location:"Denver, CO",zip:"80202",pay:"No pay — community service",description:"Join us one Saturday per month to provide free haircuts to unhoused community members. We supply all products. A beautiful way to serve your neighbors.",faithNote:"This is ministry through service. We believe in restoring dignity.",tags:["volunteer","haircuts","community service"],applyMethod:"email",applyContact:"hello@sageshears.com",postedDate:new Date(Date.now()-5*86400000),savedByUsers:[],applicants:[]},
+];
+state.savedJobIds = [];
+
+// ═══════════════ JOBS — INDIVIDUAL
+function initJobFilters(){
+  var sel=document.getElementById('job-cat-filter');
+  if(!sel||sel.options.length>1)return;
+  sel.innerHTML='<option value="">All Categories</option>';
+  var cats=[...new Set(state.jobs.map(j=>j.category))].sort();
+  cats.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+}
+function renderJobs(){
+  initJobFilters();
+  var q=(document.getElementById('job-search').value||'').toLowerCase();
+  var loc=(document.getElementById('job-loc').value||'').toLowerCase();
+  var type=document.getElementById('job-type-filter').value;
+  var cat=document.getElementById('job-cat-filter').value;
+  var sort=document.getElementById('job-sort').value;
+  var filtered=state.jobs.filter(function(j){
+    var mq=!q||(j.title.toLowerCase().includes(q)||j.company.toLowerCase().includes(q)||j.description.toLowerCase().includes(q)||j.tags.some(t=>t.toLowerCase().includes(q)));
+    var ml=!loc||(j.location.toLowerCase().includes(loc)||j.zip.includes(loc));
+    var mt=!type||j.type===type;
+    var mc=!cat||j.category===cat;
+    return mq&&ml&&mt&&mc;
+  });
+  if(sort==='newest')filtered.sort((a,b)=>new Date(b.postedDate)-new Date(a.postedDate));
+  document.getElementById('job-result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> position'+(filtered.length!==1?'s':'')+(q?' matching "<strong>'+q+'</strong>"':'')+(loc?' near "<strong>'+loc+'</strong>"':'');
+  var grid=document.getElementById('jobs-grid');
+  if(!filtered.length){grid.innerHTML='<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No positions found</div><p>Try different keywords or a broader location.</p></div>';return;}
+  grid.innerHTML='';filtered.forEach(function(j){grid.appendChild(makeJobCard(j));});
+}
+function makeJobCard(j){
+  var ntw=(Date.now()-new Date(j.postedDate).getTime())<7*86400000;
+  var typeClass={Full:'jt-full','Part':'jt-part','Contract':'jt-contract','Volunteer':'jt-volunteer'}[j.type.split('-')[0]]||'jt-full';
+  var saved=state.savedJobIds.includes(j.id);
+  var daysAgo=Math.floor((Date.now()-new Date(j.postedDate).getTime())/86400000);
+  var posted=daysAgo===0?'Today':daysAgo===1?'Yesterday':daysAgo+' days ago';
+  var div=document.createElement('div');div.className='job-card'+(ntw?' new-job':'');
+  div.innerHTML=
+    (ntw?'<div class="job-new-badge">🆕 New This Week</div>':'')+
+    '<div class="job-card-head"><div class="job-title">'+j.title+'</div><span class="job-type-badge '+typeClass+'">'+j.type+'</span></div>'+
+    '<div class="job-company">'+j.company+'</div>'+
+    '<div class="job-meta-row"><span class="job-meta-item">📍 '+j.location+'</span><span class="job-meta-item">'+( j.pay?'💵 '+j.pay:'')+'</span><span class="job-meta-item">🗓 '+posted+'</span></div>'+
+    '<p class="job-desc">'+j.description+'</p>'+
+    (j.faithNote?'<div class="job-faith-note">✝️ '+j.faithNote+'</div>':'')+
+    (j.tags.length?'<div class="job-tags">'+j.tags.map(t=>'<span class="job-tag">'+t+'</span>').join('')+'</div>':'')+
+    '<div class="job-actions">'+
+      '<button class="job-apply-btn" onclick="openApplyModal('+j.id+')">Apply Now →</button>'+
+      '<button class="job-save-btn'+(saved?' saved':'')+'" onclick="toggleJobSave('+j.id+')">'+(saved?'♥':'♡')+'</button>'+
+      '<span style="position:relative;display:inline-flex;align-items:center;">'+
+        '<button class="job-report-btn" onclick="toggleJobReport(this)" title="Report this posting">?</button>'+
+        '<span class="job-report-bubble">If any inappropriate information or activity is found in or through this job posting, please report for immediate administrative review. <br/><br/><button onclick="submitJobReport('+j.id+')" style="margin-top:6px;padding:5px 12px;background:var(--red);color:#fff;border:none;border-radius:6px;font-family:DM Sans,sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;width:100%;">Report This Post</button></span>'+
+      '</span>'+
+    '</div>';
+  return div;
+}
+function toggleJobSave(id){
+  var i=state.savedJobIds.indexOf(id);if(i>-1)state.savedJobIds.splice(i,1);else state.savedJobIds.push(id);
+  renderJobs();
+}
+function toggleJobReport(btn){
+  var isActive=btn.classList.contains('active');
+  document.querySelectorAll('.job-report-btn.active').forEach(b=>b.classList.remove('active'));
+  if(!isActive)btn.classList.add('active');
+}
+function submitJobReport(jobId){
+  document.querySelectorAll('.job-report-btn.active').forEach(b=>b.classList.remove('active'));
+  addNotif('⚠️ Job posting #'+jobId+' has been reported and flagged for administrative review. Thank you.');
+}
+function openApplyModal(jobId){
+  var j=state.jobs.find(x=>x.id===jobId);if(!j)return;
+  document.getElementById('applyModalContent').innerHTML=
+    '<div class="modal-icon">💼</div>'+
+    '<div class="modal-title">Apply — '+j.title+'</div>'+
+    '<div class="modal-for" style="margin-bottom:1.25rem;">at <strong>'+j.company+'</strong></div>'+
+    '<div class="form-group"><label class="lbl">Full Name <span class="req">*</span></label><input class="inp" id="app-name" placeholder="Your full name"/></div>'+
+    '<div class="form-group"><label class="lbl">Email <span class="req">*</span></label><input class="inp" type="email" id="app-email" placeholder="your@email.com"/></div>'+
+    '<div class="form-group"><label class="lbl">Phone</label><input class="inp" id="app-phone" placeholder="(555) 000-0000"/></div>'+
+    '<div class="form-group"><label class="lbl">Why are you a great fit? <span class="req">*</span></label><textarea class="inp" id="app-cover" style="min-height:90px;" placeholder="Tell them why you\'re the right person for this role…"></textarea></div>'+
+    '<div class="form-group"><label class="lbl">Faith Background (optional)</label><input class="inp" id="app-faith" placeholder="e.g. Active member of Grace Church"/></div>'+
+    '<button class="btn btn-green btn-mt" onclick="submitApplication('+jobId+')">Submit Application →</button>';
+  document.getElementById('applyModal').classList.add('open');
+}
+function submitApplication(jobId){
+  var name=document.getElementById('app-name').value.trim(),email=document.getElementById('app-email').value.trim(),cover=document.getElementById('app-cover').value.trim();
+  if(!name||!email||!cover){alert('Please fill in all required fields.');return;}
+  var j=state.jobs.find(x=>x.id===jobId);
+  if(j)j.applicants.push({name:name,email:email,phone:document.getElementById('app-phone').value,cover:cover,faith:document.getElementById('app-faith').value,time:'Just now'});
+  addNotif('✅ Your application for "'+( j?j.title:'the position')+'" at '+(j?j.company:'')+' was submitted!');
+  document.getElementById('applyModalContent').innerHTML='<div style="text-align:center;padding:.75rem 0;"><div style="font-size:2.5rem;margin-bottom:.75rem;">🎉</div><div style="font-family:\'Playfair Display\',serif;font-size:1.3rem;margin-bottom:.5rem;">Application Sent!</div><p style="font-size:.84rem;color:var(--muted);line-height:1.6;">Your application has been submitted to <strong>'+(j?j.company:'the employer')+'</strong>. They\'ll be in touch. God bless your journey!</p></div>';
+  setTimeout(function(){closeModal('applyModal');},3000);
+}
+
+// ═══════════════ JOBS — BUSINESS DASHBOARD
+function renderDashJobs(){
+  var myJobs=state.jobs.filter(j=>j.bizId===(state.myBiz?state.myBiz.id:null));
+  var badge=document.getElementById('dash-jobs-cnt');
+  if(myJobs.length>0){badge.textContent=myJobs.length;badge.classList.remove('hidden');}else badge.classList.add('hidden');
+  document.getElementById('dash-panel-jobs').innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">'+
+    '<div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;">Active Listings ('+myJobs.length+')</div>'+
+    '<button onclick="openPostJobModal()" style="padding:8px 16px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;">+ Post a Job</button>'+
+    '</div>'+
+    (myJobs.length?myJobs.map(function(j){
+      var typeClass={Full:'jt-full','Part':'jt-part','Contract':'jt-contract','Volunteer':'jt-volunteer'}[j.type.split('-')[0]]||'jt-full';
+      return '<div class="dash-job-item">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
+          '<div class="dash-job-title">'+j.title+'</div>'+
+          '<span class="job-type-badge '+typeClass+'" style="flex-shrink:0;margin-left:8px;">'+j.type+'</span>'+
+        '</div>'+
+        '<div class="dash-job-meta">📍 '+j.location+' · '+(j.pay||'Pay TBD')+'</div>'+
+        '<div style="font-size:.73rem;color:var(--muted);margin-bottom:.5rem;">'+j.applicants.length+' applicant'+(j.applicants.length!==1?'s':'')+' · Posted '+(Math.floor((Date.now()-new Date(j.postedDate).getTime())/86400000)||0)+' days ago</div>'+
+        (j.applicants.length?'<div style="margin-bottom:.5rem;">'+j.applicants.slice(0,3).map(a=>'<div class="dash-job-applicant"><div class="dash-job-applicant-name">'+a.name+'</div><div class="dash-job-applicant-meta">'+a.email+(a.faith?' · '+a.faith:'')+'</div></div>').join('')+'</div>':'')+
+        '<div class="dash-job-actions">'+
+          '<button class="dash-job-close-btn" onclick="closeJob('+j.id+')">Close Listing</button>'+
+        '</div>'+
+      '</div>';
+    }).join(''):
+    '<div class="empty-state" style="padding:2rem;"><div class="empty-icon">💼</div><div class="empty-title">No active job listings</div><p>Post your first position to start receiving applications.</p></div>');
+}
+function closeJob(id){
+  state.jobs=state.jobs.filter(j=>j.id!==id);
+  renderDashJobs();addNotif('Your job listing has been closed.');
+}
+function openPostJobModal(){
+  document.getElementById('jobModalContent').innerHTML=
+    '<div class="modal-icon">💼</div>'+
+    '<div class="modal-title">Post a Job</div>'+
+    '<div style="font-size:.73rem;color:var(--muted);margin-bottom:1.25rem;">Goes live immediately — no review required for verified businesses.</div>'+
+    '<div class="form-group"><label class="lbl">Job Title <span class="req">*</span></label><input class="inp" id="pj-title" placeholder="e.g. Senior Chef"/></div>'+
+    '<div class="form-group"><label class="lbl">Job Type <span class="req">*</span></label><select class="inp" id="pj-type"><option value="">Select…</option><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Volunteer</option></select></div>'+
+    '<div class="form-group"><label class="lbl">Category</label><select class="inp" id="pj-cat">'+['Restaurant','Retail','Health & Wellness','Technology','Legal','Finance','Education','Home Services','Beauty','Fitness','Other'].map(c=>'<option>'+c+'</option>').join('')+'</select></div>'+
+    '<div class="form-group"><label class="lbl">Location <span class="req">*</span></label><input class="inp" id="pj-loc" placeholder="City, State"/></div>'+
+    '<div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="pj-zip" placeholder="e.g. 90210" maxlength="10"/></div>'+
+    '<div class="form-group"><label class="lbl">Pay Range</label><input class="inp" id="pj-pay" placeholder="e.g. $18–$22/hr (optional)"/></div>'+
+    '<div class="form-group"><label class="lbl">Job Description <span class="req">*</span></label><textarea class="inp" id="pj-desc" style="min-height:90px;" placeholder="Describe the role, responsibilities, and requirements…"></textarea></div>'+
+    '<div class="form-group"><label class="lbl">Faith Note <span style="color:var(--muted);font-weight:400;">(optional)</span></label><input class="inp" id="pj-faith" placeholder="e.g. We open every shift with prayer…"/></div>'+
+    '<div class="form-group"><label class="lbl">How to Apply <span class="req">*</span></label><select class="inp" id="pj-apply-method" onchange="toggleApplyInput()"><option value="email">Email</option><option value="link">External Link</option><option value="inapp">In-App Message</option></select></div>'+
+    '<div class="form-group" id="pj-apply-contact-wrap"><label class="lbl" id="pj-apply-label">Apply Email</label><input class="inp" id="pj-apply-contact" placeholder="hiring@yourbiz.com"/></div>'+
+    '<button class="btn btn-green btn-mt" onclick="submitPostJob()">Post Job →</button>';
+  document.getElementById('jobModal').classList.add('open');
+}
+function toggleApplyInput(){
+  var m=document.getElementById('pj-apply-method').value;
+  var lbl=document.getElementById('pj-apply-label');var inp=document.getElementById('pj-apply-contact');
+  if(m==='email'){lbl.textContent='Apply Email';inp.placeholder='hiring@yourbiz.com';}
+  else if(m==='link'){lbl.textContent='Application URL';inp.placeholder='https://yoursite.com/apply';}
+  else{document.getElementById('pj-apply-contact-wrap').style.display='none';return;}
+  document.getElementById('pj-apply-contact-wrap').style.display='';
+}
+function submitPostJob(){
+  var title=document.getElementById('pj-title').value.trim(),type=document.getElementById('pj-type').value,loc=document.getElementById('pj-loc').value.trim(),desc=document.getElementById('pj-desc').value.trim();
+  if(!title||!type||!loc||!desc){alert('Please fill in all required fields.');return;}
+  var biz=state.myBiz||state.businesses[0];
+  var newJob={id:Date.now(),title:title,company:biz?biz.name:'My Business',bizId:biz?biz.id:0,category:document.getElementById('pj-cat').value,type:type,location:loc,zip:document.getElementById('pj-zip').value,pay:document.getElementById('pj-pay').value,description:desc,faithNote:document.getElementById('pj-faith').value,applyMethod:document.getElementById('pj-apply-method').value,applyContact:document.getElementById('pj-apply-contact')?document.getElementById('pj-apply-contact').value:'',tags:[],postedDate:new Date(),savedByUsers:[],applicants:[]};
+  state.jobs.unshift(newJob);
+  closeModal('jobModal');renderDashJobs();
+  addNotif('💼 Your job "'+title+'" is now live on the Job Board!');
+}
+
+// ═══════════════ ADMIN DATA
+state.admin = {
+  reportedContent:[
+    {id:1,type:'Job Posting',title:'Suspicious Marketing Job',content:'This posting asks applicants to send money for training materials upfront.',reportedBy:'Member #42',time:'2 hours ago',resolved:false},
+    {id:2,type:'Prayer Request',title:'Prayer Request by Anonymous',content:'Content appeared to be spam — repeated identical posts.',reportedBy:'Member #17',time:'Yesterday',resolved:false},
+    {id:3,type:'Testimonial',title:'Review on Ironwood Legal',content:'This review contains a competitor\'s advertisement embedded in the text.',reportedBy:'Member #88',time:'3 days ago',resolved:false},
+  ],
+  members:[
+    {id:1,name:'Sarah Mitchell',email:'sarah@example.com',type:'Individual',plan:'Annual',church:'Grace Community Church',joined:'Jan 2024',status:'active',faithAnswer:'yes',referrals:12},
+    {id:2,name:'Marcus Johnson',email:'marcus@example.com',type:'Individual',plan:'Monthly',church:'Harvest Fellowship',joined:'Feb 2024',status:'active',faithAnswer:'yes',referrals:8},
+    {id:3,name:'The Golden Fork',email:'hello@goldenfork.com',type:'Business',plan:'Annual',church:'Grace Community Church',joined:'Jan 2024',status:'active',faithAnswer:'yes',referrals:0},
+    {id:4,name:'Pixel & Co.',email:'studio@pixelco.dev',type:'Business',plan:'Monthly',church:'Harvest Fellowship',joined:'Feb 2024',status:'active',faithAnswer:'yes',referrals:0},
+    {id:5,name:'Linda Patterson',email:'linda@example.com',type:'Individual',plan:'Monthly',church:'Cornerstone Church',joined:'Mar 2024',status:'suspended',faithAnswer:'yes',referrals:2},
+    {id:6,name:'Bloom Wellness Spa',email:'book@bloomwellness.com',type:'Business',plan:'Annual',church:'Mountain Hope Church',joined:'Jan 2024',status:'active',faithAnswer:'yes',referrals:0},
+    {id:7,name:'Kevin Wright',email:'kevin@example.com',type:'Individual',plan:'Annual',church:'',joined:'Apr 2024',status:'active',faithAnswer:'yes',referrals:3},
+    {id:8,name:'Sunrise Bakery',email:'hello@sunrisebakery.com',type:'Business',plan:'Monthly',church:'New Life Church',joined:'Apr 2024',status:'pending',faithAnswer:'yes',referrals:0},
+  ],
+  appeals:[
+    {id:1,name:'Linda Patterson',email:'linda@example.com',reason:'I was suspended unfairly. I believe my account was flagged in error. I have been a faithful member since the beginning.',submitted:'1 day ago',status:'pending'},
+  ],
+  auditLog:[
+    {icon:'✅',text:'Business listing "The Golden Fork" approved by Admin.',time:'Jan 15, 2024'},
+    {icon:'✅',text:'Business listing "Bloom Wellness Spa" approved by Admin.',time:'Jan 15, 2024'},
+    {icon:'🚫',text:'Member "Kevin Test" suspended for inappropriate content.',time:'Feb 3, 2024'},
+    {icon:'✅',text:'Business listing "Pixel & Co." approved by Admin.',time:'Feb 10, 2024'},
+    {icon:'📬',text:'Weekly newsletter sent to 247 subscribers.',time:'Mar 4, 2024'},
+    {icon:'🗑️',text:'Job posting removed — flagged as suspicious.',time:'Mar 12, 2024'},
+    {icon:'✅',text:'Appeal from "James T." reviewed and account reinstated.',time:'Mar 18, 2024'},
+    {icon:'📬',text:'Weekly newsletter sent to 312 subscribers.',time:'Apr 1, 2024'},
+  ],
+  nlSubscribers:312,
+  nlSentCount:8,
+  revenue:{labels:['Nov','Dec','Jan','Feb','Mar','Apr'],values:[1240,1580,2100,2480,2950,3420]},
+  signups:{labels:['Nov','Dec','Jan','Feb','Mar','Apr'],values:[18,24,38,29,45,52]},
+};
+
+// ═══════════════ ADMIN AUTH
+function doAdminLogin(){
+  var email=document.getElementById('adm-email').value.trim(),pass=document.getElementById('adm-pass').value;
+  var errEl=document.getElementById('adm-err');errEl.style.display='none';
+  if(email==='admin@cou.com'&&pass==='admin123'){
+    closeModal('adminSignInModal');
+    enterAdmin();
+  } else {errEl.style.display='block';}
+}
+function doAdminSignOut(){document.body.classList.remove('admin-mode');showScreen('screen-landing');}
+function enterAdmin(){
+  document.body.classList.add('admin-mode');
+  showScreen('screen-admin');
+  switchAdminTab('overview');
+  updateAdminBadges();
+}
+function updateAdminBadges(){
+  var pending=state.pendingBusinesses.filter(b=>!b.approved).length;
+  var reports=state.admin.reportedContent.filter(r=>!r.resolved).length;
+  var appeals=state.admin.appeals.filter(a=>a.status==='pending').length;
+  var aC=document.getElementById('adm-cnt-approvals'),rC=document.getElementById('adm-cnt-reports'),apC=document.getElementById('adm-cnt-appeals');
+  if(pending>0){aC.textContent=pending;aC.classList.remove('hidden');}else aC.classList.add('hidden');
+  if(reports>0){rC.textContent=reports;rC.classList.remove('hidden');}else rC.classList.add('hidden');
+  if(appeals>0){apC.textContent=appeals;apC.classList.remove('hidden');}else apC.classList.add('hidden');
+}
+function switchAdminTab(tab){
+  ['overview','approvals','reports','members','jobs','newsletter','appeals','audit'].forEach(function(t){
+    document.getElementById('adm-tab-'+t).classList[t===tab?'remove':'add']('hidden');
+    document.getElementById('adm-btn-'+t).classList[t===tab?'add':'remove']('on');
+  });
+  var renders={overview:renderAdminOverview,approvals:renderAdminApprovals,reports:renderAdminReports,members:renderAdminMembers,jobs:renderAdminJobs,newsletter:renderAdminNewsletter,appeals:renderAdminAppeals,audit:renderAdminAudit};
+  if(renders[tab])renders[tab]();
+}
+function addAuditLog(icon,text){state.admin.auditLog.unshift({icon:icon,text:text,time:'Just now'});}
+
+// ═══════════════ ADMIN OVERVIEW
+function renderAdminOverview(){
+  var el=document.getElementById('adm-tab-overview');
+  var totalMembers=state.admin.members.length;
+  var indCount=state.admin.members.filter(m=>m.type==='Individual').length;
+  var bizCount=state.admin.members.filter(m=>m.type==='Business').length;
+  var activeCount=state.admin.members.filter(m=>m.status==='active').length;
+  var pendingCount=state.pendingBusinesses.filter(b=>!b.approved).length;
+  var reportCount=state.admin.reportedContent.filter(r=>!r.resolved).length;
+  var jobCount=state.jobs.length;
+  var rev=state.admin.revenue;
+  el.innerHTML=
+    '<div class="admin-page-title">Dashboard Overview</div>'+
+    '<div class="admin-page-sub">Welcome back, Admin · Christ One\'s United</div>'+
+    '<div class="admin-stats">'+
+      mkStat(totalMembers,'Total Members','blue')+
+      mkStat(indCount,'Individuals','green')+
+      mkStat(bizCount,'Businesses','gold')+
+      mkStat(activeCount,'Active','green')+
+      mkStat(pendingCount,'Pending Approval','gold')+
+      mkStat(reportCount,'Open Reports','red')+
+      mkStat(jobCount,'Active Jobs','blue')+
+      mkStat('$'+rev.values[rev.values.length-1],'Revenue (Mo)','green')+
+    '</div>'+
+    '<div class="admin-chart">'+
+      '<div class="admin-chart-title">📈 Monthly Revenue</div>'+
+      mkBarChart(rev.labels,rev.values,'#1a6b4a')+
+    '</div>'+
+    '<div class="admin-chart">'+
+      '<div class="admin-chart-title">👥 New Signups</div>'+
+      mkBarChart(state.admin.signups.labels,state.admin.signups.values,'#2d9cdb')+
+    '</div>'+
+    '<div class="admin-card">'+
+      '<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;margin-bottom:.875rem;">🕐 Recent Activity</div>'+
+      state.admin.auditLog.slice(0,5).map(function(a){return '<div class="audit-item"><div class="audit-icon">'+a.icon+'</div><div class="audit-text">'+a.text+'</div><div class="audit-time">'+a.time+'</div></div>';}).join('')+
+    '</div>';
+}
+function mkStat(val,lbl,color){return '<div class="admin-stat"><div class="admin-stat-val '+color+'">'+val+'</div><div class="admin-stat-lbl">'+lbl+'</div></div>';}
+function mkBarChart(labels,values,color){
+  var max=Math.max(...values)||1;
+  return '<div class="chart-bars">'+labels.map(function(l,i){
+    var pct=Math.round((values[i]/max)*76);
+    return '<div class="chart-bar-wrap"><div class="chart-bar-val">'+values[i]+'</div><div class="chart-bar" style="height:'+pct+'px;background:'+color+';min-height:4px;"></div><div class="chart-bar-lbl">'+l+'</div></div>';
+  }).join('')+'</div>';
+}
+
+// ═══════════════ ADMIN APPROVALS
+function renderAdminApprovals(){
+  var el=document.getElementById('adm-tab-approvals');
+  var pending=state.pendingBusinesses.filter(b=>!b.approved);
+  el.innerHTML=
+    '<div class="admin-page-title">Business Approvals</div>'+
+    '<div class="admin-page-sub">'+pending.length+' listing'+(pending.length!==1?'s':'')+' awaiting review</div>'+
+    (pending.length?pending.map(function(b){
+      return '<div class="admin-card pending">'+
+        '<div class="admin-card-head"><div class="admin-card-title">'+b.name+'</div><span class="admin-card-badge ab-gold">⏳ Pending</span></div>'+
+        '<div class="admin-card-meta">📂 '+b.category+' · 📍 '+(b.address||'N/A')+' · ✝️ '+b.church+', '+(b.churchAddress||'')+'<br/>📞 '+(b.phone||'N/A')+' · ✉️ '+(b.email||'N/A')+(b.website?' · 🌐 '+b.website:'')+'</div>'+
+        '<div class="admin-card-content">'+b.description+'</div>'+
+        '<div class="admin-actions">'+
+          '<button class="adm-approve" onclick="adminApproveBiz('+b.id+')">✓ Approve</button>'+
+          '<button class="adm-reject" onclick="adminRejectBiz('+b.id+')">✗ Reject</button>'+
+        '</div>'+
+      '</div>';
+    }).join(''):
+    '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All caught up!</div><p>No listings pending review.</p></div>');
+}
+function adminApproveBiz(id){
+  var b=state.pendingBusinesses.find(x=>x.id===id);
+  if(b){b.approved=true;b.verified=true;if(!state.businesses.find(x=>x.id===id))state.businesses.unshift(b);}
+  state.pendingBusinesses=state.pendingBusinesses.filter(x=>x.id!==id);
+  if(state.myBiz&&state.myBiz.id===id){state.myBiz.approved=true;state.myBiz.verified=true;}
+  addAuditLog('✅','Business listing "'+( b?b.name:'Listing')+'" approved.');
+  addNotif('🎉 Your listing "'+( b?b.name:'')+'" has been approved and is now live!');
+  updateAdminBadges();renderAdminApprovals();
+}
+function adminRejectBiz(id){
+  var b=state.pendingBusinesses.find(x=>x.id===id);
+  state.pendingBusinesses=state.pendingBusinesses.filter(x=>x.id!==id);
+  addAuditLog('🚫','Business listing "'+( b?b.name:'Listing')+'" rejected.');
+  updateAdminBadges();renderAdminApprovals();
+}
+
+// ═══════════════ ADMIN REPORTS
+function renderAdminReports(){
+  var el=document.getElementById('adm-tab-reports');
+  var open=state.admin.reportedContent.filter(r=>!r.resolved);
+  var resolved=state.admin.reportedContent.filter(r=>r.resolved);
+  el.innerHTML=
+    '<div class="admin-page-title">Reported Content</div>'+
+    '<div class="admin-page-sub">'+open.length+' open · '+resolved.length+' resolved</div>'+
+    (open.length?open.map(function(r){
+      return '<div class="admin-card flagged">'+
+        '<div class="admin-card-head"><div class="admin-card-title">'+r.title+'</div><span class="admin-card-badge ab-red">🚨 '+r.type+'</span></div>'+
+        '<div class="admin-card-meta">Reported by '+r.reportedBy+' · '+r.time+'</div>'+
+        '<div class="admin-card-content">'+r.content+'</div>'+
+        '<div class="admin-actions">'+
+          '<button class="adm-remove" onclick="adminRemoveContent('+r.id+')">🗑 Remove Content</button>'+
+          '<button class="adm-warn" onclick="adminWarnUser('+r.id+')">⚠️ Warn User</button>'+
+          '<button class="adm-suspend" onclick="adminSuspendFromReport('+r.id+')">🚫 Suspend User</button>'+
+          '<button class="adm-approve" onclick="adminDismissReport('+r.id+')" style="background:var(--muted);">Dismiss</button>'+
+        '</div>'+
+      '</div>';
+    }).join(''):'<div class="empty-state"><div class="empty-icon">🚨</div><div class="empty-title">No open reports</div><p>All reported content has been reviewed.</p></div>')+
+    (resolved.length?'<div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin:1rem 0 .5rem;">Resolved</div>'+
+      resolved.map(function(r){return '<div class="admin-card" style="opacity:.6;"><div class="admin-card-head"><div class="admin-card-title">'+r.title+'</div><span class="admin-card-badge ab-green">✓ Resolved</span></div><div class="admin-card-meta">'+r.type+' · '+r.time+'</div></div>';}).join(''):'');
+}
+function adminRemoveContent(id){
+  var r=state.admin.reportedContent.find(x=>x.id===id);if(r)r.resolved=true;
+  addAuditLog('🗑️','Reported content "'+( r?r.title:'')+'" removed.');
+  updateAdminBadges();renderAdminReports();
+}
+function adminWarnUser(id){
+  var r=state.admin.reportedContent.find(x=>x.id===id);if(r)r.resolved=true;
+  addAuditLog('⚠️','Warning issued for content: "'+( r?r.title:'')+'".');
+  updateAdminBadges();renderAdminReports();
+}
+function adminSuspendFromReport(id){
+  var r=state.admin.reportedContent.find(x=>x.id===id);if(r)r.resolved=true;
+  addAuditLog('🚫','User suspended following report: "'+( r?r.title:'')+'".');
+  updateAdminBadges();renderAdminReports();
+}
+function adminDismissReport(id){
+  var r=state.admin.reportedContent.find(x=>x.id===id);if(r)r.resolved=true;
+  addAuditLog('✓','Report dismissed: "'+( r?r.title:'')+'".');
+  updateAdminBadges();renderAdminReports();
+}
+
+// ═══════════════ ADMIN MEMBERS
+function renderAdminMembers(){
+  var el=document.getElementById('adm-tab-members');
+  el.innerHTML=
+    '<div class="admin-page-title">Member Management</div>'+
+    '<div class="admin-page-sub">'+state.admin.members.length+' total members</div>'+
+    '<input class="member-search" id="adm-member-search" placeholder="Search by name, email, or church…" oninput="filterAdminMembers()"/>'+
+    '<div id="adm-member-table-wrap">'+buildMemberTable(state.admin.members)+'</div>';
+}
+function filterAdminMembers(){
+  var q=document.getElementById('adm-member-search').value.toLowerCase();
+  var filtered=state.admin.members.filter(function(m){return !q||m.name.toLowerCase().includes(q)||m.email.toLowerCase().includes(q)||(m.church&&m.church.toLowerCase().includes(q));});
+  document.getElementById('adm-member-table-wrap').innerHTML=buildMemberTable(filtered);
+}
+function buildMemberTable(members){
+  if(!members.length)return '<div class="empty-state" style="padding:2rem;"><div class="empty-icon">👥</div><p>No members match your search.</p></div>';
+  return '<div style="overflow-x:auto;"><table class="member-table"><thead><tr><th>Name</th><th>Type</th><th>Church</th><th>Plan</th><th>Joined</th><th>Status</th><th>Faith</th><th>Actions</th></tr></thead><tbody>'+
+    members.map(function(m){
+      var statusClass={active:'ms-active',suspended:'ms-suspended',pending:'ms-pending'}[m.status]||'ms-pending';
+      return '<tr><td><strong>'+m.name+'</strong><br/><span style="font-size:.68rem;color:var(--muted);">'+m.email+'</span></td><td>'+m.type+'</td><td style="font-size:.73rem;">'+( m.church||'—')+'</td><td>'+m.plan+'</td><td>'+m.joined+'</td>'+
+        '<td><span class="member-status '+statusClass+'">'+m.status+'</span></td>'+
+        '<td style="text-align:center;">'+(m.faithAnswer==='yes'?'✅':'❌')+'</td>'+
+        '<td><div style="display:flex;gap:4px;flex-wrap:wrap;">'+(m.status==='suspended'?
+          '<button class="adm-restore" style="padding:4px 8px;font-size:.68rem;" onclick="adminRestoreMember('+m.id+')">Restore</button>':
+          '<button class="adm-suspend" style="padding:4px 8px;font-size:.68rem;" onclick="adminSuspendMember('+m.id+')">Suspend</button>')+
+        '</div></td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function adminSuspendMember(id){
+  var m=state.admin.members.find(x=>x.id===id);if(m)m.status='suspended';
+  addAuditLog('🚫','Member "'+( m?m.name:id)+'" suspended by Admin.');
+  renderAdminMembers();
+}
+function adminRestoreMember(id){
+  var m=state.admin.members.find(x=>x.id===id);if(m)m.status='active';
+  addAuditLog('✅','Member "'+( m?m.name:id)+'" restored by Admin.');
+  renderAdminMembers();
+}
+
+// ═══════════════ ADMIN JOBS
+function renderAdminJobs(){
+  var el=document.getElementById('adm-tab-jobs');
+  el.innerHTML=
+    '<div class="admin-page-title">Job Board Moderation</div>'+
+    '<div class="admin-page-sub">'+state.jobs.length+' active listings · '+state.admin.reportedContent.filter(r=>r.type==='Job Posting'&&!r.resolved).length+' flagged</div>'+
+    (state.jobs.length?state.jobs.map(function(j){
+      var flagged=state.admin.reportedContent.some(r=>r.type==='Job Posting'&&r.title.includes(j.title)&&!r.resolved);
+      var typeClass={Full:'jt-full','Part':'jt-part','Contract':'jt-contract','Volunteer':'jt-volunteer'}[j.type.split('-')[0]]||'jt-full';
+      return '<div class="admin-card'+(flagged?' flagged':'')+'">'+
+        '<div class="admin-card-head">'+
+          '<div class="admin-card-title">'+j.title+'</div>'+
+          '<div style="display:flex;gap:5px;align-items:center;">'+
+            (flagged?'<span class="admin-card-badge ab-red">🚨 Flagged</span>':'')+
+            '<span class="job-type-badge '+typeClass+'">'+j.type+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="admin-card-meta">🏢 '+j.company+' · 📍 '+j.location+' · '+j.applicants.length+' applicants</div>'+
+        '<div class="admin-card-content" style="font-size:.78rem;">'+j.description.substring(0,120)+(j.description.length>120?'…':'')+'</div>'+
+        '<div class="admin-actions">'+
+          '<button class="adm-remove" onclick="adminRemoveJob('+j.id+')">🗑 Remove Listing</button>'+
+          (flagged?'<button class="adm-approve" onclick="adminClearJobFlag('+j.id+')" style="background:var(--muted);">Clear Flag</button>':'')+
+        '</div>'+
+      '</div>';
+    }).join(''):
+    '<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No active job listings</div></div>');
+}
+function adminRemoveJob(id){
+  var j=state.jobs.find(x=>x.id===id);
+  state.jobs=state.jobs.filter(x=>x.id!==id);
+  addAuditLog('🗑️','Job listing "'+( j?j.title:id)+'" removed by Admin.');
+  renderAdminJobs();
+}
+function adminClearJobFlag(id){
+  state.admin.reportedContent.forEach(function(r){if(r.type==='Job Posting')r.resolved=true;});
+  addAuditLog('✓','Job listing flag cleared by Admin.');
+  updateAdminBadges();renderAdminJobs();
+}
+
+// ═══════════════ ADMIN NEWSLETTER
+function renderAdminNewsletter(){
+  var el=document.getElementById('adm-tab-newsletter');
+  el.innerHTML=
+    '<div class="admin-page-title">Newsletter Management</div>'+
+    '<div class="admin-page-sub">Weekly community digest · The Christ One\'s United Weekly</div>'+
+    '<div class="admin-stats" style="margin-bottom:1.25rem;">'+
+      mkStat(state.admin.nlSubscribers,'Subscribers','blue')+
+      mkStat(state.admin.nlSentCount,'Editions Sent','green')+
+      mkStat('68%','Avg Open Rate','gold')+
+      mkStat('12%','Avg Click Rate','green')+
+    '</div>'+
+    '<div class="nl-compose">'+
+      '<div class="nl-compose-title">✍️ Compose This Week\'s Edition</div>'+
+      '<div class="form-group"><label class="lbl">Subject Line</label><input class="inp" id="nl-subject" placeholder="e.g. This Week in Christ One\'s United — Apr 29" style="background:#fff;"/></div>'+
+      '<div class="form-group"><label class="lbl">Headline</label><input class="inp" id="nl-headline" placeholder="e.g. 3 New Businesses, 2 Events & This Week\'s Prayer Highlight" style="background:#fff;"/></div>'+
+      '<div class="form-group"><label class="lbl">Featured Business</label><select class="inp" id="nl-biz" style="background:#fff;">'+
+        '<option value="">Select a business to feature…</option>'+
+        state.businesses.filter(b=>b.approved).map(b=>'<option value="'+b.id+'">'+b.name+'</option>').join('')+
+      '</select></div>'+
+      '<div class="form-group"><label class="lbl">Prayer Highlight</label><textarea class="inp" id="nl-prayer" style="min-height:60px;background:#fff;" placeholder="Share a community prayer highlight or spotlight…"></textarea></div>'+
+      '<div class="form-group"><label class="lbl">Admin Message (optional)</label><textarea class="inp" id="nl-msg" style="min-height:60px;background:#fff;" placeholder="A personal note from the Christ One\'s United team…"></textarea></div>'+
+      '<button class="btn btn-mt" style="background:#1a1a2e;color:#fff;" onclick="sendNewsletter()">📬 Send to '+state.admin.nlSubscribers+' Subscribers</button>'+
+    '</div>'+
+    '<div class="admin-card">'+
+      '<div class="admin-chart-title">📊 Subscriber Growth</div>'+
+      '<div class="nl-stats"><span class="nl-stat">Last 7 days: <strong>+18 subscribers</strong></span><span class="nl-stat">Last 30 days: <strong>+62 subscribers</strong></span><span class="nl-stat">Unsubscribes this week: <strong>3</strong></span></div>'+
+      mkBarChart(['Nov','Dec','Jan','Feb','Mar','Apr'],[180,210,247,278,295,312],'#c9973a')+
+    '</div>';
+}
+function sendNewsletter(){
+  var subj=document.getElementById('nl-subject').value.trim();
+  if(!subj){alert('Please enter a subject line.');return;}
+  state.admin.nlSentCount++;
+  addAuditLog('📬','Weekly newsletter "'+subj+'" sent to '+state.admin.nlSubscribers+' subscribers.');
+  alert('Newsletter sent to '+state.admin.nlSubscribers+' subscribers! 🎉');
+  renderAdminNewsletter();
+}
+
+// ═══════════════ ADMIN APPEALS
+function renderAdminAppeals(){
+  var el=document.getElementById('adm-tab-appeals');
+  var open=state.admin.appeals.filter(a=>a.status==='pending');
+  var resolved=state.admin.appeals.filter(a=>a.status!=='pending');
+  el.innerHTML=
+    '<div class="admin-page-title">Suspension Appeals</div>'+
+    '<div class="admin-page-sub">'+open.length+' pending · '+resolved.length+' resolved</div>'+
+    (open.length?open.map(function(a){
+      return '<div class="appeal-item" style="border-left:3px solid var(--gold);">'+
+        '<div class="admin-card-head"><div class="appeal-name">'+a.name+'</div><span class="admin-card-badge ab-gold">⚖️ Pending</span></div>'+
+        '<div style="font-size:.72rem;color:var(--muted);margin-bottom:.4rem;">'+a.email+' · Submitted '+a.submitted+'</div>'+
+        '<div class="appeal-reason">'+a.reason+'</div>'+
+        '<div class="admin-actions">'+
+          '<button class="adm-restore" onclick="adminGrantAppeal('+a.id+')">✓ Reinstate Account</button>'+
+          '<button class="adm-reject" onclick="adminDenyAppeal('+a.id+')">✗ Deny Appeal</button>'+
+        '</div>'+
+      '</div>';
+    }).join(''):'<div class="empty-state"><div class="empty-icon">⚖️</div><div class="empty-title">No pending appeals</div></div>')+
+    (resolved.length?'<div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin:1rem 0 .5rem;">Resolved</div>'+
+      resolved.map(function(a){return '<div class="appeal-item" style="opacity:.6;"><div class="appeal-name">'+a.name+'</div><div style="font-size:.72rem;color:var(--muted);">'+a.status.toUpperCase()+' · '+a.submitted+'</div></div>';}).join(''):'');
+}
+function adminGrantAppeal(id){
+  var a=state.admin.appeals.find(x=>x.id===id);if(a){a.status='granted';}
+  var m=state.admin.members.find(x=>x.email===(a?a.email:''));if(m)m.status='active';
+  addAuditLog('✅','Appeal from "'+( a?a.name:id)+'" granted. Account reinstated.');
+  updateAdminBadges();renderAdminAppeals();
+}
+function adminDenyAppeal(id){
+  var a=state.admin.appeals.find(x=>x.id===id);if(a)a.status='denied';
+  addAuditLog('🚫','Appeal from "'+( a?a.name:id)+'" denied.');
+  updateAdminBadges();renderAdminAppeals();
+}
+
+// ═══════════════ ADMIN AUDIT LOG
+function renderAdminAudit(){
+  var el=document.getElementById('adm-tab-audit');
+  el.innerHTML=
+    '<div class="admin-page-title">Audit Log</div>'+
+    '<div class="admin-page-sub">Full record of all administrative actions</div>'+
+    '<div class="admin-card">'+
+      state.admin.auditLog.map(function(a){return '<div class="audit-item"><div class="audit-icon">'+a.icon+'</div><div class="audit-text">'+a.text+'</div><div class="audit-time">'+a.time+'</div></div>';}).join('')+
+    '</div>';
+}
+
+// ═══════════════ GUILD STATE
+state.guild = null; // null = not in a guild yet
+state.allGuilds = [
+  {id:1,name:"Grace Builders",description:"A guild for Christian entrepreneurs and business owners in the Grace Community Church family.",leader:"Marcus J.",members:[{name:"Marcus J.",role:"leader",joined:"Jan 2024"},{name:"Sarah M.",role:"member",joined:"Feb 2024"},{name:"Linda P.",role:"member",joined:"Mar 2024"}],codes:[],church:"Grace Community Church",created:"Jan 2024"},
+  {id:2,name:"Harvest Network",description:"Connecting faith-based professionals across Harvest Fellowship to grow together in business and ministry.",leader:"Thomas R.",members:[{name:"Thomas R.",role:"leader",joined:"Feb 2024"},{name:"Kevin W.",role:"member",joined:"Mar 2024"}],codes:[],church:"Harvest Fellowship",created:"Feb 2024"},
+];
+
+// ═══════════════ GUILD FUNCTIONS
+function genCode(){
+  var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var code='';for(var i=0;i<8;i++){if(i===4)code+='-';code+=chars[Math.floor(Math.random()*chars.length)];}
+  return code;
+}
+function renderGuild(){
+  var el=document.getElementById('guild-content');if(!el)return;
+  if(state.guild){
+    renderMyGuild(el);
+  } else {
+    renderNoGuild(el);
+  }
+}
+function renderNoGuild(el){
+  el.innerHTML=
+    '<div class="no-guild-wrap">'+
+      '<div class="no-guild-icon">⚔️</div>'+
+      '<div class="no-guild-title">You\'re not in a Guild yet</div>'+
+      '<p class="no-guild-sub">Guilds are invite-only faith communities within Christ One\'s United. Join one with an invite code or create your own.</p>'+
+    '</div>'+
+    '<div class="guild-join-card">'+
+      '<div class="guild-join-title">🔑 Join a Guild</div>'+
+      '<div style="font-size:.78rem;color:var(--muted);margin-bottom:.875rem;">Enter an invite code shared by a Guild leader.</div>'+
+      '<div class="guild-join-row">'+
+        '<input class="guild-join-inp" id="guild-code-input" placeholder="XXXX-XXXX" maxlength="9" oninput="formatGuildCode(this)"/>'+
+        '<button class="guild-join-btn" onclick="joinGuild()">Join →</button>'+
+      '</div>'+
+      '<div id="guild-join-err" style="color:var(--red);font-size:.72rem;margin-top:6px;display:none;"></div>'+
+    '</div>'+
+    '<div class="guild-action-card" onclick="openCreateGuildModal()">'+
+      '<div class="guild-action-icon">➕</div>'+
+      '<div><div class="guild-action-label">Create a New Guild</div><div class="guild-action-sub">Start your own invite-only faith community group</div></div>'+
+      '<div style="color:var(--muted);font-size:1.2rem;">›</div>'+
+    '</div>';
+}
+function formatGuildCode(el){
+  var v=el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,8);
+  if(v.length>4)v=v.slice(0,4)+'-'+v.slice(4);
+  el.value=v;
+}
+function joinGuild(){
+  var code=document.getElementById('guild-code-input').value.trim().toUpperCase();
+  var errEl=document.getElementById('guild-join-err');
+  errEl.style.display='none';
+  if(code.length<9){errEl.textContent='Please enter a valid 8-character invite code.';errEl.style.display='block';return;}
+  // search all guilds for matching code
+  var found=null;var foundGuild=null;
+  state.allGuilds.forEach(function(g){
+    g.codes.forEach(function(c){
+      if(c.code===code&&!c.used){found=c;foundGuild=g;}
+    });
+  });
+  if(!foundGuild){errEl.textContent='Invalid or expired invite code. Please check with your Guild leader.';errEl.style.display='block';return;}
+  // Mark code as used and join
+  found.used=true;found.usedBy=state.user.name;found.usedTime='Just now';
+  foundGuild.members.push({name:state.user.name,role:'member',joined:'Just now'});
+  state.guild=foundGuild;
+  addNotif('🎉 You joined the Guild "'+foundGuild.name+'"!');
+  renderGuild();
+}
+function openCreateGuildModal(){
+  document.getElementById('guildModalContent').innerHTML=
+    '<div class="modal-icon">⚔️</div>'+
+    '<div class="modal-title">Create a Guild</div>'+
+    '<div style="font-size:.73rem;color:var(--muted);margin-bottom:1.25rem;">Build your own invite-only faith community within Christ One\'s United.</div>'+
+    '<div class="form-group"><label class="lbl">Guild Name <span class="req">*</span></label><input class="inp" id="cg-name" placeholder="e.g. Grace Builders"/></div>'+
+    '<div class="form-group"><label class="lbl">Description <span class="req">*</span></label><textarea class="inp" id="cg-desc" style="min-height:72px;" placeholder="What is your Guild about? Who is it for?"></textarea></div>'+
+    '<div class="form-group"><label class="lbl">Church Affiliation</label><input class="inp" id="cg-church" placeholder="e.g. First Baptist Church (optional)"/></div>'+
+    '<button class="btn btn-green btn-mt" onclick="createGuild()">Create Guild →</button>';
+  document.getElementById('guildModal').classList.add('open');
+}
+function createGuild(){
+  var name=document.getElementById('cg-name').value.trim();
+  var desc=document.getElementById('cg-desc').value.trim();
+  if(!name||!desc){alert('Please fill in the Guild name and description.');return;}
+  var newGuild={
+    id:Date.now(),name:name,description:desc,
+    leader:state.user.name,
+    members:[{name:state.user.name,role:'leader',joined:'Just now'}],
+    codes:[],church:document.getElementById('cg-church').value.trim(),
+    created:'Just now'
+  };
+  state.allGuilds.push(newGuild);
+  state.guild=newGuild;
+  closeModal('guildModal');
+  addNotif('⚔️ Your Guild "'+name+'" has been created!');
+  renderGuild();
+}
+function renderMyGuild(el){
+  var g=state.guild;
+  var isLeader=g.leader===state.user.name;
+  var activeCodes=g.codes.filter(c=>!c.used);
+  var usedCodes=g.codes.filter(c=>c.used);
+  el.innerHTML=
+    // Hero
+    '<div class="guild-hero">'+
+      '<div class="guild-hero-icon">⚔️</div>'+
+      '<div class="guild-hero-name">'+g.name+'</div>'+
+      '<div class="guild-hero-sub">'+g.description+'</div>'+
+      (g.church?'<div class="guild-hero-badge">⛪ '+g.church+'</div>':'')+
+    '</div>'+
+    // Invite Codes section (leader only)
+    (isLeader?
+      '<div class="guild-section-title">🔑 Invite Codes'+
+        '<button class="guild-create-btn" onclick="createInviteCode()">+ New Code</button>'+
+      '</div>'+
+      (activeCodes.length?
+        activeCodes.map(function(c,i){
+          return '<div class="guild-code-card">'+
+            '<div>'+
+              '<div class="guild-code-val">'+c.code+'</div>'+
+              '<div class="guild-code-used">Single-use · Created '+c.created+'</div>'+
+            '</div>'+
+            '<div class="guild-code-actions">'+
+              '<button class="guild-copy-btn" id="copy-btn-'+c.code+'" onclick="copyCode(\''+c.code+'\')">📋 Copy</button>'+
+              '<button class="guild-del-btn" onclick="deleteCode(\''+c.code+'\')">✕</button>'+
+            '</div>'+
+          '</div>';
+        }).join(''):
+        '<div class="guild-empty"><div class="guild-empty-icon">🔑</div><div class="guild-empty-text">No active invite codes.<br/>Create one to invite someone to your Guild.</div></div>'
+      )+
+      (usedCodes.length?
+        '<div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin:.875rem 0 .5rem;">Used Codes</div>'+
+        usedCodes.map(function(c){return '<div class="guild-code-card" style="opacity:.5;"><div><div class="guild-code-val" style="text-decoration:line-through;">'+c.code+'</div><div class="guild-code-used">Used by '+c.usedBy+' · '+c.usedTime+'</div></div></div>';}).join('')
+      :'')+
+    '':
+    // Non-leader: show join info
+    '<div style="background:#e0f0ea;border-radius:10px;padding:.875rem;margin-bottom:1.25rem;font-size:.8rem;color:var(--green);font-weight:500;">✓ You are a member of this Guild</div>'
+    )+
+    // Members
+    '<div class="guild-section-title" style="margin-top:1.25rem;">👥 Members ('+g.members.length+')</div>'+
+    g.members.map(function(m){
+      var initials=m.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+      return '<div class="guild-member-item">'+
+        '<div class="guild-member-avatar">'+initials+'</div>'+
+        '<div style="flex:1;"><div class="guild-member-name">'+m.name+'</div><div class="guild-member-meta">Joined '+m.joined+'</div></div>'+
+        '<span class="guild-member-role '+(m.role==='leader'?'gmr-leader':'gmr-member')+'">'+(m.role==='leader'?'👑 Leader':'Member')+'</span>'+
+      '</div>';
+    }).join('')+
+    // Leave guild button (non-leaders)
+    (!isLeader?'<button class="btn btn-warm btn-mt" onclick="leaveGuild()" style="margin-top:1.25rem;">Leave Guild</button>':''+
+    // Disband (leader only)
+    '<button class="btn btn-mt" style="background:#fde8e4;color:var(--red);margin-top:1rem;" onclick="disbandGuild()">Disband Guild</button>');
+}
+function createInviteCode(){
+  if(!state.guild)return;
+  var code=genCode();
+  state.guild.codes.unshift({code:code,created:'Just now',used:false,usedBy:null,usedTime:null});
+  addNotif('🔑 New invite code '+code+' created for "'+state.guild.name+'"');
+  renderGuild();
+}
+function copyCode(code){
+  var btn=document.getElementById('copy-btn-'+code);
+  // Copy to clipboard
+  if(navigator.clipboard){navigator.clipboard.writeText(code);}
+  if(btn){btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(function(){btn.textContent='📋 Copy';btn.classList.remove('copied');},2000);}
+}
+function deleteCode(code){
+  if(!state.guild)return;
+  state.guild.codes=state.guild.codes.filter(c=>c.code!==code);
+  renderGuild();
+}
+function leaveGuild(){
+  if(!state.guild)return;
+  state.guild.members=state.guild.members.filter(m=>m.name!==state.user.name);
+  var name=state.guild.name;
+  state.guild=null;
+  addNotif('You have left the Guild "'+name+'".');
+  renderGuild();
+}
+function disbandGuild(){
+  if(!state.guild)return;
+  var name=state.guild.name;
+  state.allGuilds=state.allGuilds.filter(g=>g.id!==state.guild.id);
+  state.guild=null;
+  addNotif('Guild "'+name+'" has been disbanded.');
+  renderGuild();
+}
+
+// ═══════════════ SIGN OUT
+function doSignOut(){
+  state.user=null;state.profileType=null;state.plan=null;state.faithAnswer=null;
+  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;
+  showScreen('screen-landing');
+}
+</script>
+</body>
+</html>
+
 .logo-img{height:40px;width:auto;object-fit:contain;display:block;}
 .logo-img-sm{height:30px;width:auto;object-fit:contain;display:block;}
 .logo-img-lg{height:90px;width:auto;object-fit:contain;display:block;margin:0 auto .75rem;}
