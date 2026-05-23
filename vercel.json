@@ -1,0 +1,17 @@
+{
+  "functions": {
+    "api/create-checkout-session.js": {
+      "memory": 128,
+      "maxDuration": 10
+    },
+    "api/webhook.js": {
+      "memory": 128,
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    { "source": "/api/create-checkout-session", "destination": "/api/create-checkout-session.js" },
+    { "source": "/api/webhook",                 "destination": "/api/webhook.js" },
+    { "source": "/",                            "destination": "/index.html" }
+  ]
+}
