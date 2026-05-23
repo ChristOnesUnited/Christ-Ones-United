@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Payment Successful — Christ One's United</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:#0f0e0c;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.card{background:#fff;border-radius:20px;padding:2.5rem 2rem;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.4);}
+.icon{font-size:3.5rem;margin-bottom:1rem;}
+.title{font-family:'Playfair Display',serif;font-size:1.75rem;color:#0f0e0c;margin-bottom:.5rem;}
+.sub{font-size:.88rem;color:#7a7369;line-height:1.7;margin-bottom:1.5rem;}
+.plan-chip{display:inline-block;background:#e0f0ea;color:#1a6b4a;font-size:.76rem;font-weight:600;padding:4px 14px;border-radius:20px;margin-bottom:1.5rem;}
+.btn{display:block;width:100%;padding:13px;background:#0f0e0c;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;cursor:pointer;text-decoration:none;margin-bottom:.75rem;}
+.btn:hover{background:#c8452d;}
+.btn-sec{display:block;width:100%;padding:13px;background:#ede8df;color:#7a7369;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;cursor:pointer;text-decoration:none;}
+.verse{font-size:.76rem;color:#bbb;font-style:italic;margin-top:1.5rem;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">🎉</div>
+  <div class="title">You're In!</div>
+  <p class="sub" id="welcome-msg">Welcome to Christ One's United. Your membership is now active.</p>
+  <div class="plan-chip" id="plan-label">Member</div>
+  <a class="btn" href="/">Enter the Directory →</a>
+  <div class="verse">"For where two or three gather in my name, there am I with them." — Matthew 18:20</div>
+</div>
+
+<script>
+  // Read URL params passed back from Stripe success_url
+  var params = new URLSearchParams(window.location.search);
+  var name    = params.get('name')   || 'Friend';
+  var type    = params.get('type')   || 'individual';
+  var plan    = params.get('plan')   || 'monthly';
+
+  var planLabels = {
+    individual_monthly: 'Individual · Monthly ($1.29/mo)',
+    individual_annual:  'Individual · Annual ($9.99/yr)',
+    business_monthly:   'Business · Monthly ($29.99/mo)',
+    business_annual:    'Business · Annual ($239.99/yr)',
+  };
+
+  document.getElementById('welcome-msg').textContent =
+    'Welcome, ' + decodeURIComponent(name) + '! Your Christ One\'s United membership is now active. God bless your journey with us.';
+
+  document.getElementById('plan-label').textContent =
+    '✓ ' + (planLabels[plan] || 'Active Member');
+</script>
+</body>
+</html>
