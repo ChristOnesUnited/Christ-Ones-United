@@ -1,0 +1,8 @@
+{
+  "name": "christ-ones-united",
+  "version": "1.0.0",
+  "description": "Christ One's United — Faith-Based Community Directory",
+  "dependencies": {
+    "stripe": "^14.0.0"
+  }
+}
