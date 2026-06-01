@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Christ One's United — Faith-Based Community Directory",
   "dependencies": {
-    "stripe": "^14.0.0"
+    "stripe": "^14.0.0",
+    "@supabase/supabase-js": "^2.39.0"
   }
 }
