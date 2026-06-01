@@ -5,44 +5,147 @@ var CAT_COLORS = {"Restaurant":"#e8603c","Retail":"#6c63ff","Health & Wellness":
 var IND_PLANS = [{id:"monthly",label:"Monthly",price:"$1.29",period:"/mo",desc:"Billed monthly."},{id:"annual",label:"Annual",price:"$9.99",period:"/yr",desc:"Save 35%.",badge:"Best Value"}];
 var BIZ_PLANS = [{id:"monthly",label:"Monthly",price:"$29.99",period:"/mo",desc:"Billed monthly."},{id:"annual",label:"Annual",price:"$239.99",period:"/yr",desc:"Save 33%.",badge:"Best Value"}];
 var NOW = new Date();
+var API_BASE = '';
 
 var state = {
   profileType:null, user:null, plan:null, faithAnswer:null, bizTags:[], activeCat:'All',
   savedIds:[], myReferralCount:0,
   notifications:[{id:1,text:"Welcome to Christ One's United! Your membership is active.",time:"Just now",read:false}],
-  businesses:[
-    {id:1,name:"The Golden Fork",category:"Restaurant",description:"Farm-to-table dining with seasonal menus and a curated wine list.",address:"42 Elm Street, Portland, OR",phone:"(503) 555-0101",email:"hello@goldenfork.com",website:"goldenfork.com",facebook:"facebook.com/goldenfork",linkedin:"",tags:["vegan options","wine bar","outdoor seating"],church:"Grace Community Church",churchAddress:"10 Grace Ave, Portland, OR",hours:{Mon:"9am–9pm",Tue:"9am–9pm",Wed:"9am–9pm",Thu:"9am–9pm",Fri:"9am–10pm",Sat:"10am–10pm",Sun:"Closed"},featured:false,verified:true,approved:true,joinedDate:new Date(Date.now()-20*86400000),views:142,referrals:[],testimonials:[{author:"Sarah M.",text:"Best meal I've had in Portland. Truly a blessing of a place!"}]},
-    {id:2,name:"Pixel & Co.",category:"Technology",description:"Full-stack web design and development studio specializing in startups.",address:"88 Innovation Blvd, Austin, TX",phone:"(512) 555-0234",email:"studio@pixelco.dev",website:"pixelco.dev",facebook:"",linkedin:"linkedin.com/company/pixelco",tags:["web design","React","branding"],church:"Harvest Fellowship",churchAddress:"55 Harvest Rd, Austin, TX",hours:{Mon:"8am–6pm",Tue:"8am–6pm",Wed:"8am–6pm",Thu:"8am–6pm",Fri:"8am–5pm",Sat:"Closed",Sun:"Closed"},featured:true,verified:true,approved:true,joinedDate:new Date(Date.now()-3*86400000),views:98,referrals:[],testimonials:[]},
-    {id:3,name:"Bloom Wellness Spa",category:"Health & Wellness",description:"Holistic treatments, massage therapy, and mindfulness sessions.",address:"15 Serenity Lane, Asheville, NC",phone:"(828) 555-0378",email:"book@bloomwellness.com",website:"bloomwellness.com",facebook:"facebook.com/bloomwellness",linkedin:"",tags:["massage","meditation","facials"],church:"Mountain Hope Church",churchAddress:"200 Summit Dr, Asheville, NC",hours:{Mon:"Closed",Tue:"10am–7pm",Wed:"10am–7pm",Thu:"10am–7pm",Fri:"10am–8pm",Sat:"9am–8pm",Sun:"11am–5pm"},featured:true,verified:true,approved:true,joinedDate:new Date(Date.now()-45*86400000),views:210,referrals:[],testimonials:[{author:"James T.",text:"A place of true peace and healing. Highly recommend."}]},
-    {id:4,name:"Ironwood Legal",category:"Legal",description:"Business and estate law firm with 20+ years of experience.",address:"200 Commerce Dr, Chicago, IL",phone:"(312) 555-0456",email:"info@ironwoodlegal.com",website:"ironwoodlegal.com",facebook:"",linkedin:"linkedin.com/company/ironwoodlegal",tags:["business law","estate planning","contracts"],church:"Grace Community Church",churchAddress:"40 Grace Blvd, Chicago, IL",hours:{Mon:"9am–5pm",Tue:"9am–5pm",Wed:"9am–5pm",Thu:"9am–5pm",Fri:"9am–4pm",Sat:"Closed",Sun:"Closed"},featured:false,verified:true,approved:true,joinedDate:new Date(Date.now()-60*86400000),views:67,referrals:[],testimonials:[]},
-    {id:5,name:"Harbor Fitness",category:"Fitness",description:"Waterfront gym with personal training, yoga, and group classes.",address:"9 Harbor View, Seattle, WA",phone:"(206) 555-0512",email:"join@harborfitness.com",website:"harborfitness.com",facebook:"facebook.com/harborfitness",linkedin:"",tags:["personal training","yoga","group classes"],church:"Cornerstone Church",churchAddress:"88 Harbor Blvd, Seattle, WA",hours:{Mon:"5am–10pm",Tue:"5am–10pm",Wed:"5am–10pm",Thu:"5am–10pm",Fri:"5am–9pm",Sat:"7am–8pm",Sun:"8am–6pm"},featured:false,verified:true,approved:true,joinedDate:new Date(Date.now()-5*86400000),views:185,referrals:[],testimonials:[]},
-    {id:6,name:"Sage & Shears",category:"Beauty",description:"Boutique hair salon focused on sustainable products and precision cuts.",address:"33 Main St, Denver, CO",phone:"(720) 555-0601",email:"hello@sageshears.com",website:"sageshears.com",facebook:"facebook.com/sageshears",linkedin:"",tags:["haircuts","color","eco-friendly"],church:"Harvest Fellowship",churchAddress:"22 Harvest Way, Denver, CO",hours:{Mon:"Closed",Tue:"9am–6pm",Wed:"9am–6pm",Thu:"9am–7pm",Fri:"9am–7pm",Sat:"8am–5pm",Sun:"Closed"},featured:false,verified:true,approved:true,joinedDate:new Date(Date.now()-55*86400000),views:93,referrals:[],testimonials:[{author:"Maria L.",text:"Love this salon. Faith-filled atmosphere and incredible work!"}]},
-  ],
-  pendingBusinesses:[
-    {id:99,name:"Sunrise Bakery",category:"Restaurant",description:"Christian-owned artisan bakery specializing in fresh breads and pastries.",address:"77 Sunrise Ave, Nashville, TN",phone:"(615) 555-0799",email:"hello@sunrisebakery.com",church:"New Life Church",churchAddress:"100 New Life Blvd, Nashville, TN",tags:["bakery","pastries","gluten-free"],approved:false}
-  ],
+  businesses:[],
+  pendingBusinesses:[],
   myBiz:null,
-  prayerRequests:[
-    {id:1,author:"Grace M.",text:"Please pray for my husband's recovery from surgery this week.",time:"2 hours ago",prayedBy:[],prayedByMe:false},
-    {id:2,author:"David K.",text:"Seeking God's guidance as I start my new business venture for His glory.",time:"Yesterday",prayedBy:[],prayedByMe:false},
-    {id:3,author:"Anonymous",text:"Prayers for unity in our congregation and strength for our pastor.",time:"2 days ago",prayedBy:[],prayedByMe:false},
-  ],
-  events:[
-    {id:1,title:"Community Business Mixer",date:new Date(Date.now()+7*86400000),time:"6:00 PM – 9:00 PM",location:"Grace Community Church Hall",host:"Christ One's United",desc:"Network with fellow faith-based business owners over light refreshments."},
-    {id:2,title:"Faith & Finance Workshop",date:new Date(Date.now()+14*86400000),time:"10:00 AM – 12:00 PM",location:"Harvest Fellowship Center",host:"Ironwood Legal",desc:"Biblical principles for managing your business finances. All welcome."},
-    {id:3,title:"Sunday Market",date:new Date(Date.now()+21*86400000),time:"12:00 PM – 4:00 PM",location:"Cornerstone Church Courtyard",host:"Cornerstone Church",desc:"Local Christian vendors, food, fellowship. Family friendly."},
-  ],
+  prayerRequests:[],
+  events:[],
   messages:[],
-  leaderboard:[
-    {name:"Marcus J.",count:12,badge:"🏆 Top Referrer"},
-    {name:"Linda P.",count:8,badge:"🥈 Silver"},
-    {name:"Thomas R.",count:5,badge:"🥉 Bronze"},
-    {name:"Angela S.",count:3,badge:""},
-    {name:"Kevin W.",count:2,badge:""},
-  ]
+  leaderboard:[]
 };
 
 var selectedPlan = null;
+
+// ═══════════════ API HELPERS
+async function apiFetch(path, method, body) {
+  try {
+    var opts = { method: method||'GET', headers:{'Content-Type':'application/json'} };
+    if(body) opts.body = JSON.stringify(body);
+    var res = await fetch(API_BASE + path, opts);
+    return await res.json();
+  } catch(err) {
+    console.error('API error:', path, err.message);
+    return { error: err.message };
+  }
+}
+
+// Load businesses from Supabase
+async function loadBusinesses() {
+  var data = await apiFetch('/api/businesses');
+  if(data.success && data.businesses) {
+    state.businesses = data.businesses.map(function(b) {
+      return {
+        id: b.id,
+        name: b.name,
+        category: b.category,
+        description: b.description,
+        address: b.address,
+        zip: b.zip,
+        phone: b.phone,
+        email: b.email,
+        website: b.website || '',
+        facebook: b.facebook || '',
+        linkedin: b.linkedin || '',
+        church: b.church || '',
+        churchAddress: b.church_address || '',
+        hours: b.hours || {},
+        tags: b.tags ? b.tags.split(',').map(t=>t.trim()).filter(Boolean) : [],
+        featured: b.featured || false,
+        verified: b.verified || false,
+        approved: b.approved || false,
+        joinedDate: new Date(b.created_at),
+        views: b.views || 0,
+        referrals: [],
+        testimonials: [],
+      };
+    });
+  }
+}
+
+// Load jobs from Supabase
+async function loadJobs() {
+  var data = await apiFetch('/api/jobs');
+  if(data.success && data.jobs) {
+    state.jobs = data.jobs.map(function(j) {
+      return {
+        id: j.id,
+        title: j.title,
+        company: j.company || '',
+        bizId: j.business_id,
+        category: j.category || '',
+        type: j.type,
+        location: j.location,
+        zip: j.zip || '',
+        pay: j.pay || '',
+        description: j.description,
+        faithNote: j.faith_note || '',
+        applyMethod: j.apply_method || 'email',
+        applyContact: j.apply_contact || '',
+        tags: [],
+        postedDate: new Date(j.created_at),
+        savedByUsers: [],
+        applicants: [],
+      };
+    });
+  }
+}
+
+// Save new business to Supabase
+async function saveBusinessToAPI(biz) {
+  var data = await apiFetch('/api/businesses', 'POST', {
+    user_id: state.user ? state.user.id : null,
+    name: biz.name,
+    category: biz.category,
+    description: biz.description,
+    church: biz.church,
+    church_address: biz.churchAddress,
+    address: biz.address,
+    zip: biz.zip,
+    phone: biz.phone,
+    email: biz.email,
+    website: biz.website,
+    facebook: biz.facebook,
+    linkedin: biz.linkedin,
+    hours: biz.hours,
+    tags: biz.tags ? biz.tags.join(',') : '',
+    featured: biz.featured || false,
+  });
+  return data;
+}
+
+// Save referral to Supabase
+async function saveReferralToAPI(bizId, ref) {
+  await apiFetch('/api/referrals', 'POST', {
+    from_user_id: state.user ? state.user.id : null,
+    business_id: bizId,
+    name: ref.name,
+    phone: ref.phone,
+    email: ref.email || '',
+    need: ref.need || '',
+    faith_status: ref.faith || '',
+  });
+}
+
+// Save newsletter subscriber to Supabase
+async function saveNewsletterToAPI(email) {
+  var data = await apiFetch('/api/newsletter', 'POST', {
+    email: email,
+    name: state.user ? state.user.name : '',
+  });
+  return data;
+}
+
+// Save user to Supabase after signup
+async function saveUserToAPI(userData) {
+  var data = await apiFetch('/api/signup', 'POST', userData);
+  return data;
+}
 
 // ═══════════════ UTILS
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
@@ -231,21 +334,43 @@ function doBizProfile(){
     website:document.getElementById('bp-web').value,facebook:document.getElementById('bp-facebook').value,linkedin:document.getElementById('bp-linkedin').value,
     church:church,churchAddress:churchAddr,hours:hours,tags:state.bizTags.slice(),featured:false,verified:false,approved:false,
     joinedDate:new Date(),views:0,referrals:[],testimonials:[]};
-  state.pendingBusinesses.push(biz);state.myBiz=biz;
+  state.myBiz=biz;
+  // Save to Supabase
+  saveBusinessToAPI(biz).then(function(data){
+    if(data.success && data.business) {
+      state.myBiz.id = data.business.id;
+    }
+  });
   addNotif('Your listing has been submitted for review!');
   enterDashboard();
 }
 
 // ═══════════════ DIRECTORY
 function enterDirectory(){
-  state.activeCat='All';document.getElementById('dir-search').value='';
-  document.getElementById('dir-count-sub').textContent='Browsing '+state.businesses.filter(b=>b.approved).length+' verified listings';
+  state.activeCat='All';
+  document.getElementById('dir-search').value='';
   document.getElementById('acc-name').textContent=state.user.name;
   document.getElementById('acc-email').textContent=state.user.email;
   document.getElementById('acc-plan').textContent='Individual · '+(state.plan==='annual'?'Annual ($9.99/yr)':'Monthly ($1.29/mo)');
-  populateChurchFilter();renderCatChips();renderDirectory();renderFeatured();
-  renderPrayerBoard();renderEvents();renderLeaderboard();renderMessages('individual');
-  updateNotifUI();showScreen('screen-directory');switchDirTab('home');
+  updateNotifUI();
+  showScreen('screen-directory');
+  switchDirTab('home');
+  // Show loading state then load real data
+  document.getElementById('biz-grid').innerHTML='<div class="empty-state"><div class="empty-icon" style="animation:spin 1s linear infinite;display:inline-block;">⟳</div><div class="empty-title">Loading listings…</div></div>';
+  loadBusinesses().then(function(){
+    document.getElementById('dir-count-sub').textContent='Browsing '+state.businesses.length+' verified listings';
+    populateChurchFilter();
+    renderCatChips();
+    renderDirectory();
+    renderFeatured();
+  });
+  loadJobs().then(function(){
+    if(document.getElementById('jobs-grid')) renderJobs();
+  });
+  renderPrayerBoard();
+  renderEvents();
+  renderLeaderboard();
+  renderMessages('individual');
 }
 function populateChurchFilter(){
   var sel=document.getElementById('church-filter');sel.innerHTML='<option value="">All Churches</option>';
@@ -354,8 +479,10 @@ function submitEvent(){
 function subscribeNewsletter(){
   var email=document.getElementById('nl-email').value.trim();
   if(!email||!/\S+@\S+\.\S+/.test(email)){alert('Please enter a valid email.');return;}
-  document.querySelector('.newsletter-card').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.5rem;">📬</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;color:#f7f4ef;margin-bottom:.4rem;">You\'re subscribed!</div><p style="font-size:.78rem;color:#8a8278;">The Christ One\'s United Weekly will land in your inbox every Monday morning.</p></div>';
-  addNotif('You\'ve subscribed to the weekly newsletter!');
+  saveNewsletterToAPI(email).then(function(data){
+    document.querySelector('.newsletter-card').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.5rem;">📬</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;color:#f7f4ef;margin-bottom:.4rem;">You\'re subscribed!</div><p style="font-size:.78rem;color:#8a8278;">The Christ One\'s United Weekly will land in your inbox every Monday morning.</p></div>';
+    addNotif('You\'ve subscribed to the weekly newsletter!');
+  });
 }
 
 // ═══════════════ LEADERBOARD
@@ -404,10 +531,11 @@ function submitRef(bizId){
   if(state.myBiz&&state.myBiz.id===bizId)state.myBiz.referrals.unshift(ref);
   state.myReferralCount++;
   document.getElementById('my-ref-count').textContent=state.myReferralCount;
-  // update leaderboard
   var me=state.leaderboard.find(l=>l.name===state.user.name);
   if(me){me.count++;}else{state.leaderboard.push({name:state.user.name,count:1,badge:''});}
   state.leaderboard.sort((a,b)=>b.count-a.count);
+  // Save to Supabase
+  saveReferralToAPI(bizId, ref);
   addNotif('Your referral to '+(biz?biz.name:'the business')+' was received!');
   document.getElementById('refModalContent').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.55rem;">🙏</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:.35rem;">Referral Sent!</div><p style="font-size:.8rem;color:#7a7369;">Your referral has been shared with <strong>'+(biz?biz.name:'the business')+'</strong>.</p></div>';
   setTimeout(function(){closeModal('refModal');},2000);
