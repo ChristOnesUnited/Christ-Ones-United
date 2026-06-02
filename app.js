@@ -184,21 +184,33 @@ function doSignIn(){
   e.classList.add('hidden');
   if(!email||!/\S+@\S+\.\S+/.test(email)){e.textContent='Enter a valid email.';e.classList.remove('hidden');return;}
   if(!pass){e.textContent='Enter your password.';e.classList.remove('hidden');return;}
-  // Show loading state
   e.style.color='#1a6b4a';e.textContent='Signing in…';e.classList.remove('hidden');
-  // Check user in Supabase
-  apiFetch('/api/login','POST',{email:email}).then(function(data){
+  apiFetch('/api/auth-signin','POST',{email:email,password:pass}).then(function(data){
     e.classList.add('hidden');e.style.color='';
-    if(data.error){
-      e.textContent=data.error;e.classList.remove('hidden');return;
-    }
-    if(data.success && data.user){
-      var user = data.user;
-      state.user = {id:user.id, name:user.name, email:user.email, plan:user.plan, church:user.church||''};
-      state.profileType = user.type||'individual';
-      state.plan = user.plan||'monthly';
+    if(data.error){e.textContent=data.error;e.classList.remove('hidden');return;}
+    if(data.success&&data.user){
+      var user=data.user;
+      state.user={id:user.id,name:user.name,email:user.email,plan:user.plan,church:user.church||''};
+      state.profileType=user.type||'individual';
+      state.plan=user.plan||'monthly';
+      if(data.token)state.authToken=data.token;
       if(state.profileType==='business'){
-        enterDashboard();
+        // Check if business owner has a listing already
+        apiFetch('/api/businesses?user_id='+user.id).then(function(bizData){
+          if(bizData.success&&bizData.businesses&&bizData.businesses.length>0){
+            // Has a listing — go to dashboard
+            state.myBiz=bizData.businesses[0];
+            enterDashboard();
+          } else {
+            // No listing yet — show profile form
+            makeDots(4,'g','bp-stepdots');
+            populateBizForm();
+            showScreen('screen-biz-profile');
+          }
+        }).catch(function(){
+          // If check fails just go to dashboard
+          enterDashboard();
+        });
       } else {
         enterDirectory();
       }
@@ -297,6 +309,33 @@ function doPay(){
     document.getElementById('pay-form').classList.remove('hidden');
     document.getElementById('pay-processing').classList.add('hidden');
     alert('Connection error. Please check your internet and try again.');
+  });
+}
+
+// ═══════════════ FORGOT PASSWORD
+function showForgotPassword(){
+  var email=document.getElementById('si-email').value.trim();
+  var modal=document.getElementById('refModal');
+  document.getElementById('refModalContent').innerHTML=
+    '<div class="modal-icon">🔑</div>'+
+    '<div class="modal-title">Reset Password</div>'+
+    '<div style="font-size:.73rem;color:var(--muted);margin-bottom:1.1rem;">Enter your email and we\'ll send you a reset link.</div>'+
+    '<div class="form-group"><label class="lbl">Email Address</label><input class="inp" id="reset-email" type="email" value="'+(email||'')+'" placeholder="your@email.com"/></div>'+
+    '<div id="reset-msg" style="display:none;font-size:.76rem;margin-bottom:.5rem;"></div>'+
+    '<button class="btn btn-ink btn-mt" onclick="submitPasswordReset()">Send Reset Link →</button>';
+  modal.classList.add('open');
+}
+function submitPasswordReset(){
+  var email=document.getElementById('reset-email').value.trim();
+  var msg=document.getElementById('reset-msg');
+  if(!email||!/\S+@\S+\.\S+/.test(email)){msg.style.color='var(--red)';msg.textContent='Please enter a valid email.';msg.style.display='block';return;}
+  msg.style.color='#1a6b4a';msg.textContent='Sending reset link…';msg.style.display='block';
+  apiFetch('/api/auth-reset','POST',{email:email}).then(function(data){
+    msg.style.color='#1a6b4a';
+    msg.textContent='✓ Reset link sent! Check your email inbox.';
+    setTimeout(function(){closeModal('refModal');},3000);
+  }).catch(function(){
+    msg.style.color='var(--red)';msg.textContent='Connection error. Please try again.';
   });
 }
 

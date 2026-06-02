@@ -351,6 +351,37 @@ textarea.inp{resize:vertical;min-height:72px;}
 .modal-for{font-size:.73rem;color:var(--muted);margin-bottom:1.1rem;}
 .modal-for strong{color:var(--red);}
 
+/* ── SPONSOR BANNER ─────────────────────────────── */
+.sponsor-banner{position:relative;overflow:hidden;height:0;background:linear-gradient(90deg,#1a1a2e,#0f1923);transition:height .4s ease;z-index:90;}
+.sponsor-banner.has-sponsors{height:52px;}
+.sponsor-slide{position:absolute;inset:0;display:flex;align-items:center;padding:0 1rem;gap:.875rem;opacity:0;transform:translateX(100%);transition:opacity .5s ease,transform .5s ease;pointer-events:none;}
+.sponsor-slide.active{opacity:1;transform:translateX(0);pointer-events:auto;}
+.sponsor-slide.exit{opacity:0;transform:translateX(-100%);}
+.sponsor-logo{width:32px;height:32px;border-radius:6px;object-fit:cover;background:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,.15);}
+.sponsor-logo-placeholder{width:32px;height:32px;border-radius:6px;background:rgba(201,151,58,.2);border:1px solid rgba(201,151,58,.4);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:var(--gold);flex-shrink:0;}
+.sponsor-text{flex:1;min-width:0;}
+.sponsor-label{font-size:.52rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(201,151,58,.8);font-weight:700;line-height:1;}
+.sponsor-name{font-size:.82rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
+.sponsor-tagline{font-size:.65rem;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+.sponsor-cta{padding:4px 12px;background:var(--gold);color:var(--ink);border:none;border-radius:20px;font-family:'DM Sans',sans-serif;font-size:.65rem;font-weight:700;cursor:pointer;white-space:nowrap;text-decoration:none;flex-shrink:0;transition:opacity .2s;}
+.sponsor-cta:hover{opacity:.85;}
+.sponsor-dots{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);display:flex;gap:4px;}
+.sponsor-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .3s;}
+.sponsor-dot.active{background:var(--gold);}
+.sponsor-close{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:.75rem;padding:4px;line-height:1;}
+.sponsor-close:hover{color:rgba(255,255,255,.7);}
+
+/* ── ADMIN SPONSOR TAB ───────────────────────── */
+.sponsor-admin-card{background:#fff;border-radius:13px;border:1.5px solid var(--border);padding:1.25rem;margin-bottom:.875rem;position:relative;}
+.sponsor-admin-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem;gap:.5rem;}
+.sponsor-admin-name{font-family:'Playfair Display',serif;font-size:.95rem;}
+.sponsor-status-active{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;background:#e0f0ea;color:var(--green);}
+.sponsor-status-inactive{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--warm);color:var(--muted);}
+.sponsor-status-scheduled{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;background:#fdf3e3;color:var(--gold);}
+.sponsor-admin-meta{font-size:.75rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;}
+.sponsor-preview{background:linear-gradient(90deg,#1a1a2e,#0f1923);border-radius:9px;padding:.65rem 1rem;display:flex;align-items:center;gap:.875rem;margin-bottom:.75rem;}
+.duration-slider{width:100%;accent-color:var(--gold);}
+
 /* JOBS */
 .job-search-bar{display:flex;gap:8px;margin-bottom:.875rem;flex-wrap:wrap;}
 .job-search-inp{flex:2;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;outline:none;background:#fff;color:var(--ink);}
@@ -552,6 +583,13 @@ body.admin-mode{padding-bottom:0;}
 <div class="modal-overlay" id="applyModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('applyModal')">×</button><div id="applyModalContent"></div></div></div>
 <div class="modal-overlay" id="guildModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('guildModal')">×</button><div id="guildModalContent"></div></div></div>
 
+<!-- SPONSOR BANNER - appears on all app screens -->
+<div class="sponsor-banner" id="sponsor-banner">
+  <div id="sponsor-slides"></div>
+  <div class="sponsor-dots" id="sponsor-dots"></div>
+  <button class="sponsor-close" onclick="dismissBanner()" title="Dismiss">×</button>
+</div>
+
 <!-- ADMIN SIGN IN MODAL -->
 <div class="modal-overlay" id="adminSignInModal">
   <div class="modal-box" style="max-width:380px;">
@@ -584,6 +622,7 @@ body.admin-mode{padding-bottom:0;}
     <div id="adm-tab-reports" class="admin-body hidden"></div>
     <div id="adm-tab-members" class="admin-body hidden"></div>
     <div id="adm-tab-jobs" class="admin-body hidden"></div>
+    <div id="adm-tab-sponsors" class="admin-body hidden"></div>
     <div id="adm-tab-newsletter" class="admin-body hidden"></div>
     <div id="adm-tab-appeals" class="admin-body hidden"></div>
     <div id="adm-tab-audit" class="admin-body hidden"></div>
@@ -594,6 +633,7 @@ body.admin-mode{padding-bottom:0;}
       <button class="admin-btn" id="adm-btn-reports" onclick="switchAdminTab('reports')"><span class="admin-btn-icon">🚨</span><span class="admin-btn-lbl">Reports</span><span class="admin-btn-cnt hidden" id="adm-cnt-reports"></span></button>
       <button class="admin-btn" id="adm-btn-members" onclick="switchAdminTab('members')"><span class="admin-btn-icon">👥</span><span class="admin-btn-lbl">Members</span></button>
       <button class="admin-btn" id="adm-btn-jobs" onclick="switchAdminTab('jobs')"><span class="admin-btn-icon">💼</span><span class="admin-btn-lbl">Jobs</span></button>
+      <button class="admin-btn" id="adm-btn-sponsors" onclick="switchAdminTab('sponsors')"><span class="admin-btn-icon">📢</span><span class="admin-btn-lbl">Sponsors</span></button>
       <button class="admin-btn" id="adm-btn-newsletter" onclick="switchAdminTab('newsletter')"><span class="admin-btn-icon">📬</span><span class="admin-btn-lbl">Newsletter</span></button>
       <button class="admin-btn" id="adm-btn-appeals" onclick="switchAdminTab('appeals')"><span class="admin-btn-icon">⚖️</span><span class="admin-btn-lbl">Appeals</span><span class="admin-btn-cnt hidden" id="adm-cnt-appeals"></span></button>
       <button class="admin-btn" id="adm-btn-audit" onclick="switchAdminTab('audit')"><span class="admin-btn-icon">📋</span><span class="admin-btn-lbl">Audit</span></button>
@@ -650,6 +690,9 @@ body.admin-mode{padding-bottom:0;}
       <div class="form-group"><label class="lbl">Password</label><input class="inp" type="password" id="si-pass" placeholder="Password"/></div>
       <div class="ob-error hidden" id="si-err"></div>
       <button class="btn btn-ink btn-mt" onclick="doSignIn()">Sign In →</button>
+      <div style="text-align:center;margin-top:.75rem;">
+        <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:.76rem;cursor:pointer;font-family:'DM Sans',sans-serif;">Forgot your password?</button>
+      </div>
       <div class="ob-toggle">New here? <button onclick="showScreen('screen-landing')">Create an account</button></div>
     </div>
   </div>
