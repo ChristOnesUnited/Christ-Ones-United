@@ -178,12 +178,37 @@ function selectType(type){
 
 // ═══════════════ SIGN IN
 function doSignIn(){
-  var email=document.getElementById('si-email').value.trim(),pass=document.getElementById('si-pass').value,e=document.getElementById('si-err');
+  var email=document.getElementById('si-email').value.trim();
+  var pass=document.getElementById('si-pass').value;
+  var e=document.getElementById('si-err');
   e.classList.add('hidden');
   if(!email||!/\S+@\S+\.\S+/.test(email)){e.textContent='Enter a valid email.';e.classList.remove('hidden');return;}
   if(!pass){e.textContent='Enter your password.';e.classList.remove('hidden');return;}
-  state.user={name:email.split('@')[0],email:email,plan:'monthly',church:''};state.profileType='individual';
-  enterDirectory();
+  // Show loading state
+  e.style.color='#1a6b4a';e.textContent='Signing in…';e.classList.remove('hidden');
+  // Check user in Supabase
+  apiFetch('/api/login','POST',{email:email}).then(function(data){
+    e.classList.add('hidden');e.style.color='';
+    if(data.error){
+      e.textContent=data.error;e.classList.remove('hidden');return;
+    }
+    if(data.success && data.user){
+      var user = data.user;
+      state.user = {id:user.id, name:user.name, email:user.email, plan:user.plan, church:user.church||''};
+      state.profileType = user.type||'individual';
+      state.plan = user.plan||'monthly';
+      if(state.profileType==='business'){
+        enterDashboard();
+      } else {
+        enterDirectory();
+      }
+    } else {
+      e.textContent='Sign in failed. Please try again.';e.classList.remove('hidden');
+    }
+  }).catch(function(){
+    e.style.color='';
+    e.textContent='Connection error. Please try again.';e.classList.remove('hidden');
+  });
 }
 
 // ═══════════════ SIGNUP
@@ -276,11 +301,9 @@ function doPay(){
 }
 
 // ═══════════════ STRIPE RETURN HANDLER
-// Runs on page load — checks if user was redirected back from Stripe
 (function(){
   var params = new URLSearchParams(window.location.search);
   if(params.get('cancelled')==='true'){
-    // User cancelled Stripe checkout — show landing with a gentle message
     window.history.replaceState({},'','/');
     setTimeout(function(){
       var msg = document.createElement('div');
@@ -289,6 +312,35 @@ function doPay(){
       document.body.appendChild(msg);
       setTimeout(function(){msg.remove();}, 5000);
     }, 500);
+  }
+  // Auto-open sign in screen after successful Stripe payment
+  if(params.get('signin')==='true'){
+    window.history.replaceState({},'','/');
+    // Wait for DOM and app to fully initialize before switching screen
+    function goToSignIn(){
+      var siScreen = document.getElementById('screen-signin');
+      if(siScreen){
+        showScreen('screen-signin');
+        // Show a welcome toast
+        setTimeout(function(){
+          var msg = document.createElement('div');
+          msg.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#1a6b4a;color:#fff;border-radius:12px;padding:.875rem 1.25rem;font-family:DM Sans,sans-serif;font-size:.82rem;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.2);z-index:999;text-align:center;max-width:320px;';
+          msg.innerHTML = '✓ Membership active — please sign in!';
+          document.body.appendChild(msg);
+          setTimeout(function(){msg.remove();}, 4000);
+        }, 300);
+      } else {
+        // DOM not ready yet — try again
+        setTimeout(goToSignIn, 100);
+      }
+    }
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', function(){
+        setTimeout(goToSignIn, 200);
+      });
+    } else {
+      setTimeout(goToSignIn, 200);
+    }
   }
 })();
 
@@ -355,6 +407,8 @@ function enterDirectory(){
   updateNotifUI();
   showScreen('screen-directory');
   switchDirTab('home');
+  // Load sponsors for banner
+  loadSponsors();
   // Show loading state then load real data
   document.getElementById('biz-grid').innerHTML='<div class="empty-state"><div class="empty-icon" style="animation:spin 1s linear infinite;display:inline-block;">⟳</div><div class="empty-title">Loading listings…</div></div>';
   loadBusinesses().then(function(){
@@ -866,11 +920,11 @@ function updateAdminBadges(){
   if(appeals>0){apC.textContent=appeals;apC.classList.remove('hidden');}else apC.classList.add('hidden');
 }
 function switchAdminTab(tab){
-  ['overview','approvals','reports','members','jobs','newsletter','appeals','audit'].forEach(function(t){
+  ['overview','approvals','reports','members','jobs','sponsors','newsletter','appeals','audit'].forEach(function(t){
     document.getElementById('adm-tab-'+t).classList[t===tab?'remove':'add']('hidden');
     document.getElementById('adm-btn-'+t).classList[t===tab?'add':'remove']('on');
   });
-  var renders={overview:renderAdminOverview,approvals:renderAdminApprovals,reports:renderAdminReports,members:renderAdminMembers,jobs:renderAdminJobs,newsletter:renderAdminNewsletter,appeals:renderAdminAppeals,audit:renderAdminAudit};
+  var renders={overview:renderAdminOverview,approvals:renderAdminApprovals,reports:renderAdminReports,members:renderAdminMembers,jobs:renderAdminJobs,sponsors:renderAdminSponsors,newsletter:renderAdminNewsletter,appeals:renderAdminAppeals,audit:renderAdminAudit};
   if(renders[tab])renders[tab]();
 }
 function addAuditLog(icon,text){state.admin.auditLog.unshift({icon:icon,text:text,time:'Just now'});}
@@ -1162,6 +1216,258 @@ function renderAdminAudit(){
     '<div class="admin-card">'+
       state.admin.auditLog.map(function(a){return '<div class="audit-item"><div class="audit-icon">'+a.icon+'</div><div class="audit-text">'+a.text+'</div><div class="audit-time">'+a.time+'</div></div>';}).join('')+
     '</div>';
+}
+
+// ═══════════════ SPONSOR BANNER
+state.sponsors = [];
+state.sponsorIndex = 0;
+state.sponsorTimer = null;
+state.bannerDismissed = false;
+
+async function loadSponsors(){
+  try {
+    var data = await apiFetch('/api/sponsors');
+    if(data.success && data.sponsors){
+      state.sponsors = data.sponsors;
+      initBanner();
+    }
+  } catch(e){
+    // Silently fail — banner just stays hidden
+  }
+}
+
+function initBanner(){
+  var banner = document.getElementById('sponsor-banner');
+  var slidesEl = document.getElementById('sponsor-slides');
+  var dotsEl = document.getElementById('sponsor-dots');
+  if(!banner||!slidesEl||state.bannerDismissed) return;
+  if(!state.sponsors.length){ banner.classList.remove('has-sponsors'); return; }
+
+  // Build slides
+  slidesEl.innerHTML = '';
+  dotsEl.innerHTML = '';
+  state.sponsors.forEach(function(s, i){
+    var slide = document.createElement('div');
+    slide.className = 'sponsor-slide' + (i===0?' active':'');
+    slide.id = 'sponsor-slide-'+i;
+    var logoHtml = s.logo_url
+      ? '<img class="sponsor-logo" src="'+s.logo_url+'" alt="'+s.name+'" onerror="this.style.display=\'none\'"/>'
+      : '<div class="sponsor-logo-placeholder">'+s.name.charAt(0)+'</div>';
+    var linkStart = s.link_url ? '<a href="'+s.link_url+'" target="_blank" style="text-decoration:none;display:contents;">' : '';
+    var linkEnd = s.link_url ? '</a>' : '';
+    slide.innerHTML =
+      logoHtml +
+      '<div class="sponsor-text">'+
+        '<div class="sponsor-label">National Sponsor</div>'+
+        '<div class="sponsor-name">'+s.name+'</div>'+
+        '<div class="sponsor-tagline">'+s.tagline+'</div>'+
+      '</div>'+
+      linkStart+
+      '<button class="sponsor-cta" '+(s.link_url?'onclick="window.open(\''+s.link_url+'\',\'_blank\')"':'')+'>Learn More</button>'+
+      linkEnd;
+    slidesEl.appendChild(slide);
+
+    // Dot
+    var dot = document.createElement('div');
+    dot.className = 'sponsor-dot'+(i===0?' active':'');
+    dot.id = 'sponsor-dot-'+i;
+    dotsEl.appendChild(dot);
+  });
+
+  banner.classList.add('has-sponsors');
+  startBannerRotation();
+}
+
+function startBannerRotation(){
+  if(state.sponsorTimer) clearTimeout(state.sponsorTimer);
+  if(!state.sponsors.length) return;
+  var current = state.sponsors[state.sponsorIndex];
+  var duration = (current.duration_seconds || 8) * 1000;
+  state.sponsorTimer = setTimeout(function(){
+    advanceBanner();
+  }, duration);
+}
+
+function advanceBanner(){
+  if(!state.sponsors.length) return;
+  var prev = state.sponsorIndex;
+  state.sponsorIndex = (state.sponsorIndex + 1) % state.sponsors.length;
+  var prevSlide = document.getElementById('sponsor-slide-'+prev);
+  var nextSlide = document.getElementById('sponsor-slide-'+state.sponsorIndex);
+  var prevDot = document.getElementById('sponsor-dot-'+prev);
+  var nextDot = document.getElementById('sponsor-dot-'+state.sponsorIndex);
+  if(!prevSlide||!nextSlide) return;
+
+  // Slide out previous
+  prevSlide.classList.remove('active');
+  prevSlide.classList.add('exit');
+  if(prevDot) prevDot.classList.remove('active');
+
+  // Slide in next
+  nextSlide.classList.add('active');
+  if(nextDot) nextDot.classList.add('active');
+
+  // Clean up exit class after animation
+  setTimeout(function(){
+    if(prevSlide) prevSlide.classList.remove('exit');
+  }, 600);
+
+  startBannerRotation();
+}
+
+function dismissBanner(){
+  state.bannerDismissed = true;
+  if(state.sponsorTimer) clearTimeout(state.sponsorTimer);
+  var banner = document.getElementById('sponsor-banner');
+  if(banner) banner.classList.remove('has-sponsors');
+}
+
+// ═══════════════ ADMIN SPONSORS
+state.adminSponsors = [];
+
+async function loadAdminSponsors(){
+  try {
+    var res = await fetch('/api/sponsors?all=true', {
+      headers:{'x-admin-key': state.adminKey||''}
+    });
+    var data = await res.json();
+    if(data.success) state.adminSponsors = data.sponsors||[];
+  } catch(e){ state.adminSponsors=[]; }
+}
+
+function renderAdminSponsors(){
+  var el = document.getElementById('adm-tab-sponsors');
+  loadAdminSponsors().then(function(){
+    var today = new Date().toISOString().split('T')[0];
+    el.innerHTML =
+      '<div class="admin-page-title">📢 Sponsor Banner</div>'+
+      '<div class="admin-page-sub">Manage national sponsors displayed in the rotating banner</div>'+
+      '<button onclick="openAddSponsorForm()" style="width:100%;padding:11px;background:#1a1a2e;color:#fff;border:none;border-radius:9px;font-family:\'DM Sans\',sans-serif;font-weight:600;font-size:.88rem;cursor:pointer;margin-bottom:1.25rem;">+ Add New Sponsor</button>'+
+      '<div id="add-sponsor-form"></div>'+
+      (state.adminSponsors.length?
+        state.adminSponsors.map(function(s){
+          var isActive=s.active&&s.start_date<=today&&s.end_date>=today;
+          var isScheduled=s.active&&s.start_date>today;
+          var statusClass=isActive?'sponsor-status-active':isScheduled?'sponsor-status-scheduled':'sponsor-status-inactive';
+          var statusLabel=isActive?'● Live':isScheduled?'◷ Scheduled':'○ Inactive';
+          return '<div class="sponsor-admin-card">'+
+            '<div class="sponsor-admin-head">'+
+              '<div class="sponsor-admin-name">'+s.name+'</div>'+
+              '<span class="'+statusClass+'">'+statusLabel+'</span>'+
+            '</div>'+
+            '<div class="sponsor-admin-meta">'+
+              '🗓 '+s.start_date+' → '+s.end_date+'<br/>'+
+              '⏱ '+s.duration_seconds+'s display time<br/>'+
+              (s.link_url?'🔗 '+s.link_url+'<br/>':'')+
+              '📝 '+s.tagline+
+            '</div>'+
+            '<div class="sponsor-preview">'+
+              (s.logo_url?'<img style="width:28px;height:28px;border-radius:5px;object-fit:cover;" src="'+s.logo_url+'" onerror="this.style.display=\'none\'"/>':'<div style="width:28px;height:28px;border-radius:5px;background:rgba(201,151,58,.2);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#c9973a;">'+s.name.charAt(0)+'</div>')+
+              '<div style="flex:1;min-width:0;">'+
+                '<div style="font-size:.52rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(201,151,58,.8);font-weight:700;">National Sponsor</div>'+
+                '<div style="font-size:.82rem;font-weight:600;color:#fff;">'+s.name+'</div>'+
+                '<div style="font-size:.65rem;color:rgba(255,255,255,.55);">'+s.tagline+'</div>'+
+              '</div>'+
+              '<div style="padding:4px 10px;background:#c9973a;color:#0f0e0c;border-radius:20px;font-size:.65rem;font-weight:700;">Learn More</div>'+
+            '</div>'+
+            '<div style="display:flex;gap:7px;">'+
+              '<button onclick="toggleSponsorActive(\''+s.id+'\','+(!s.active)+')" style="flex:1;padding:6px;background:'+(s.active?'#fdf3e3':'#e0f0ea')+';color:'+(s.active?'#c9973a':'#1a6b4a')+';border:1.5px solid '+(s.active?'#c9973a':'#1a6b4a')+';border-radius:7px;font-family:\'DM Sans\',sans-serif;font-size:.73rem;font-weight:600;cursor:pointer;">'+(s.active?'Pause':'Activate')+'</button>'+
+              '<button onclick="deleteSponsor(\''+s.id+'\')" style="padding:6px 12px;background:#fde8e4;color:#c8452d;border:1.5px solid #c8452d;border-radius:7px;font-family:\'DM Sans\',sans-serif;font-size:.73rem;font-weight:600;cursor:pointer;">Delete</button>'+
+            '</div>'+
+          '</div>';
+        }).join(''):
+        '<div class="empty-state"><div class="empty-icon">📢</div><div class="empty-title">No sponsors yet</div><p>Add your first national sponsor above.</p></div>'
+      );
+  });
+}
+
+function openAddSponsorForm(){
+  document.getElementById('add-sponsor-form').innerHTML =
+    '<div class="admin-card" style="border-color:#1a1a2e;">'+
+    '<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;margin-bottom:.875rem;">New Sponsor</div>'+
+    '<div class="form-group"><label class="lbl">Business Name <span class="req">*</span></label><input class="inp" id="sp-name" placeholder="e.g. Faith Financial Group" style="background:#fff;"/></div>'+
+    '<div class="form-group"><label class="lbl">Tagline <span class="req">*</span></label><input class="inp" id="sp-tagline" placeholder="e.g. Trusted financial planning for Christian families" style="background:#fff;"/></div>'+
+    '<div class="form-group"><label class="lbl">Logo URL</label><input class="inp" id="sp-logo" placeholder="https://example.com/logo.png" style="background:#fff;"/><div class="hint-msg">Link to their logo image. Leave blank to show initial letter.</div></div>'+
+    '<div class="form-group"><label class="lbl">Link URL</label><input class="inp" id="sp-link" placeholder="https://theirbusiness.com" style="background:#fff;"/></div>'+
+    '<div class="form-group"><label class="lbl">Display Duration: <span id="sp-dur-val">8</span> seconds</label><input type="range" class="duration-slider" id="sp-duration" min="3" max="30" value="8" oninput="document.getElementById(\'sp-dur-val\').textContent=this.value"/></div>'+
+    '<div class="form-row">'+
+      '<div class="form-group"><label class="lbl">Start Date <span class="req">*</span></label><input class="inp" type="date" id="sp-start" style="background:#fff;"/></div>'+
+      '<div class="form-group"><label class="lbl">End Date <span class="req">*</span></label><input class="inp" type="date" id="sp-end" style="background:#fff;"/></div>'+
+    '</div>'+
+    '<div class="form-group"><label class="lbl">Rotation Order</label><input class="inp" type="number" id="sp-order" placeholder="0 = first" value="0" style="background:#fff;"/></div>'+
+    '<div style="display:flex;gap:8px;margin-top:.5rem;">'+
+      '<button onclick="submitAddSponsor()" style="flex:1;padding:10px;background:#1a1a2e;color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-weight:600;font-size:.84rem;cursor:pointer;">Save Sponsor →</button>'+
+      '<button onclick="document.getElementById(\'add-sponsor-form\').innerHTML=\'\'" style="padding:10px 16px;background:var(--warm);color:var(--muted);border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.84rem;cursor:pointer;">Cancel</button>'+
+    '</div>'+
+    '</div>';
+}
+
+async function submitAddSponsor(){
+  var name = document.getElementById('sp-name').value.trim();
+  var tagline = document.getElementById('sp-tagline').value.trim();
+  var start = document.getElementById('sp-start').value;
+  var end = document.getElementById('sp-end').value;
+  if(!name||!tagline||!start||!end){alert('Please fill in all required fields.');return;}
+
+  try {
+    var res = await fetch('/api/sponsors', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-key': state.adminKey||''},
+      body: JSON.stringify({
+        name,
+        tagline,
+        logo_url: document.getElementById('sp-logo').value.trim(),
+        link_url: document.getElementById('sp-link').value.trim(),
+        duration_seconds: parseInt(document.getElementById('sp-duration').value)||8,
+        start_date: start,
+        end_date: end,
+        order_position: parseInt(document.getElementById('sp-order').value)||0,
+      })
+    });
+    var data = await res.json();
+    if(data.success){
+      addAuditLog('📢','New sponsor "'+name+'" added to banner rotation.');
+      document.getElementById('add-sponsor-form').innerHTML='';
+      renderAdminSponsors();
+      // Reload banner on live site
+      loadSponsors();
+    } else {
+      alert('Error: '+(data.error||'Could not save sponsor.'));
+    }
+  } catch(e){ alert('Connection error. Please try again.'); }
+}
+
+async function toggleSponsorActive(id, active){
+  try {
+    var res = await fetch('/api/sponsors', {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','x-admin-key': state.adminKey||''},
+      body: JSON.stringify({id, active})
+    });
+    var data = await res.json();
+    if(data.success){
+      addAuditLog('📢','Sponsor "'+(data.sponsor?data.sponsor.name:id)+'" '+(active?'activated':'paused')+'.');
+      renderAdminSponsors();
+      loadSponsors();
+    }
+  } catch(e){ alert('Connection error.'); }
+}
+
+async function deleteSponsor(id){
+  if(!confirm('Delete this sponsor? This cannot be undone.')) return;
+  try {
+    var res = await fetch('/api/sponsors', {
+      method:'DELETE',
+      headers:{'Content-Type':'application/json','x-admin-key': state.adminKey||''},
+      body: JSON.stringify({id})
+    });
+    var data = await res.json();
+    if(data.success){
+      addAuditLog('🗑️','Sponsor deleted from banner rotation.');
+      renderAdminSponsors();
+      loadSponsors();
+    }
+  } catch(e){ alert('Connection error.'); }
 }
 
 // ═══════════════ GUILD STATE
