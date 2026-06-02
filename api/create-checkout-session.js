@@ -1,11 +1,11 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// Price ID map — matches your Stripe dashboard
+// Price ID map — TEST MODE
 const PRICE_IDS = {
-  individual_monthly: 'price_1TaJSN0y6d4Oktey4ILnwsxS',
-  individual_annual:  'price_1SxDBT0y6d4Oktey6u44DeKV',
-  business_monthly:   'price_1TaJT60y6d4OkteydQi90G7q',
-  business_annual:    'price_1TaJTv0y6d4OkteykaibXj7S',
+  individual_monthly: 'price_1TdwP70y6d4OkteyNMLAFfgB',
+  individual_annual:  'price_1TdwPR0y6d4OkteyfEZL39qu',
+  business_monthly:   'price_1TdwPi0y6d4Oktey8MmLbci1',
+  business_annual:    'price_1TdwPy0y6d4OkteygfSfLRYV',
 };
 
 module.exports = async (req, res) => {
@@ -38,8 +38,8 @@ module.exports = async (req, res) => {
         profileType: profileType,
         planKey: planKey,
       },
-      success_url: `${req.headers.origin}/success.html?session_id={CHECKOUT_SESSION_ID}&plan=${planKey}&type=${profileType}&name=${encodeURIComponent(name)}`,
-      cancel_url:  `${req.headers.origin}/?cancelled=true`,
+      success_url: `https://christonesunited.org/success.html?session_id={CHECKOUT_SESSION_ID}&plan=${planKey}&type=${profileType}&name=${encodeURIComponent(name)}`,
+      cancel_url:  `https://christonesunited.org/?cancelled=true`,
     });
 
     res.status(200).json({ url: session.url });
