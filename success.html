@@ -13,9 +13,12 @@ body{font-family:'DM Sans',sans-serif;background:#0f0e0c;min-height:100vh;displa
 .title{font-family:'Playfair Display',serif;font-size:1.75rem;color:#0f0e0c;margin-bottom:.5rem;}
 .sub{font-size:.88rem;color:#7a7369;line-height:1.7;margin-bottom:1.5rem;}
 .plan-chip{display:inline-block;background:#e0f0ea;color:#1a6b4a;font-size:.76rem;font-weight:600;padding:4px 14px;border-radius:20px;margin-bottom:1.5rem;}
-.btn{display:block;width:100%;padding:13px;background:#0f0e0c;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;cursor:pointer;text-decoration:none;margin-bottom:.75rem;}
-.btn:hover{background:#c8452d;}
-.btn-sec{display:block;width:100%;padding:13px;background:#ede8df;color:#7a7369;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;cursor:pointer;text-decoration:none;}
+.steps{background:#f7f4ef;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;text-align:left;}
+.steps-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:#7a7369;margin-bottom:.75rem;}
+.step{display:flex;align-items:flex-start;gap:.75rem;margin-bottom:.6rem;font-size:.82rem;color:#0f0e0c;line-height:1.5;}
+.step-num{width:22px;height:22px;border-radius:50%;background:#0f0e0c;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0;margin-top:1px;}
+.btn{display:block;width:100%;padding:13px;background:#0f0e0c;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;cursor:pointer;text-decoration:none;margin-bottom:.75rem;transition:background .2s;}
+.btn:hover{background:#1a6b4a;}
 .verse{font-size:.76rem;color:#bbb;font-style:italic;margin-top:1.5rem;line-height:1.6;}
 </style>
 </head>
@@ -23,29 +26,27 @@ body{font-family:'DM Sans',sans-serif;background:#0f0e0c;min-height:100vh;displa
 <div class="card">
   <div class="icon">🎉</div>
   <div class="title">You're In!</div>
-  <p class="sub" id="welcome-msg">Welcome to Christ One's United. Your membership is now active.</p>
-  <div class="plan-chip" id="plan-label">Member</div>
-  <a class="btn" href="/">Enter the Directory →</a>
+  <p class="sub">Your Christ One's United membership is now active. May God bless your journey with us.</p>
+  <div class="plan-chip" id="plan-label">✓ Active Member</div>
+  <div class="steps">
+    <div class="steps-title">What Happens Next</div>
+    <div class="step"><div class="step-num">1</div><div>Click <strong>Sign In</strong> below to access your account.</div></div>
+    <div class="step"><div class="step-num">2</div><div>Enter the email and password you used during signup.</div></div>
+    <div class="step"><div class="step-num">3</div><div>Browse the directory and connect with the community.</div></div>
+    <div class="step"><div class="step-num">4</div><div>Refer friends and business owners to help us build your community's network.</div></div>
+  </div>
+  <a class="btn" href="/?signin=true">Sign In to Your Account →</a>
   <div class="verse">"For where two or three gather in my name, there am I with them." — Matthew 18:20</div>
 </div>
-
 <script>
-  // Read URL params passed back from Stripe success_url
   var params = new URLSearchParams(window.location.search);
-  var name    = params.get('name')   || 'Friend';
-  var type    = params.get('type')   || 'individual';
-  var plan    = params.get('plan')   || 'monthly';
-
+  var plan = params.get('plan') || 'monthly';
   var planLabels = {
     individual_monthly: 'Individual · Monthly ($1.29/mo)',
     individual_annual:  'Individual · Annual ($9.99/yr)',
     business_monthly:   'Business · Monthly ($29.99/mo)',
     business_annual:    'Business · Annual ($239.99/yr)',
   };
-
-  document.getElementById('welcome-msg').textContent =
-    'Welcome, ' + decodeURIComponent(name) + '! Your Christ One\'s United membership is now active. God bless your journey with us.';
-
   document.getElementById('plan-label').textContent =
     '✓ ' + (planLabels[plan] || 'Active Member');
 </script>
