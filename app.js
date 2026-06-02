@@ -230,7 +230,9 @@ function doSignup(){
   if(!name){e.textContent='Enter your name.';e.classList.remove('hidden');return;}
   if(!email||!/\S+@\S+\.\S+/.test(email)){e.textContent='Enter a valid email.';e.classList.remove('hidden');return;}
   if(pass.length<6){e.textContent='Password must be 6+ characters.';e.classList.remove('hidden');return;}
+  // Store password in state so we can create auth account after faith verification
   state.user={name:name,email:email};
+  state.pendingPassword=pass;
   var isBiz=state.profileType==='business';
   makeDots(2,isBiz?'g':'r','faith-stepdots');
   document.getElementById('faith-btn').className='btn btn-mt '+(isBiz?'btn-green':'btn-ink');
@@ -243,7 +245,41 @@ function doSignup(){
 
 // ═══════════════ FAITH
 function selectFaith(v){state.faithAnswer=v;document.getElementById('faith-yes').className='faith-opt yes'+(v==='yes'?' sel':'');document.getElementById('faith-no').className='faith-opt no'+(v==='no'?' sel':'');document.getElementById('faith-block').classList.add('hidden');}
-function doFaith(){if(!state.faithAnswer)return;if(state.faithAnswer==='no'){document.getElementById('faith-block').classList.remove('hidden');return;}goToPayment();}
+function doFaith(){
+  if(!state.faithAnswer)return;
+  if(state.faithAnswer==='no'){document.getElementById('faith-block').classList.remove('hidden');return;}
+  // Create Supabase Auth account before going to payment
+  var btn=document.getElementById('faith-btn');
+  btn.textContent='Creating account…';btn.disabled=true;
+  apiFetch('/api/auth-signup','POST',{
+    email:state.user.email,
+    password:state.pendingPassword,
+    name:state.user.name,
+    type:state.profileType||'individual',
+    plan:'monthly',
+    faith_answer:'yes'
+  }).then(function(data){
+    btn.textContent='Continue →';btn.disabled=false;
+    if(data.error){
+      // If user already exists that's ok — they may be re-signing up
+      if(data.error.toLowerCase().includes('already registered')){
+        goToPayment();
+      } else {
+        document.getElementById('faith-block').style.cssText='background:#fde8e4;border:1.5px solid #e8b4aa;border-radius:9px;padding:.8rem;text-align:center;font-size:.8rem;color:#c8452d;font-weight:500;line-height:1.6;margin-bottom:.8rem;';
+        document.getElementById('faith-block').textContent='Error: '+data.error;
+        document.getElementById('faith-block').classList.remove('hidden');
+      }
+      return;
+    }
+    // Auth account created — proceed to payment
+    if(data.user)state.user.id=data.user.id;
+    state.pendingPassword=null;
+    goToPayment();
+  }).catch(function(){
+    btn.textContent='Continue →';btn.disabled=false;
+    goToPayment(); // Proceed anyway — webhook will handle user creation
+  });
+}
 
 // ═══════════════ PAYMENT
 function goToPayment(){
