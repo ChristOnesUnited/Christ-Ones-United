@@ -203,13 +203,19 @@ function doSignIn(){
             enterDashboard();
           } else {
             // No listing yet — show profile form
+            state.plan=user.plan||'monthly';
             makeDots(4,'g','bp-stepdots');
+            state.bizTags=[];
             populateBizForm();
             showScreen('screen-biz-profile');
           }
         }).catch(function(){
-          // If check fails just go to dashboard
-          enterDashboard();
+          // If check fails show the form anyway so they can complete their listing
+          state.plan=user.plan||'monthly';
+          makeDots(4,'g','bp-stepdots');
+          state.bizTags=[];
+          populateBizForm();
+          showScreen('screen-biz-profile');
         });
       } else {
         enterDirectory();
@@ -261,23 +267,32 @@ function doFaith(){
   }).then(function(data){
     btn.textContent='Continue →';btn.disabled=false;
     if(data.error){
-      // If user already exists that's ok — they may be re-signing up
-      if(data.error.toLowerCase().includes('already registered')){
+      // If user already exists proceed to payment — they can still sign in
+      if(data.error.toLowerCase().includes('already registered')||
+         data.error.toLowerCase().includes('already exists')||
+         data.error.toLowerCase().includes('already been registered')){
         goToPayment();
-      } else {
-        document.getElementById('faith-block').style.cssText='background:#fde8e4;border:1.5px solid #e8b4aa;border-radius:9px;padding:.8rem;text-align:center;font-size:.8rem;color:#c8452d;font-weight:500;line-height:1.6;margin-bottom:.8rem;';
-        document.getElementById('faith-block').textContent='Error: '+data.error;
-        document.getElementById('faith-block').classList.remove('hidden');
+        return;
       }
+      // Any other error — block payment and show clear message
+      var faithBlock=document.getElementById('faith-block');
+      faithBlock.style.cssText='background:#fde8e4;border:1.5px solid #e8b4aa;border-radius:9px;padding:1rem;text-align:left;font-size:.8rem;color:#c8452d;font-weight:500;line-height:1.7;margin-bottom:.8rem;';
+      faithBlock.innerHTML='<strong>Account could not be created.</strong><br/>'+
+        'Please check your email address and try again. If the problem persists contact us at support@christonesunited.org.<br/><br/>'+
+        '<em style="font-weight:400;opacity:.8;">Error: '+data.error+'</em>';
+      faithBlock.classList.remove('hidden');
       return;
     }
-    // Auth account created — proceed to payment
+    // Auth account created successfully — proceed to payment
     if(data.user)state.user.id=data.user.id;
     state.pendingPassword=null;
     goToPayment();
   }).catch(function(){
     btn.textContent='Continue →';btn.disabled=false;
-    goToPayment(); // Proceed anyway — webhook will handle user creation
+    var faithBlock=document.getElementById('faith-block');
+    faithBlock.style.cssText='background:#fde8e4;border:1.5px solid #e8b4aa;border-radius:9px;padding:1rem;text-align:left;font-size:.8rem;color:#c8452d;font-weight:500;line-height:1.7;margin-bottom:.8rem;';
+    faithBlock.innerHTML='<strong>Connection error.</strong><br/>Please check your internet connection and try again. Do not proceed to payment until this is resolved.';
+    faithBlock.classList.remove('hidden');
   });
 }
 
