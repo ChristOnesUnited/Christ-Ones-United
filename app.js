@@ -194,6 +194,8 @@ function doSignIn(){
       state.profileType=user.type||'individual';
       state.plan=user.plan||'monthly';
       if(data.token)state.authToken=data.token;
+      // Auto-subscribe to newsletter (silently — won't duplicate if already subscribed)
+      autoSubscribeNewsletter(user.email, user.name);
       if(state.profileType==='business'){
         // Check if business owner has a listing already
         apiFetch('/api/businesses?user_id='+user.id).then(function(bizData){
@@ -446,6 +448,8 @@ function populateIndCats(){
 }
 function doIndProfile(){
   state.user.church=document.getElementById('ip-church').value.trim();
+  // Auto-subscribe to newsletter
+  autoSubscribeNewsletter(state.user.email, state.user.name);
   enterDirectory();
 }
 
@@ -477,6 +481,8 @@ function doBizProfile(){
     church:church,churchAddress:churchAddr,hours:hours,tags:state.bizTags.slice(),featured:false,verified:false,approved:false,
     joinedDate:new Date(),views:0,referrals:[],testimonials:[]};
   state.myBiz=biz;
+  // Auto-subscribe to newsletter
+  autoSubscribeNewsletter(email, name);
   // Save to Supabase
   saveBusinessToAPI(biz).then(function(data){
     if(data.success && data.business) {
@@ -620,13 +626,77 @@ function submitEvent(){
 }
 
 // ═══════════════ NEWSLETTER
-function subscribeNewsletter(){
-  var email=document.getElementById('nl-email').value.trim();
-  if(!email||!/\S+@\S+\.\S+/.test(email)){alert('Please enter a valid email.');return;}
-  saveNewsletterToAPI(email).then(function(data){
-    document.querySelector('.newsletter-card').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.5rem;">📬</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;color:#f7f4ef;margin-bottom:.4rem;">You\'re subscribed!</div><p style="font-size:.78rem;color:#8a8278;">The Christ One\'s United Weekly will land in your inbox every Monday morning.</p></div>';
-    addNotif('You\'ve subscribed to the weekly newsletter!');
+// ═══════════════ NEWSLETTER — AUTO SUBSCRIBE
+function autoSubscribeNewsletter(email, name){
+  if(!email) return;
+  saveNewsletterToAPI(email, name).then(function(data){
+    if(data && data.success){
+      console.log('Auto-subscribed to newsletter:', email);
+    }
+  }).catch(function(e){
+    console.log('Newsletter auto-subscribe failed silently:', e);
   });
+}
+
+// ═══════════════ NEWSLETTER MODAL — THIS WEEK'S EDITION
+function openNewsletterModal(){
+  var today = new Date();
+  var weekOf = today.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  var newBizCount = state.businesses.filter(function(b){
+    return b.approved && (Date.now()-new Date(b.joinedDate).getTime())<7*86400000;
+  }).length;
+  var featuredBiz = state.businesses.filter(b=>b.approved&&b.featured).slice(0,1)[0];
+  var latestPrayer = state.prayerRequests && state.prayerRequests[0];
+  var nextEvent = state.events && state.events.find(function(e){return new Date(e.date)>new Date();});
+
+  document.getElementById('newsletterModalContent').innerHTML=
+    '<div style="background:linear-gradient(135deg,#1a1a2e,#0f1923);margin:-1.6rem -1.6rem 1.25rem;padding:1.5rem 1.6rem;border-radius:14px 14px 0 0;">'+
+      '<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.15em;color:#c9973a;font-weight:700;margin-bottom:.35rem;">The Christ One\'s United Weekly</div>'+
+      '<div style="font-family:\'Playfair Display\',serif;font-size:1.25rem;color:#fff;margin-bottom:.2rem;">This Week\'s Edition</div>'+
+      '<div style="font-size:.72rem;color:#8a8278;">Week of '+weekOf+'</div>'+
+    '</div>'+
+
+    // New listings
+    '<div style="margin-bottom:1.25rem;">'+
+      '<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:.5rem;">🏢 Directory Update</div>'+
+      (newBizCount>0?
+        '<p style="font-size:.84rem;color:var(--ink);line-height:1.6;"><strong>'+newBizCount+' new business'+(newBizCount!==1?'es':'')+' joined</strong> Christ One\'s United this week. Browse the directory to discover and connect with them.</p>':
+        '<p style="font-size:.84rem;color:var(--muted);line-height:1.6;">No new businesses this week — but the directory is full of great options. Browse and discover!</p>')+
+    '</div>'+
+
+    // Featured business
+    (featuredBiz?
+      '<div style="background:linear-gradient(135deg,#fdf9f0,#fdf3e3);border-radius:10px;padding:1rem;margin-bottom:1.25rem;border:1px solid #c9973a33;">'+
+        '<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#c9973a;font-weight:700;margin-bottom:.35rem;">⭐ Featured Business</div>'+
+        '<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;color:var(--ink);margin-bottom:.2rem;">'+featuredBiz.name+'</div>'+
+        '<div style="font-size:.78rem;color:var(--muted);">'+featuredBiz.category+' · '+featuredBiz.address+'</div>'+
+        '<p style="font-size:.78rem;color:var(--ink);margin-top:.4rem;line-height:1.5;">'+featuredBiz.description.substring(0,120)+'…</p>'+
+      '</div>':'')+ 
+
+    // Prayer highlight
+    (latestPrayer?
+      '<div style="background:#f8f4ff;border-radius:10px;padding:1rem;margin-bottom:1.25rem;border-left:3px solid #7c3aed;">'+
+        '<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#7c3aed;font-weight:700;margin-bottom:.35rem;">🙏 Prayer Highlight</div>'+
+        '<p style="font-size:.82rem;color:var(--ink);font-style:italic;line-height:1.6;">"'+latestPrayer.text.substring(0,120)+(latestPrayer.text.length>120?'…':'')+'"</p>'+
+        '<div style="font-size:.7rem;color:var(--muted);margin-top:.3rem;">— '+latestPrayer.author+'</div>'+
+      '</div>':'')+ 
+
+    // Upcoming event
+    (nextEvent?
+      '<div style="background:#e0f0ea;border-radius:10px;padding:1rem;margin-bottom:1.25rem;">'+
+        '<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:700;margin-bottom:.35rem;">📅 Upcoming Event</div>'+
+        '<div style="font-family:\'Playfair Display\',serif;font-size:.9rem;color:var(--ink);margin-bottom:.2rem;">'+nextEvent.title+'</div>'+
+        '<div style="font-size:.76rem;color:var(--muted);">'+new Date(nextEvent.date).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+' · '+nextEvent.time+'</div>'+
+        '<div style="font-size:.74rem;color:var(--green);margin-top:.2rem;">📍 '+nextEvent.location+'</div>'+
+      '</div>':'')+ 
+
+    // Footer
+    '<div style="text-align:center;padding-top:.75rem;border-top:1px solid var(--border);">'+
+      '<p style="font-size:.72rem;color:var(--muted);line-height:1.6;font-style:italic;">"For where two or three gather in my name, there am I with them." — Matthew 18:20</p>'+
+      '<p style="font-size:.68rem;color:var(--muted);margin-top:.4rem;">You receive this as a Christ One\'s United member. Delivered every Monday.</p>'+
+    '</div>';
+
+  document.getElementById('newsletterModal').classList.add('open');
 }
 
 // ═══════════════ LEADERBOARD

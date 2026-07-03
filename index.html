@@ -579,6 +579,7 @@ body.admin-mode{padding-bottom:0;}
 <div class="modal-overlay" id="msgModal"><div class="modal-box" style="max-width:480px;"><button class="modal-close-btn" onclick="closeModal('msgModal')">×</button><div id="msgModalContent"></div></div></div>
 <div class="modal-overlay" id="prayerModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('prayerModal')">×</button><div id="prayerModalContent"></div></div></div>
 <div class="modal-overlay" id="eventModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('eventModal')">×</button><div id="eventModalContent"></div></div></div>
+<div class="modal-overlay" id="newsletterModal"><div class="modal-box" style="max-width:500px;"><button class="modal-close-btn" onclick="closeModal('newsletterModal')">×</button><div id="newsletterModalContent"></div></div></div>
 <div class="modal-overlay" id="jobModal"><div class="modal-box" style="max-width:500px;"><button class="modal-close-btn" onclick="closeModal('jobModal')">×</button><div id="jobModalContent"></div></div></div>
 <div class="modal-overlay" id="applyModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('applyModal')">×</button><div id="applyModalContent"></div></div></div>
 <div class="modal-overlay" id="guildModal"><div class="modal-box"><button class="modal-close-btn" onclick="closeModal('guildModal')">×</button><div id="guildModalContent"></div></div></div>
@@ -852,12 +853,11 @@ body.admin-mode{padding-bottom:0;}
       <div class="feat-row" id="feat-row"></div>
     </div>
     <div class="dir-body">
-      <div class="newsletter-card">
-        <div class="newsletter-eyebrow">Weekly Newsletter</div>
+      <div class="newsletter-card" onclick="openNewsletterModal()" style="cursor:pointer;">
+        <div class="newsletter-eyebrow">This Week's Newsletter</div>
         <div class="newsletter-title">The Christ One's United Weekly</div>
-        <div class="newsletter-sub">New listings, testimonials, prayer highlights & community events — every week in your inbox.</div>
-        <input class="newsletter-inp" id="nl-email" placeholder="Your email address"/>
-        <button class="newsletter-btn" onclick="subscribeNewsletter()">Subscribe — It's Free</button>
+        <div class="newsletter-sub">New listings, testimonials, prayer highlights & community events — delivered to your inbox every Monday.</div>
+        <button class="newsletter-btn" onclick="openNewsletterModal()">📬 Read This Week's Edition →</button>
       </div>
       <div class="church-filter-wrap">
         <span class="church-filter-label">⛪ Filter by Church:</span>
