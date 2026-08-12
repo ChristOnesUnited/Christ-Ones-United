@@ -173,6 +173,11 @@ function selectType(type){
   document.getElementById('su-desc').textContent=isBiz?'Set up your Christ One\'s United business account.':'Join the Christ One\'s United community directory.';
   document.getElementById('su-btn').className='btn btn-mt '+(isBiz?'btn-green':'btn-ink');
   makeDots(1,isBiz?'g':'r','su-stepdots');
+  // Reset checkbox and disable button
+  var cb=document.getElementById('su-terms');
+  if(cb)cb.checked=false;
+  var btn=document.getElementById('su-btn');
+  if(btn){btn.disabled=true;btn.style.opacity=.5;btn.style.cursor='not-allowed';}
   showScreen('screen-signup');
 }
 
@@ -232,14 +237,29 @@ function doSignIn(){
 }
 
 // ═══════════════ SIGNUP
+function updateSignupBtn(){
+  var cb=document.getElementById('su-terms');
+  var btn=document.getElementById('su-btn');
+  if(!cb||!btn)return;
+  var checked=cb.checked;
+  btn.disabled=!checked;
+  btn.style.opacity=checked?1:.5;
+  btn.style.cursor=checked?'pointer':'not-allowed';
+}
+
 function doSignup(){
-  var name=document.getElementById('su-name').value.trim(),email=document.getElementById('su-email').value.trim(),pass=document.getElementById('su-pass').value,e=document.getElementById('su-err');
+  var name=document.getElementById('su-name').value.trim();
+  var email=document.getElementById('su-email').value.trim();
+  var pass=document.getElementById('su-pass').value;
+  var terms=document.getElementById('su-terms').checked;
+  var e=document.getElementById('su-err');
   e.classList.add('hidden');
   if(!name){e.textContent='Enter your name.';e.classList.remove('hidden');return;}
   if(!email||!/\S+@\S+\.\S+/.test(email)){e.textContent='Enter a valid email.';e.classList.remove('hidden');return;}
   if(pass.length<6){e.textContent='Password must be 6+ characters.';e.classList.remove('hidden');return;}
-  // Store password in state so we can create auth account after faith verification
-  state.user={name:name,email:email};
+  if(!terms){e.textContent='You must agree to the Terms of Service to continue.';e.classList.remove('hidden');return;}
+  // Store password and terms agreement timestamp in state
+  state.user={name:name,email:email,termsAgreedAt:new Date().toISOString()};
   state.pendingPassword=pass;
   var isBiz=state.profileType==='business';
   makeDots(2,isBiz?'g':'r','faith-stepdots');
@@ -265,7 +285,8 @@ function doFaith(){
     name:state.user.name,
     type:state.profileType||'individual',
     plan:'monthly',
-    faith_answer:'yes'
+    faith_answer:'yes',
+    terms_agreed_at:state.user.termsAgreedAt||new Date().toISOString()
   }).then(function(data){
     btn.textContent='Continue →';btn.disabled=false;
     if(data.error){
