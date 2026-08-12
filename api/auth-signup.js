@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { email, password, name, type, plan, church, faith_answer } = req.body;
+  const { email, password, name, type, plan, church, faith_answer, terms_agreed_at } = req.body;
 
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'Email, password and name are required.' });
@@ -62,6 +62,8 @@ module.exports = async (req, res) => {
         church: church || '',
         faith_answer: faith_answer || 'yes',
         status: 'active',
+        terms_agreed_at: terms_agreed_at || new Date().toISOString(),
+        terms_version: 'August 2026',
       }], { onConflict: 'id' });
 
     if (updateError) {
