@@ -6,16 +6,20 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // GET — fetch businesses (all approved, or by user_id)
+  // GET — fetch businesses (all approved, by user_id, or pending for admin)
   if (req.method === 'GET') {
     try {
       const user_id = req.query ? req.query.user_id : null;
+      const approved = req.query ? req.query.approved : null;
 
       let query = supabase.from('businesses').select('*');
 
       if (user_id) {
-        // Return businesses for a specific user (pending or approved)
+        // Return businesses for a specific user
         query = query.eq('user_id', user_id);
+      } else if (approved === 'false') {
+        // Admin — return pending businesses
+        query = query.eq('approved', false);
       } else {
         // Public directory — approved only
         query = query.eq('approved', true);
