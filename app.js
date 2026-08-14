@@ -1080,6 +1080,8 @@ function doAdminLogin(){
   var email=document.getElementById('adm-email').value.trim(),pass=document.getElementById('adm-pass').value;
   var errEl=document.getElementById('adm-err');errEl.style.display='none';
   if(email==='admin@cou.com'&&pass==='admin123'){
+    // Store admin key for API calls
+    state.adminKey=pass;
     closeModal('adminSignInModal');
     enterAdmin();
   } else {errEl.style.display='block';}
@@ -1159,37 +1161,103 @@ function mkBarChart(labels,values,color){
 // ═══════════════ ADMIN APPROVALS
 function renderAdminApprovals(){
   var el=document.getElementById('adm-tab-approvals');
-  var pending=state.pendingBusinesses.filter(b=>!b.approved);
-  el.innerHTML=
-    '<div class="admin-page-title">Business Approvals</div>'+
-    '<div class="admin-page-sub">'+pending.length+' listing'+(pending.length!==1?'s':'')+' awaiting review</div>'+
-    (pending.length?pending.map(function(b){
-      return '<div class="admin-card pending">'+
-        '<div class="admin-card-head"><div class="admin-card-title">'+b.name+'</div><span class="admin-card-badge ab-gold">⏳ Pending</span></div>'+
-        '<div class="admin-card-meta">📂 '+b.category+' · 📍 '+(b.address||'N/A')+' · ✝️ '+b.church+', '+(b.churchAddress||'')+'<br/>📞 '+(b.phone||'N/A')+' · ✉️ '+(b.email||'N/A')+(b.website?' · 🌐 '+b.website:'')+'</div>'+
-        '<div class="admin-card-content">'+b.description+'</div>'+
-        '<div class="admin-actions">'+
-          '<button class="adm-approve" onclick="adminApproveBiz('+b.id+')">✓ Approve</button>'+
-          '<button class="adm-reject" onclick="adminRejectBiz('+b.id+')">✗ Reject</button>'+
-        '</div>'+
-      '</div>';
-    }).join(''):
-    '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All caught up!</div><p>No listings pending review.</p></div>');
+  el.innerHTML='<div class="admin-page-title">Business Approvals</div><div class="admin-page-sub">Loading pending listings…</div>';
+  // Load real pending businesses from Supabase
+  apiFetch('/api/businesses?approved=false').then(function(data){
+    var pending=[];
+    if(data.success&&data.businesses){
+      pending=data.businesses.filter(function(b){return !b.approved;});
+    }
+    // Also include any local pending businesses
+    var localPending=state.pendingBusinesses.filter(b=>!b.approved);
+    pending=pending.concat(localPending.filter(function(lb){
+      return !pending.find(function(pb){return pb.id===lb.id;});
+    }));
+    el.innerHTML=
+      '<div class="admin-page-title">Business Approvals</div>'+
+      '<div class="admin-page-sub">'+pending.length+' listing'+(pending.length!==1?'s':'')+' awaiting review</div>'+
+      (pending.length?pending.map(function(b){
+        return '<div class="admin-card pending">'+
+          '<div class="admin-card-head"><div class="admin-card-title">'+b.name+'</div><span class="admin-card-badge ab-gold">⏳ Pending</span></div>'+
+          '<div class="admin-card-meta">'+
+            '📂 '+(b.category||'N/A')+
+            ' · 📍 '+(b.address||'N/A')+
+            ' · ✝️ '+(b.church||'N/A')+
+            (b.church_address?' · '+(b.church_address||''):'')+
+            '<br/>📞 '+(b.phone||'N/A')+
+            ' · ✉️ '+(b.email||'N/A')+
+            (b.website?' · 🌐 '+b.website:'')+
+          '</div>'+
+          '<div class="admin-card-content">'+(b.description||'No description provided.')+'</div>'+
+          '<div class="admin-actions">'+
+            '<button class="adm-approve" onclick="adminApproveBiz(\''+b.id+'\')">✓ Approve</button>'+
+            '<button class="adm-reject" onclick="adminRejectBiz(\''+b.id+'\')">✗ Reject</button>'+
+          '</div>'+
+        '</div>';
+      }).join(''):
+      '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All caught up!</div><p>No listings pending review.</p></div>');
+  }).catch(function(){
+    // Fallback to local state if API fails
+    var pending=state.pendingBusinesses.filter(b=>!b.approved);
+    el.innerHTML=
+      '<div class="admin-page-title">Business Approvals</div>'+
+      '<div class="admin-page-sub">'+pending.length+' listing'+(pending.length!==1?'s':'')+' awaiting review</div>'+
+      (pending.length?pending.map(function(b){
+        return '<div class="admin-card pending">'+
+          '<div class="admin-card-head"><div class="admin-card-title">'+b.name+'</div><span class="admin-card-badge ab-gold">⏳ Pending</span></div>'+
+          '<div class="admin-card-meta">📂 '+b.category+' · 📍 '+(b.address||'N/A')+' · ✝️ '+b.church+'</div>'+
+          '<div class="admin-card-content">'+b.description+'</div>'+
+          '<div class="admin-actions">'+
+            '<button class="adm-approve" onclick="adminApproveBiz(\''+b.id+'\')">✓ Approve</button>'+
+            '<button class="adm-reject" onclick="adminRejectBiz(\''+b.id+'\')">✗ Reject</button>'+
+          '</div>'+
+        '</div>';
+      }).join(''):
+      '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All caught up!</div><p>No listings pending review.</p></div>');
+  });
 }
+
 function adminApproveBiz(id){
-  var b=state.pendingBusinesses.find(x=>x.id===id);
-  if(b){b.approved=true;b.verified=true;if(!state.businesses.find(x=>x.id===id))state.businesses.unshift(b);}
-  state.pendingBusinesses=state.pendingBusinesses.filter(x=>x.id!==id);
-  if(state.myBiz&&state.myBiz.id===id){state.myBiz.approved=true;state.myBiz.verified=true;}
-  addAuditLog('✅','Business listing "'+( b?b.name:'Listing')+'" approved.');
-  addNotif('🎉 Your listing "'+( b?b.name:'')+'" has been approved and is now live!');
-  updateAdminBadges();renderAdminApprovals();
+  // Update in Supabase via admin API
+  fetch('/api/admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    body:JSON.stringify({action:'approve_business',business_id:id})
+  }).then(function(res){return res.json();}).then(function(data){
+    if(data.success){
+      // Update local state
+      var b=state.pendingBusinesses.find(x=>x.id===id);
+      if(b){b.approved=true;b.verified=true;if(!state.businesses.find(x=>x.id===id))state.businesses.unshift(b);}
+      state.pendingBusinesses=state.pendingBusinesses.filter(x=>x.id!==id);
+      if(state.myBiz&&state.myBiz.id===id){state.myBiz.approved=true;state.myBiz.verified=true;}
+      addAuditLog('✅','Business listing approved.');
+      updateAdminBadges();
+      renderAdminApprovals();
+    }
+  }).catch(function(){
+    // Fallback local approve
+    var b=state.pendingBusinesses.find(x=>x.id===id);
+    if(b){b.approved=true;b.verified=true;if(!state.businesses.find(x=>x.id===id))state.businesses.unshift(b);}
+    state.pendingBusinesses=state.pendingBusinesses.filter(x=>x.id!==id);
+    addAuditLog('✅','Business listing approved (local).');
+    updateAdminBadges();renderAdminApprovals();
+  });
 }
+
 function adminRejectBiz(id){
-  var b=state.pendingBusinesses.find(x=>x.id===id);
-  state.pendingBusinesses=state.pendingBusinesses.filter(x=>x.id!==id);
-  addAuditLog('🚫','Business listing "'+( b?b.name:'Listing')+'" rejected.');
-  updateAdminBadges();renderAdminApprovals();
+  fetch('/api/admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    body:JSON.stringify({action:'reject_business',business_id:id})
+  }).then(function(res){return res.json();}).then(function(data){
+    state.pendingBusinesses=state.pendingBusinesses.filter(x=>x.id!==id);
+    addAuditLog('🚫','Business listing rejected.');
+    updateAdminBadges();renderAdminApprovals();
+  }).catch(function(){
+    state.pendingBusinesses=state.pendingBusinesses.filter(x=>x.id!==id);
+    addAuditLog('🚫','Business listing rejected (local).');
+    updateAdminBadges();renderAdminApprovals();
+  });
 }
 
 // ═══════════════ ADMIN REPORTS
