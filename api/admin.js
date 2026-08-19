@@ -16,6 +16,11 @@ module.exports = async (req, res) => {
 
   try {
 
+    // Verify admin key (used for login check)
+    if (action === 'verify') {
+      return res.status(200).json({ success: true });
+    }
+
     // Get all pending businesses
     if (action === 'get_pending') {
       const { data, error } = await supabase
