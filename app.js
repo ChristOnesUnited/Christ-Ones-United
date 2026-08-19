@@ -1082,30 +1082,22 @@ function doAdminLogin(){
   var errEl=document.getElementById('adm-err');
   errEl.style.display='none';
   if(!email||!pass){errEl.style.display='block';return;}
-  // Verify admin credentials against the server
-  fetch('/api/admin?action=verify', {
+  // Send credentials to server for verification
+  fetch('/api/admin',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-admin-key':pass},
     body:JSON.stringify({action:'verify'})
-  }).then(function(res){return res.json();})
-  .then(function(data){
-    if(data.success||data.error==='Unknown action.'){
-      // Unknown action means the key was accepted (401 would mean wrong key)
-      state.adminKey=pass;
-      closeModal('adminSignInModal');
-      enterAdmin();
-    } else {
-      errEl.style.display='block';
-    }
+  }).then(function(res){
+    if(res.status===401){errEl.style.display='block';return;}
+    return res.json();
+  }).then(function(data){
+    if(!data)return;
+    // Any non-401 response means the key is valid
+    state.adminKey=pass;
+    closeModal('adminSignInModal');
+    enterAdmin();
   }).catch(function(){
-    // Fallback to hardcoded check
-    if(email==='admin@cou.com'&&pass==='admin123'){
-      state.adminKey=pass;
-      closeModal('adminSignInModal');
-      enterAdmin();
-    } else {
-      errEl.style.display='block';
-    }
+    errEl.style.display='block';
   });
 }
 function doAdminSignOut(){document.body.classList.remove('admin-mode');showScreen('screen-landing');}
