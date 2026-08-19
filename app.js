@@ -1077,14 +1077,36 @@ state.admin = {
 
 // ═══════════════ ADMIN AUTH
 function doAdminLogin(){
-  var email=document.getElementById('adm-email').value.trim(),pass=document.getElementById('adm-pass').value;
-  var errEl=document.getElementById('adm-err');errEl.style.display='none';
-  if(email==='admin@cou.com'&&pass==='admin123'){
-    // Store admin key for API calls
-    state.adminKey=pass;
-    closeModal('adminSignInModal');
-    enterAdmin();
-  } else {errEl.style.display='block';}
+  var email=document.getElementById('adm-email').value.trim();
+  var pass=document.getElementById('adm-pass').value;
+  var errEl=document.getElementById('adm-err');
+  errEl.style.display='none';
+  if(!email||!pass){errEl.style.display='block';return;}
+  // Verify admin credentials against the server
+  fetch('/api/admin?action=verify', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-key':pass},
+    body:JSON.stringify({action:'verify'})
+  }).then(function(res){return res.json();})
+  .then(function(data){
+    if(data.success||data.error==='Unknown action.'){
+      // Unknown action means the key was accepted (401 would mean wrong key)
+      state.adminKey=pass;
+      closeModal('adminSignInModal');
+      enterAdmin();
+    } else {
+      errEl.style.display='block';
+    }
+  }).catch(function(){
+    // Fallback to hardcoded check
+    if(email==='admin@cou.com'&&pass==='admin123'){
+      state.adminKey=pass;
+      closeModal('adminSignInModal');
+      enterAdmin();
+    } else {
+      errEl.style.display='block';
+    }
+  });
 }
 function doAdminSignOut(){document.body.classList.remove('admin-mode');showScreen('screen-landing');}
 function enterAdmin(){
