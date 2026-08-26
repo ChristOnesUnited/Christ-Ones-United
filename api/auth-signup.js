@@ -47,16 +47,18 @@ module.exports = async (req, res) => {
 
     const userId = authData.user.id;
 
-    // Step 2: Wait briefly for the trigger to fire first
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Step 2: Wait for trigger to fire first then overwrite with correct data
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Step 3: Update the user record the trigger created (or insert if trigger failed)
-    const { error: updateError } = await supabaseService
-      .from('users')
-      .upsert([{
-        id: userId,
+    // Step 3: Update the user record with correct type
+    // First check if trigger already created the row
+    const { data: existingUser } = await supabaseService
+      .from('users').select('id').eq('id', userId).single();
+
+    if (existingUser) {
+      // Row exists — update with correct type
+      await supabaseService.from('users').update({
         name,
-        email,
         type: type || 'individual',
         plan: plan || 'monthly',
         church: church || '',
@@ -64,11 +66,21 @@ module.exports = async (req, res) => {
         status: 'active',
         terms_agreed_at: terms_agreed_at || new Date().toISOString(),
         terms_version: 'August 2026',
-      }], { onConflict: 'id' });
-
-    if (updateError) {
-      console.error('DB upsert error:', updateError.message);
-      // Auth was created successfully — this is not a blocking error
+      }).eq('id', userId);
+      console.log(`User updated with type: ${type}`);
+    } else {
+      // Insert new row
+      await supabaseService.from('users').insert([{
+        id: userId, name, email,
+        type: type || 'individual',
+        plan: plan || 'monthly',
+        church: church || '',
+        faith_answer: faith_answer || 'yes',
+        status: 'active',
+        terms_agreed_at: terms_agreed_at || new Date().toISOString(),
+        terms_version: 'August 2026',
+      }]);
+      console.log(`User inserted with type: ${type}`);
     }
 
     return res.status(200).json({
