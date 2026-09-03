@@ -12,6 +12,7 @@ var state = {
   savedIds:[], myReferralCount:0,
   notifications:[{id:1,text:"Welcome to Christ One's United! Your membership is active.",time:"Just now",read:false}],
   businesses:[],
+  jobs:[],
   pendingBusinesses:[],
   myBiz:null,
   prayerRequests:[],
@@ -133,17 +134,11 @@ async function saveReferralToAPI(bizId, ref) {
 }
 
 // Save newsletter subscriber to Supabase
-async function saveNewsletterToAPI(email) {
+async function saveNewsletterToAPI(email, name) {
   var data = await apiFetch('/api/newsletter', 'POST', {
     email: email,
-    name: state.user ? state.user.name : '',
+    name: name || (state.user ? state.user.name : ''),
   });
-  return data;
-}
-
-// Save user to Supabase after signup
-async function saveUserToAPI(userData) {
-  var data = await apiFetch('/api/signup', 'POST', userData);
   return data;
 }
 
@@ -520,7 +515,8 @@ function enterDirectory(){
   document.getElementById('dir-search').value='';
   document.getElementById('acc-name').textContent=state.user.name;
   document.getElementById('acc-email').textContent=state.user.email;
-  document.getElementById('acc-plan').textContent='Individual · '+(state.plan==='annual'?'Annual ($9.99/yr)':'Monthly ($1.29/mo)');
+  var planType=state.profileType==='business'?'Business':'Individual';
+  document.getElementById('acc-plan').textContent=planType+' · '+(state.plan==='annual'?'Annual':'Monthly');
   updateNotifUI();
   showScreen('screen-directory');
   switchDirTab('home');
@@ -872,14 +868,7 @@ function toggleNotifs(){document.getElementById('notifOverlay').classList.toggle
 function closeNotifs(){document.getElementById('notifOverlay').classList.remove('open');document.getElementById('notifPanel').classList.remove('open');}
 
 // ═══════════════ JOBS DATA
-state.jobs = [
-  {id:1,title:"Head Chef",company:"The Golden Fork",bizId:1,category:"Restaurant",type:"Full-time",location:"Portland, OR",zip:"97201",pay:"$55,000–$70,000/yr",description:"We're looking for a passionate Head Chef to lead our farm-to-table kitchen. You'll design seasonal menus, manage kitchen staff, and uphold our commitment to fresh, local ingredients.",faithNote:"We open every shift with a short prayer and maintain a respectful, faith-centered work environment.",tags:["culinary","management","seasonal menus"],applyMethod:"email",applyContact:"hiring@goldenfork.com",postedDate:new Date(Date.now()-2*86400000),savedByUsers:[],applicants:[]},
-  {id:2,title:"React Developer",company:"Pixel & Co.",bizId:2,category:"Technology",type:"Full-time",location:"Austin, TX",zip:"78701",pay:"$90,000–$120,000/yr",description:"Join our growing studio as a React Developer. You'll build beautiful web applications for faith-based and mission-driven clients. Remote-friendly with occasional in-person collaboration.",faithNote:"We open team meetings with scripture and prayer. Our work is our ministry.",tags:["React","JavaScript","remote-friendly"],applyMethod:"link",applyContact:"https://pixelco.dev/careers",postedDate:new Date(Date.now()-1*86400000),savedByUsers:[],applicants:[]},
-  {id:3,title:"Massage Therapist",company:"Bloom Wellness Spa",bizId:3,category:"Health & Wellness",type:"Part-time",location:"Asheville, NC",zip:"28801",pay:"$28–$35/hr",description:"Certified massage therapist needed for 20–30 hours per week. Experience in Swedish, deep tissue, and hot stone preferred. Join our team committed to holistic healing.",faithNote:"Our spa is a place of peace. We integrate faith and wellness in everything we do.",tags:["massage","certified","holistic"],applyMethod:"email",applyContact:"book@bloomwellness.com",postedDate:new Date(Date.now()-4*86400000),savedByUsers:[],applicants:[]},
-  {id:4,title:"Paralegal",company:"Ironwood Legal",bizId:4,category:"Legal",type:"Full-time",location:"Chicago, IL",zip:"60601",pay:"$48,000–$58,000/yr",description:"Experienced paralegal needed to support our business and estate law practice. Strong organizational skills, attention to detail, and experience with legal research required.",faithNote:"",tags:["paralegal","legal research","estate law"],applyMethod:"email",applyContact:"careers@ironwoodlegal.com",postedDate:new Date(Date.now()-6*86400000),savedByUsers:[],applicants:[]},
-  {id:5,title:"Personal Trainer",company:"Harbor Fitness",bizId:5,category:"Fitness",type:"Contract",location:"Seattle, WA",zip:"98101",pay:"$45–$65/hr",description:"Certified personal trainers wanted for one-on-one and small group sessions. Flexible scheduling. Build your client base within our established faith-community gym.",faithNote:"We close every session with an optional moment of gratitude and reflection.",tags:["personal training","certified","flexible"],applyMethod:"link",applyContact:"https://harborfitness.com/join-our-team",postedDate:new Date(Date.now()-3*86400000),savedByUsers:[],applicants:[]},
-  {id:6,title:"Volunteer Hair Stylist",company:"Sage & Shears",bizId:6,category:"Beauty",type:"Volunteer",location:"Denver, CO",zip:"80202",pay:"No pay — community service",description:"Join us one Saturday per month to provide free haircuts to unhoused community members. We supply all products. A beautiful way to serve your neighbors.",faithNote:"This is ministry through service. We believe in restoring dignity.",tags:["volunteer","haircuts","community service"],applyMethod:"email",applyContact:"hello@sageshears.com",postedDate:new Date(Date.now()-5*86400000),savedByUsers:[],applicants:[]},
-];
+// Jobs are loaded from Supabase via loadJobs() in enterDirectory()
 state.savedJobIds = [];
 
 // ═══════════════ JOBS — INDIVIDUAL
@@ -974,7 +963,10 @@ function submitApplication(jobId){
 
 // ═══════════════ JOBS — BUSINESS DASHBOARD
 function renderDashJobs(){
-  var myJobs=state.jobs.filter(j=>j.bizId===(state.myBiz?state.myBiz.id:null));
+  var myBizId=state.myBiz?state.myBiz.id:null;
+  var myJobs=myBizId?state.jobs.filter(function(j){
+    return String(j.bizId)===String(myBizId)||String(j.business_id)===String(myBizId);
+  }):[];
   var badge=document.getElementById('dash-jobs-cnt');
   if(myJobs.length>0){badge.textContent=myJobs.length;badge.classList.remove('hidden');}else badge.classList.add('hidden');
   document.getElementById('dash-panel-jobs').innerHTML=
@@ -1000,6 +992,8 @@ function renderDashJobs(){
     '<div class="empty-state" style="padding:2rem;"><div class="empty-icon">💼</div><div class="empty-title">No active job listings</div><p>Post your first position to start receiving applications.</p></div>');
 }
 function closeJob(id){
+  // Close in Supabase
+  apiFetch('/api/jobs','PUT',{id:id}).catch(function(){});
   state.jobs=state.jobs.filter(j=>j.id!==id);
   renderDashJobs();addNotif('Your job listing has been closed.');
 }
@@ -1033,7 +1027,35 @@ function submitPostJob(){
   var title=document.getElementById('pj-title').value.trim(),type=document.getElementById('pj-type').value,loc=document.getElementById('pj-loc').value.trim(),desc=document.getElementById('pj-desc').value.trim();
   if(!title||!type||!loc||!desc){alert('Please fill in all required fields.');return;}
   var biz=state.myBiz||state.businesses[0];
-  var newJob={id:Date.now(),title:title,company:biz?biz.name:'My Business',bizId:biz?biz.id:0,category:document.getElementById('pj-cat').value,type:type,location:loc,zip:document.getElementById('pj-zip').value,pay:document.getElementById('pj-pay').value,description:desc,faithNote:document.getElementById('pj-faith').value,applyMethod:document.getElementById('pj-apply-method').value,applyContact:document.getElementById('pj-apply-contact')?document.getElementById('pj-apply-contact').value:'',tags:[],postedDate:new Date(),savedByUsers:[],applicants:[]};
+  var newJob={
+    id:Date.now(),title:title,
+    company:biz?biz.name:'My Business',
+    bizId:biz?biz.id:0,
+    category:document.getElementById('pj-cat').value,
+    type:type,location:loc,
+    zip:document.getElementById('pj-zip').value,
+    pay:document.getElementById('pj-pay').value,
+    description:desc,
+    faithNote:document.getElementById('pj-faith').value,
+    applyMethod:document.getElementById('pj-apply-method').value,
+    applyContact:document.getElementById('pj-apply-contact')?document.getElementById('pj-apply-contact').value:'',
+    tags:[],postedDate:new Date(),savedByUsers:[],applicants:[]
+  };
+  // Save to Supabase
+  apiFetch('/api/jobs','POST',{
+    business_id:biz?biz.id:null,
+    title:title,type:type,
+    category:newJob.category,
+    location:loc,
+    zip:newJob.zip,
+    pay:newJob.pay,
+    description:desc,
+    faith_note:newJob.faithNote,
+    apply_method:newJob.applyMethod,
+    apply_contact:newJob.applyContact,
+  }).then(function(data){
+    if(data.success&&data.job)newJob.id=data.job.id;
+  }).catch(function(){});
   state.jobs.unshift(newJob);
   closeModal('jobModal');renderDashJobs();
   addNotif('💼 Your job "'+title+'" is now live on the Job Board!');
@@ -1108,13 +1130,22 @@ function enterAdmin(){
   updateAdminBadges();
 }
 function updateAdminBadges(){
-  var pending=state.pendingBusinesses.filter(b=>!b.approved).length;
   var reports=state.admin.reportedContent.filter(r=>!r.resolved).length;
   var appeals=state.admin.appeals.filter(a=>a.status==='pending').length;
-  var aC=document.getElementById('adm-cnt-approvals'),rC=document.getElementById('adm-cnt-reports'),apC=document.getElementById('adm-cnt-appeals');
-  if(pending>0){aC.textContent=pending;aC.classList.remove('hidden');}else aC.classList.add('hidden');
+  var rC=document.getElementById('adm-cnt-reports');
+  var apC=document.getElementById('adm-cnt-appeals');
   if(reports>0){rC.textContent=reports;rC.classList.remove('hidden');}else rC.classList.add('hidden');
   if(appeals>0){apC.textContent=appeals;apC.classList.remove('hidden');}else apC.classList.add('hidden');
+  // Load real pending count from Supabase
+  apiFetch('/api/businesses?approved=false').then(function(data){
+    var pending=data.businesses?data.businesses.length:0;
+    var aC=document.getElementById('adm-cnt-approvals');
+    if(pending>0){aC.textContent=pending;aC.classList.remove('hidden');}else aC.classList.add('hidden');
+  }).catch(function(){
+    var pending=state.pendingBusinesses.filter(b=>!b.approved).length;
+    var aC=document.getElementById('adm-cnt-approvals');
+    if(pending>0){aC.textContent=pending;aC.classList.remove('hidden');}else aC.classList.add('hidden');
+  });
 }
 function switchAdminTab(tab){
   ['overview','approvals','reports','members','jobs','sponsors','newsletter','appeals','audit'].forEach(function(t){
@@ -1322,15 +1353,43 @@ function adminDismissReport(id){
 // ═══════════════ ADMIN MEMBERS
 function renderAdminMembers(){
   var el=document.getElementById('adm-tab-members');
-  el.innerHTML=
-    '<div class="admin-page-title">Member Management</div>'+
-    '<div class="admin-page-sub">'+state.admin.members.length+' total members</div>'+
-    '<input class="member-search" id="adm-member-search" placeholder="Search by name, email, or church…" oninput="filterAdminMembers()"/>'+
-    '<div id="adm-member-table-wrap">'+buildMemberTable(state.admin.members)+'</div>';
+  el.innerHTML='<div class="admin-page-title">Member Management</div><div class="admin-page-sub">Loading members…</div>';
+  fetch('/api/admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    body:JSON.stringify({action:'get_members'})
+  }).then(function(r){return r.json();}).then(function(data){
+    var members=data.members||[];
+    // Normalize Supabase fields to match our table builder
+    members=members.map(function(m){return {
+      id:m.id,name:m.name,email:m.email,
+      type:m.type==='business'?'Business':'Individual',
+      plan:m.plan==='annual'?'Annual':'Monthly',
+      church:m.church||'',
+      joined:m.created_at?new Date(m.created_at).toLocaleDateString('en-US',{month:'short',year:'numeric'}):'',
+      status:m.status||'active',
+      faithAnswer:m.faith_answer||'yes',
+      referrals:0
+    };});
+    el.innerHTML=
+      '<div class="admin-page-title">Member Management</div>'+
+      '<div class="admin-page-sub">'+members.length+' total members</div>'+
+      '<input class="member-search" id="adm-member-search" placeholder="Search by name, email, or church…" oninput="filterAdminMembers()"/>'+
+      '<div id="adm-member-table-wrap">'+buildMemberTable(members)+'</div>';
+    state.admin.realMembers=members;
+  }).catch(function(){
+    // Fallback to demo data
+    el.innerHTML=
+      '<div class="admin-page-title">Member Management</div>'+
+      '<div class="admin-page-sub">'+state.admin.members.length+' total members</div>'+
+      '<input class="member-search" id="adm-member-search" placeholder="Search by name, email, or church…" oninput="filterAdminMembers()"/>'+
+      '<div id="adm-member-table-wrap">'+buildMemberTable(state.admin.members)+'</div>';
+  });
 }
 function filterAdminMembers(){
   var q=document.getElementById('adm-member-search').value.toLowerCase();
-  var filtered=state.admin.members.filter(function(m){return !q||m.name.toLowerCase().includes(q)||m.email.toLowerCase().includes(q)||(m.church&&m.church.toLowerCase().includes(q));});
+  var allMembers=state.admin.realMembers||state.admin.members;
+  var filtered=allMembers.filter(function(m){return !q||m.name.toLowerCase().includes(q)||m.email.toLowerCase().includes(q)||(m.church&&m.church.toLowerCase().includes(q));});
   document.getElementById('adm-member-table-wrap').innerHTML=buildMemberTable(filtered);
 }
 function buildMemberTable(members){
@@ -1348,14 +1407,26 @@ function buildMemberTable(members){
     }).join('')+'</tbody></table></div>';
 }
 function adminSuspendMember(id){
-  var m=state.admin.members.find(x=>x.id===id);if(m)m.status='suspended';
-  addAuditLog('🚫','Member "'+( m?m.name:id)+'" suspended by Admin.');
-  renderAdminMembers();
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify({action:'suspend_member',user_id:id})})
+  .then(function(r){return r.json();}).then(function(){
+    addAuditLog('🚫','Member suspended by Admin.');
+    renderAdminMembers();
+  }).catch(function(){
+    var m=state.admin.members.find(x=>x.id===id);if(m)m.status='suspended';
+    addAuditLog('🚫','Member suspended by Admin.');
+    renderAdminMembers();
+  });
 }
 function adminRestoreMember(id){
-  var m=state.admin.members.find(x=>x.id===id);if(m)m.status='active';
-  addAuditLog('✅','Member "'+( m?m.name:id)+'" restored by Admin.');
-  renderAdminMembers();
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify({action:'restore_member',user_id:id})})
+  .then(function(r){return r.json();}).then(function(){
+    addAuditLog('✅','Member restored by Admin.');
+    renderAdminMembers();
+  }).catch(function(){
+    var m=state.admin.members.find(x=>x.id===id);if(m)m.status='active';
+    addAuditLog('✅','Member restored by Admin.');
+    renderAdminMembers();
+  });
 }
 
 // ═══════════════ ADMIN JOBS
@@ -1880,10 +1951,10 @@ function renderMyGuild(el){
         '<span class="guild-member-role '+(m.role==='leader'?'gmr-leader':'gmr-member')+'">'+(m.role==='leader'?'👑 Leader':'Member')+'</span>'+
       '</div>';
     }).join('')+
-    // Leave guild button (non-leaders)
-    (!isLeader?'<button class="btn btn-warm btn-mt" onclick="leaveGuild()" style="margin-top:1.25rem;">Leave Guild</button>':''+
-    // Disband (leader only)
-    '<button class="btn btn-mt" style="background:#fde8e4;color:var(--red);margin-top:1rem;" onclick="disbandGuild()">Disband Guild</button>');
+    // Leave guild button (non-leaders) or Disband (leader only)
+    (isLeader?
+      '<button class="btn btn-mt" style="background:#fde8e4;color:var(--red);margin-top:1rem;" onclick="disbandGuild()">Disband Guild</button>':
+      '<button class="btn btn-warm btn-mt" onclick="leaveGuild()" style="margin-top:1.25rem;">Leave Guild</button>');
 }
 function createInviteCode(){
   if(!state.guild)return;
