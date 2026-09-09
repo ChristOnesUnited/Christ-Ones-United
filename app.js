@@ -723,23 +723,29 @@ function renderLeaderboard(){
 
 // ═══════════════ MESSAGING
 function openMsgModal(bizId){
-  var biz=state.businesses.find(b=>b.id===bizId);if(!biz)return;
-  var thread=state.messages.find(m=>m.bizId===bizId);
+  var biz=state.businesses.find(b=>String(b.id)===String(bizId));if(!biz)return;
+  var thread=state.messages.find(m=>String(m.bizId)===String(bizId));
   if(!thread){thread={bizId:bizId,bizName:biz.name,messages:[{from:'system',text:'This is a private conversation with '+biz.name+'. Messages are visible to both parties.',time:'Now'}],unread:false};state.messages.push(thread);}
   document.getElementById('msgModalContent').innerHTML=
     '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;"><div style="font-size:1.2rem;">💬</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;">'+biz.name+'</div></div>'+
     '<div class="msg-bubble-wrap" id="modal-bubbles">'+thread.messages.map(function(m){return '<div class="msg-bubble '+(m.from==='user'?'sent':'recv')+'">'+m.text+'</div>';}).join('')+'</div>'+
-    '<div class="msg-input-row"><input class="msg-input" id="modal-msg-inp" placeholder="Type a message…" onkeydown="if(event.key===\'Enter\')sendModalMsg('+bizId+')"/><button class="msg-send-btn" onclick="sendModalMsg('+bizId+')">Send</button></div>';
+    '<div class="msg-input-row"><input class="msg-input" id="modal-msg-inp" placeholder="Type a message…" onkeydown="if(event.key===\'Enter\')sendModalMsg(\''+bizId+'\')"/><button class="msg-send-btn" onclick="sendModalMsg(\''+bizId+'\')">Send</button></div>';
   document.getElementById('msgModal').classList.add('open');
 }
 function sendModalMsg(bizId){
   var inp=document.getElementById('modal-msg-inp'),text=inp.value.trim();if(!text)return;
-  var thread=state.messages.find(m=>m.bizId===bizId);
-  if(thread){thread.messages.push({from:'user',text:text,time:'Now'});inp.value='';
+  var thread=state.messages.find(m=>String(m.bizId)===String(bizId));
+  if(thread){
+    thread.messages.push({from:'user',text:text,time:'Now'});
+    inp.value='';
     var bubbles=document.getElementById('modal-bubbles');
     bubbles.innerHTML+=('<div class="msg-bubble sent">'+text+'</div>');
     bubbles.scrollTop=bubbles.scrollHeight;
-    setTimeout(function(){thread.messages.push({from:'biz',text:'Thanks for reaching out! We\'ll get back to you shortly. God bless! 🙏',time:'Now'});bubbles.innerHTML+=('<div class="msg-bubble recv">Thanks for reaching out! We\'ll get back to you shortly. God bless! 🙏</div>');bubbles.scrollTop=bubbles.scrollHeight;},1000);
+    setTimeout(function(){
+      thread.messages.push({from:'biz',text:'Thanks for reaching out! We\'ll get back to you shortly. God bless! 🙏',time:'Now'});
+      bubbles.innerHTML+=('<div class="msg-bubble recv">Thanks for reaching out! We\'ll get back to you shortly. God bless! 🙏</div>');
+      bubbles.scrollTop=bubbles.scrollHeight;
+    },1000);
   }
 }
 function renderMessages(role){
