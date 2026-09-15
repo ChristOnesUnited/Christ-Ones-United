@@ -203,6 +203,10 @@ function doSignIn(){
             // Has a listing — go to dashboard
             state.myBiz=bizData.businesses[0];
             enterDashboard();
+          } else if(bizData.error){
+            // API error — go to dashboard anyway, they can manage listing there
+            console.error('Business lookup error:', bizData.error);
+            enterDashboard();
           } else {
             // No listing yet — show profile form
             state.plan=user.plan||'monthly';
@@ -211,13 +215,10 @@ function doSignIn(){
             populateBizForm();
             showScreen('screen-biz-profile');
           }
-        }).catch(function(){
-          // If check fails show the form anyway so they can complete their listing
-          state.plan=user.plan||'monthly';
-          makeDots(4,'g','bp-stepdots');
-          state.bizTags=[];
-          populateBizForm();
-          showScreen('screen-biz-profile');
+        }).catch(function(err){
+          // Connection error — go to dashboard rather than trapping in profile form
+          console.error('Business lookup failed:', err);
+          enterDashboard();
         });
       } else {
         enterDirectory();
