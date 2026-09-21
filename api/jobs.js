@@ -11,7 +11,7 @@ module.exports = async (req, res) => {
     try {
       const { data, error } = await supabase
         .from('jobs')
-        .select(`*, businesses(name, category)`)
+        .select('*')
         .eq('active', true)
         .order('created_at', { ascending: false });
 

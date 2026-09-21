@@ -1,11 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { createClient } = require('@supabase/supabase-js');
-
-const supabaseService = require('./supabase');
-const supabaseAuth = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+const supabase = require('./supabase');
 
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -20,11 +14,8 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method not allowed');
 
   let rawBody;
-  try {
-    rawBody = await getRawBody(req);
-  } catch (err) {
-    return res.status(400).send('Could not read request body');
-  }
+  try { rawBody = await getRawBody(req); }
+  catch (err) { return res.status(400).send('Could not read body'); }
 
   const sig = req.headers['stripe-signature'];
   let event;
@@ -35,82 +26,56 @@ module.exports = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log(`Webhook received: ${event.type}`);
+  console.log(`Webhook: ${event.type}`);
 
   try {
     switch (event.type) {
-
       case 'checkout.session.completed': {
         const session = event.data.object;
         const { name, profileType, planKey } = session.metadata || {};
         const email = session.customer_email;
-        const customerId = session.customer;
-        const subscriptionId = session.subscription;
-
         if (!email) { console.error('No email in session'); break; }
-        console.log(`Payment complete: ${email} (${planKey})`);
 
-        // Check if user exists in our users table
-        const { data: existing } = await supabaseService
-          .from('users')
-          .select('id')
-          .eq('email', email)
-          .single();
+        const plan = planKey && planKey.includes('annual') ? 'annual' : 'monthly';
+        const type = profileType || 'individual';
+
+        // Check existing
+        const { data: existing } = await supabase.from('users').select('id').eq('email', email).single();
 
         if (existing) {
-          // Update existing user
-          const { error } = await supabaseService.from('users').update({
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId,
-            status: 'active',
-            plan: planKey && planKey.includes('annual') ? 'annual' : 'monthly',
+          await supabase.from('users').update({
+            stripe_customer_id: session.customer || '',
+            stripe_subscription_id: session.subscription || '',
+            status: 'active', plan, type,
           }).eq('email', email);
-          if (error) console.error('Update error:', error.message);
-          else console.log(`Updated user: ${email}`);
         } else {
-          // Create new user in users table
-          const { error: dbError } = await supabaseService.from('users').insert([{
-            name: name || email,
-            email,
-            type: profileType || 'individual',
-            plan: planKey && planKey.includes('annual') ? 'annual' : 'monthly',
-            stripe_customer_id: customerId || '',
-            stripe_subscription_id: subscriptionId || '',
-            status: 'active',
-            faith_answer: 'yes',
+          await supabase.from('users').insert([{
+            name: name || email, email, type, plan,
+            stripe_customer_id: session.customer || '',
+            stripe_subscription_id: session.subscription || '',
+            status: 'active', faith_answer: 'yes',
           }]);
-          if (dbError) console.error('Insert error:', dbError.message);
-          else console.log(`New user saved: ${email}`);
         }
+        console.log(`✅ Payment complete: ${email} (${type}/${plan})`);
         break;
       }
-
       case 'invoice.payment_succeeded': {
-        const invoice = event.data.object;
-        await supabaseService.from('users')
-          .update({ status: 'active' })
-          .eq('stripe_customer_id', invoice.customer);
+        const inv = event.data.object;
+        await supabase.from('users').update({ status: 'active' }).eq('stripe_customer_id', inv.customer);
         break;
       }
-
       case 'invoice.payment_failed': {
-        const invoice = event.data.object;
-        await supabaseService.from('users')
-          .update({ status: 'pending' })
-          .eq('stripe_customer_id', invoice.customer);
+        const inv = event.data.object;
+        await supabase.from('users').update({ status: 'pending' }).eq('stripe_customer_id', inv.customer);
         break;
       }
-
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object;
-        await supabaseService.from('users')
-          .update({ status: 'inactive' })
-          .eq('stripe_customer_id', subscription.customer);
+        const sub = event.data.object;
+        await supabase.from('users').update({ status: 'inactive' }).eq('stripe_customer_id', sub.customer);
         break;
       }
-
       default:
-        console.log(`Unhandled event: ${event.type}`);
+        console.log(`Unhandled: ${event.type}`);
     }
   } catch (err) {
     console.error('Webhook handler error:', err.message);
