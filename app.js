@@ -161,19 +161,25 @@ function addNotif(text){state.notifications.unshift({id:Date.now(),text:text,tim
 
 // ═══════════════ LANDING
 function selectType(type){
-  state.profileType=type;var isBiz=type==='business';
-  document.getElementById('su-subtitle').textContent=isBiz?'Business Sign Up':'Individual Sign Up';
-  document.getElementById('su-chip').className='ob-chip '+(isBiz?'g':'r');
-  document.getElementById('su-chip').textContent=isBiz?'🏢 Business Owner':'🔍 Individual Member';
-  document.getElementById('su-desc').textContent=isBiz?'Set up your Christ One\'s United business account.':'Join the Christ One\'s United community directory.';
-  document.getElementById('su-btn').className='btn btn-mt '+(isBiz?'btn-green':'btn-ink');
-  makeDots(1,isBiz?'g':'r','su-stepdots');
-  // Reset checkbox and disable button
-  var cb=document.getElementById('su-terms');
-  if(cb)cb.checked=false;
-  var btn=document.getElementById('su-btn');
-  if(btn){btn.disabled=true;btn.style.opacity=.5;btn.style.cursor='not-allowed';}
-  showScreen('screen-signup');
+  try {
+    state.profileType=type;
+    var isBiz=type==='business';
+    var subEl=document.getElementById('su-subtitle');
+    var chipEl=document.getElementById('su-chip');
+    var descEl=document.getElementById('su-desc');
+    var btnEl=document.getElementById('su-btn');
+    if(subEl) subEl.textContent=isBiz?'Business Sign Up':'Individual Sign Up';
+    if(chipEl){chipEl.className='ob-chip '+(isBiz?'g':'r');chipEl.textContent=isBiz?'🏢 Business Owner':'🔍 Individual Member';}
+    if(descEl) descEl.textContent=isBiz?'Set up your Christ One\'s United business account.':'Join the Christ One\'s United community directory.';
+    if(btnEl) btnEl.className='btn btn-mt '+(isBiz?'btn-green':'btn-ink');
+    makeDots(1,isBiz?'g':'r','su-stepdots');
+    var cb=document.getElementById('su-terms');
+    if(cb) cb.checked=false;
+    if(btnEl){btnEl.disabled=true;btnEl.style.opacity=.5;btnEl.style.cursor='not-allowed';}
+    showScreen('screen-signup');
+  } catch(e) {
+    console.error('selectType error:', e.message);
+  }
 }
 
 // ═══════════════ SIGN IN
@@ -190,7 +196,7 @@ function doSignIn(){
     if(data.error){e.textContent=data.error;e.classList.remove('hidden');return;}
     if(data.success&&data.user){
       var user=data.user;
-      state.user={id:user.id,name:user.name,email:user.email,plan:user.plan,church:user.church||''};
+      state.user={id:user.id,name:user.name,email:user.email,plan:user.plan,church:user.church||'',zip:user.zip||''};
       state.profileType=user.type||'individual';
       state.plan=user.plan||'monthly';
       if(data.token)state.authToken=data.token;
@@ -465,6 +471,7 @@ function populateIndCats(){
 }
 function doIndProfile(){
   state.user.church=document.getElementById('ip-church').value.trim();
+  state.user.zip=document.getElementById('ip-zip').value.trim();
   // Auto-subscribe to newsletter
   autoSubscribeNewsletter(state.user.email, state.user.name);
   enterDirectory();
@@ -560,13 +567,42 @@ function renderFeatured(){
 function renderDirectory(){
   var q=(document.getElementById('dir-search').value||'').toLowerCase();
   var cf=document.getElementById('church-filter').value;
+  var userChurch=state.user?state.user.church:'';
+  var userZip=state.user?state.user.zip||'':'';
+
   var filtered=state.businesses.filter(function(b){
     if(!b.approved)return false;
     var mc=state.activeCat==='All'||b.category===state.activeCat;
     var cc=!cf||b.church===cf;
     return mc&&cc&&(!q||b.name.toLowerCase().includes(q)||b.description.toLowerCase().includes(q)||b.category.toLowerCase().includes(q)||b.tags.some(t=>t.toLowerCase().includes(q)));
   });
-  document.getElementById('result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> result'+(filtered.length!==1?'s':'')+(q?' for "<strong>'+q+'</strong>"':'')+(state.activeCat!=='All'?' in <strong>'+state.activeCat+'</strong>':'')+(cf?' · <strong>'+cf+'</strong>':'');
+
+  // ── SMART SORT: same church first, then local (same ZIP prefix), then rest
+  if(!q && !cf && state.activeCat==='All' && userChurch){
+    filtered.sort(function(a, b){
+      // Tier 1: Same church as the user
+      var aChurch = userChurch && a.church && a.church.toLowerCase()===userChurch.toLowerCase();
+      var bChurch = userChurch && b.church && b.church.toLowerCase()===userChurch.toLowerCase();
+      if(aChurch && !bChurch) return -1;
+      if(!aChurch && bChurch) return 1;
+
+      // Tier 2: Same ZIP prefix (first 3 digits = same general area)
+      var userZipPre = userZip ? userZip.substring(0,3) : '';
+      var aLocal = userZipPre && a.zip && a.zip.substring(0,3)===userZipPre;
+      var bLocal = userZipPre && b.zip && b.zip.substring(0,3)===userZipPre;
+      if(aLocal && !bLocal) return -1;
+      if(!aLocal && bLocal) return 1;
+
+      // Tier 3: Featured businesses
+      if(a.featured && !b.featured) return -1;
+      if(!a.featured && b.featured) return 1;
+
+      // Tier 4: Newest first
+      return new Date(b.joinedDate)-new Date(a.joinedDate);
+    });
+  }
+
+  document.getElementById('result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> result'+(filtered.length!==1?'s':'')+(q?' for "<strong>'+q+'</strong>"':'')+(state.activeCat!=='All'?' in <strong>'+state.activeCat+'</strong>':'')+(cf?' · <strong>'+cf+'</strong>':'')+(userChurch&&!q&&!cf&&state.activeCat==='All'?'<span style="font-size:.72rem;color:var(--green);margin-left:6px;">✝ Sorted by your church</span>':'');
   var grid=document.getElementById('biz-grid');
   if(!filtered.length){grid.innerHTML='<div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-title">No results found</div><p>Try a different search or filter.</p></div>';return;}
   grid.innerHTML='';filtered.forEach(function(b){grid.appendChild(makeBizCard(b));});

@@ -811,25 +811,33 @@ body.admin-mode{padding-bottom:0;}
       <div class="ob-chip g" id="bp-chip">🏢 Business Member</div>
       <h2 class="ob-title">Set up your listing</h2>
       <p class="ob-desc">Your listing goes to admin review before going live — usually within 24 hours.</p>
-      <div class="section-div">Business Info</div>
+
+      <div class="section-div">📋 Business Info</div>
       <div class="form-group"><label class="lbl">Business Name <span class="req">*</span></label><input class="inp" id="bp-name" placeholder="e.g. The Golden Fork"/><div class="err-msg hidden" id="bp-name-err">Required</div></div>
       <div class="form-group"><label class="lbl">Category <span class="req">*</span></label><select class="inp" id="bp-cat"><option value="">Select a category…</option></select><div class="err-msg hidden" id="bp-cat-err">Required</div></div>
       <div class="form-group"><label class="lbl">Description <span class="req">*</span></label><textarea class="inp" id="bp-desc" placeholder="Describe your business and what makes it unique…"></textarea><div class="err-msg hidden" id="bp-desc-err">Required</div></div>
-      <div class="form-group"><label class="lbl"><span class="info-wrap">Church / Faith Affiliation <span class="req">*</span> <button class="info-btn" type="button" onclick="toggleInfo(this)">?</button><span class="info-bubble">We collect your Church information to help identify your closest Networking opportunities and to make favorite recommendations to individual users.</span></span></label><input class="inp" id="bp-church" placeholder="e.g. First Baptist Church"/><div class="hint-msg">Helps identify fellow congregation members.</div><div class="err-msg hidden" id="bp-church-err">Required</div></div>
-      <div class="form-group"><label class="lbl">Church Address <span class="req">*</span></label><input class="inp" id="bp-church-addr" placeholder="123 Church St, City, State"/><div class="err-msg hidden" id="bp-church-addr-err">Required</div></div>
-      <div class="section-div">Contact & Location</div>
-      <div class="form-group"><label class="lbl">Street Address <span class="req">*</span></label><input class="inp" id="bp-addr" placeholder="123 Main St, City, State"/><div class="err-msg hidden" id="bp-addr-err">Required</div></div>
-      <div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="bp-zip" placeholder="e.g. 90210" maxlength="10"/></div>
+
+      <div class="section-div">📍 Contact & Location</div>
       <div class="form-row">
         <div class="form-group"><label class="lbl">Phone <span class="req">*</span></label><input class="inp" id="bp-phone" placeholder="(555) 000-0000"/><div class="err-msg hidden" id="bp-phone-err">Required</div></div>
         <div class="form-group"><label class="lbl">Email <span class="req">*</span></label><input class="inp" type="email" id="bp-email" placeholder="hello@biz.com"/><div class="err-msg hidden" id="bp-email-err">Required</div></div>
       </div>
+      <div class="form-group"><label class="lbl">Street Address <span class="req">*</span></label><input class="inp" id="bp-addr" placeholder="123 Main St, City, State"/><div class="err-msg hidden" id="bp-addr-err">Required</div></div>
+      <div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="bp-zip" placeholder="e.g. 90210" maxlength="10"/></div>
+
+      <div class="section-div">🌐 Online Presence</div>
       <div class="form-group"><label class="lbl">Website</label><input class="inp" id="bp-web" placeholder="www.yourbiz.com"/><div class="hint-msg">Optional</div></div>
       <div class="form-group"><label class="lbl">Facebook</label><input class="inp" id="bp-facebook" placeholder="facebook.com/yourbusiness"/><div class="hint-msg">Optional</div></div>
       <div class="form-group"><label class="lbl">LinkedIn</label><input class="inp" id="bp-linkedin" placeholder="linkedin.com/company/yourbusiness"/><div class="hint-msg">Optional</div></div>
-      <div class="section-div">Business Hours</div>
+
+      <div class="section-div">✝️ Faith Affiliation</div>
+      <div class="form-group"><label class="lbl"><span class="info-wrap">Church / Faith Affiliation <span class="req">*</span> <button class="info-btn" type="button" onclick="toggleInfo(this)">?</button><span class="info-bubble">We collect your Church information to help identify your closest networking opportunities and make recommendations to individual members.</span></span></label><input class="inp" id="bp-church" placeholder="e.g. First Baptist Church"/><div class="hint-msg">Helps connect you with fellow congregation members.</div><div class="err-msg hidden" id="bp-church-err">Required</div></div>
+      <div class="form-group"><label class="lbl">Church ZIP Code <span class="req">*</span></label><input class="inp" id="bp-church-addr" placeholder="e.g. 80470" maxlength="10"/><div class="hint-msg">Used to match you with nearby congregation members.</div><div class="err-msg hidden" id="bp-church-addr-err">Required</div></div>
+
+      <div class="section-div">🕐 Business Hours</div>
       <div id="bp-hours-rows"></div>
-      <div class="section-div">Tags & Keywords</div>
+
+      <div class="section-div">🏷️ Tags & Keywords</div>
       <div class="form-group">
         <label class="lbl">Tags (up to 8)</label>
         <div class="tag-row"><input class="inp" id="bp-tag-input" placeholder="e.g. family-friendly…" onkeydown="if(event.key==='Enter')addBizTag()"/><button class="tag-add-btn" onclick="addBizTag()">Add</button></div>
