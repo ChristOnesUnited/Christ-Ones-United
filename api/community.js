@@ -2,7 +2,7 @@ const supabase = require('./supabase');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -31,6 +31,22 @@ module.exports = async (req, res) => {
         const { data, error } = await supabase
           .from('prayer_requests')
           .insert([{ author: author || 'Anonymous', text, user_id: user_id || null, prayed_by: [] }])
+          .select().single();
+        if (error) throw error;
+        return res.status(200).json({ success: true, prayer: data });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+    // PUT — update prayed_by array
+    if (req.method === 'PUT') {
+      const { id, prayed_by } = req.body;
+      if (!id) return res.status(400).json({ error: 'Prayer ID required.' });
+      try {
+        const { data, error } = await supabase
+          .from('prayer_requests')
+          .update({ prayed_by: prayed_by || [] })
+          .eq('id', id)
           .select().single();
         if (error) throw error;
         return res.status(200).json({ success: true, prayer: data });
