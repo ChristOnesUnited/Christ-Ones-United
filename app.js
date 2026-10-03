@@ -133,6 +133,7 @@ async function saveReferralToAPI(bizId, ref) {
     email: ref.email || '',
     need: ref.need || '',
     faith_status: ref.faith || '',
+    referred_by: state.user ? state.user.name : 'A Member',
   });
 }
 
@@ -1216,12 +1217,39 @@ function renderDashReferrals(){
     if(refBadge){if(refs.length>0){refBadge.textContent=refs.length;refBadge.classList.remove('hidden');}else refBadge.classList.add('hidden');}
     panel.innerHTML='<div class="dash-card"><div class="dash-card-title">All Referrals ('+refs.length+')</div>'+(refs.length?refs.map(function(r){
       var fc=!r.faith_status?'rf-other':r.faith_status.toLowerCase().includes('believer')?'rf-believer':r.faith_status.toLowerCase().includes('exploring')?'rf-exploring':'rf-other';
-      return '<div class="ref-item"><div class="ref-name">'+r.name+'</div><div class="ref-detail">📞 '+r.phone+(r.email?' · ✉️ '+r.email:'')+'</div>'+(r.need?'<div class="ref-detail">Need: '+r.need+'</div>':'')+(r.faith_status?'<span class="ref-faith-tag '+fc+'">'+r.faith_status+'</span>':'')+'</div>';
+      var isContacted=r.contacted===true;
+      return '<div class="ref-item" id="ref-item-'+r.id+'" style="border-left:3px solid '+(isContacted?'#1a6b4a':'#e8b4aa')+';opacity:'+(isContacted?'.7':'1')+';padding-left:.75rem;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.25rem;">'+
+          '<div class="ref-name">'+r.name+'</div>'+
+          (isContacted?'<span style="font-size:.65rem;background:#e0f0ea;color:#1a6b4a;padding:2px 8px;border-radius:10px;font-weight:600;">✓ Contacted</span>':
+          '<button onclick="markRefContacted(\''+r.id+'\')" style="font-size:.7rem;padding:3px 10px;background:#1a6b4a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;white-space:nowrap;">Mark Contacted</button>')+
+        '</div>'+
+        '<div class="ref-detail">📞 '+r.phone+(r.email?' · ✉️ '+r.email:'')+'</div>'+
+        (r.need?'<div class="ref-detail">Need: '+r.need+'</div>':'')+
+        (r.faith_status?'<span class="ref-faith-tag '+fc+'">'+r.faith_status+'</span>':'')+
+        '<div style="font-size:.7rem;color:var(--muted);margin-top:.35rem;">Referred by <strong>'+(r.referred_by||'A Member')+'</strong>'+(r.contacted_at?' · Contacted '+new Date(r.contacted_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div>'+
+      '</div>';
     }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No referrals yet.</p>')+'</div>';
   }).catch(function(){
     panel.innerHTML='<div class="dash-card"><div class="dash-card-title">All Referrals</div><p style="font-size:.82rem;color:var(--muted);">Could not load referrals. Please refresh.</p></div>';
   });
 }
+function markRefContacted(id){
+  // Update UI immediately
+  var item=document.getElementById('ref-item-'+id);
+  if(item){
+    item.style.borderLeftColor='#1a6b4a';
+    item.style.opacity='.7';
+    var btn=item.querySelector('button');
+    if(btn)btn.outerHTML='<span style="font-size:.65rem;background:#e0f0ea;color:#1a6b4a;padding:2px 8px;border-radius:10px;font-weight:600;">✓ Contacted</span>';
+    var byLine=item.querySelector('div:last-child');
+    if(byLine)byLine.innerHTML=byLine.innerHTML.replace('</div>','') + ' · Contacted just now</div>';
+  }
+  // Save to Supabase
+  apiFetch('/api/referrals','PUT',{id:id,contacted:true}).catch(function(){});
+  addNotif('Referral marked as contacted. 🙏');
+}
+
 function renderDashTestimonials(){
   var tms=state.myBiz?state.myBiz.testimonials:[];
   document.getElementById('dash-panel-testimonials').innerHTML='<div class="dash-card"><div class="dash-card-title">Testimonials ('+tms.length+')</div>'+(tms.length?tms.map(t=>'<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+t.text+'"</div><div class="testimonial-author">— '+t.author+'</div></div>').join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet.</p>')+'</div>';
