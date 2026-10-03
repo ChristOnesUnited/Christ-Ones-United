@@ -971,7 +971,7 @@ body.admin-mode{padding-bottom:0;}
     <button class="botnav-tab active-ind" id="dir-btn-home" onclick="switchDirTab('home')"><span class="botnav-tab-icon">🏠</span><span class="botnav-tab-lbl">Home</span></button>
     <button class="botnav-tab" id="dir-btn-jobs" onclick="switchDirTab('jobs')"><span class="botnav-tab-icon">💼</span><span class="botnav-tab-lbl">Jobs</span></button>
     <button class="botnav-tab" id="dir-btn-community" onclick="switchDirTab('community')"><span class="botnav-tab-icon">🙏</span><span class="botnav-tab-lbl">Community</span></button>
-    <button class="botnav-tab" id="dir-btn-guild" onclick="switchDirTab('guild')"><span class="botnav-tab-icon">⚔️</span><span class="botnav-tab-lbl">Guild</span></button>
+
     <button class="botnav-tab" id="dir-btn-messages" onclick="switchDirTab('messages')"><span class="botnav-tab-icon">💬</span><span class="botnav-tab-lbl">Messages</span><span class="botnav-cnt hidden" id="msg-cnt"></span></button>
     <button class="botnav-tab" id="dir-btn-account" onclick="switchDirTab('account')"><span class="botnav-tab-icon">👤</span><span class="botnav-tab-lbl">Account</span></button>
   </div>
@@ -1000,6 +1000,7 @@ body.admin-mode{padding-bottom:0;}
       <button class="dash-tab" id="dash-tab-messages" onclick="switchDashTab('messages')">Messages<span class="dash-tab-badge hidden" id="dash-msg-cnt"></span></button>
       <button class="dash-tab" id="dash-tab-listing" onclick="switchDashTab('listing')">Listing</button>
       <button class="dash-tab" id="dash-tab-biz-community" onclick="switchDashTab('biz-community')">Community</button>
+      <button class="dash-tab" id="dash-tab-biz-guild" onclick="switchDashTab('biz-guild')">Guild</button>
     </div>
     <div id="dash-panel-overview"></div>
     <div id="dash-panel-jobs" class="hidden"></div>
@@ -1008,6 +1009,7 @@ body.admin-mode{padding-bottom:0;}
     <div id="dash-panel-messages" class="hidden"></div>
     <div id="dash-panel-listing" class="hidden"></div>
     <div id="dash-panel-biz-community" class="hidden"></div>
+    <div id="dash-panel-biz-guild" class="hidden"></div>
   </div>
   <div class="botnav">
     <button class="botnav-tab active-biz" id="dash-btn-overview" onclick="switchDashTab('overview')"><span class="botnav-tab-icon">📊</span><span class="botnav-tab-lbl">Overview</span></button>
@@ -1017,6 +1019,7 @@ body.admin-mode{padding-bottom:0;}
     <button class="botnav-tab" id="dash-btn-messages" onclick="switchDashTab('messages')"><span class="botnav-tab-icon">💬</span><span class="botnav-tab-lbl">Messages</span></button>
     <button class="botnav-tab" id="dash-btn-listing" onclick="switchDashTab('listing')"><span class="botnav-tab-icon">📋</span><span class="botnav-tab-lbl">Listing</span></button>
     <button class="botnav-tab" id="dash-btn-biz-community" onclick="switchDashTab('biz-community')"><span class="botnav-tab-icon">🙏</span><span class="botnav-tab-lbl">Community</span></button>
+    <button class="botnav-tab" id="dash-btn-biz-guild" onclick="switchDashTab('biz-guild')"><span class="botnav-tab-icon">⚔️</span><span class="botnav-tab-lbl">Guild</span></button>
   </div>
 </div>
 

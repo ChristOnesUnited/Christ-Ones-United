@@ -793,7 +793,7 @@ function renderSaved(){
 }
 function updateSavedCount(){var cnt=document.getElementById('saved-cnt');if(state.savedIds.length>0){cnt.textContent=state.savedIds.length;cnt.classList.remove('hidden');}else cnt.classList.add('hidden');}
 function switchDirTab(tab){
-  ['home','saved','community','messages','jobs','guild','account'].forEach(function(t){
+  ['home','saved','community','messages','jobs','account'].forEach(function(t){
     var panel=document.getElementById('dir-tab-'+t);
     if(panel)panel.classList[t===tab?'remove':'add']('hidden');
     var btn=document.getElementById('dir-btn-'+t);
@@ -805,7 +805,7 @@ function switchDirTab(tab){
   if(tab==='community'){renderPrayerBoard();renderEvents();renderLeaderboard();}
   if(tab==='messages'){renderMessages('individual');markMessagesRead();}
   if(tab==='jobs'){initJobFilters();renderJobs();}
-  if(tab==='guild')renderGuild();
+
 }
 
 // ═══════════════ PRAYER BOARD
@@ -1210,7 +1210,7 @@ function renderRefItem(r){
   return '<div class="ref-item"><div class="ref-name">'+r.name+'</div><div class="ref-detail">📞 '+r.phone+(r.email?' · ✉️ '+r.email:'')+'</div>'+(r.need?'<div class="ref-detail">Need: '+r.need+'</div>':'')+(r.faith?'<span class="ref-faith-tag '+fc+'">'+r.faith+'</span>':'')+'</div>';
 }
 function switchDashTab(tab){
-  ['overview','jobs','referrals','testimonials','messages','listing','biz-community'].forEach(function(t){
+  ['overview','jobs','referrals','testimonials','messages','listing','biz-community','biz-guild'].forEach(function(t){
     var panel=document.getElementById('dash-panel-'+t);
     if(panel)panel.classList[t===tab?'remove':'add']('hidden');
     var tabBtn=document.getElementById('dash-tab-'+t);
@@ -1224,6 +1224,7 @@ function switchDashTab(tab){
   if(tab==='messages'){renderDashMessages();markMessagesRead();}
   if(tab==='listing')renderDashListing();
   if(tab==='biz-community')renderBizCommunity();
+  if(tab==='biz-guild')renderBizGuild();
 }
 function renderDashReferrals(){
   var panel=document.getElementById('dash-panel-referrals');
@@ -1273,6 +1274,13 @@ function markRefContacted(id){
   // Save to Supabase
   apiFetch('/api/referrals','PUT',{id:id,contacted:true}).catch(function(){});
   addNotif('Referral marked as contacted. 🙏');
+}
+
+function renderBizGuild(){
+  var panel=document.getElementById('dash-panel-biz-guild');
+  if(!panel)return;
+  // Render guild content into the dashboard panel
+  renderGuild(panel);
 }
 
 function renderBizCommunity(){
@@ -2503,8 +2511,9 @@ function genCode(){
   var code='';for(var i=0;i<8;i++){if(i===4)code+='-';code+=chars[Math.floor(Math.random()*chars.length)];}
   return code;
 }
-function renderGuild(){
-  var el=document.getElementById('guild-content');if(!el)return;
+function renderGuild(targetEl){
+  // Use provided element or fall back to individual directory element
+  var el=targetEl||document.getElementById('guild-content');if(!el)return;
   if(state.guild){
     renderMyGuild(el);
   } else {
@@ -2556,7 +2565,7 @@ function joinGuild(){
   foundGuild.members.push({name:state.user.name,role:'member',joined:'Just now'});
   state.guild=foundGuild;
   addNotif('🎉 You joined the Guild "'+foundGuild.name+'"!');
-  renderGuild();
+  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
 }
 function openCreateGuildModal(){
   document.getElementById('guildModalContent').innerHTML=
@@ -2584,7 +2593,7 @@ function createGuild(){
   state.guild=newGuild;
   closeModal('guildModal');
   addNotif('⚔️ Your Guild "'+name+'" has been created!');
-  renderGuild();
+  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
 }
 function renderMyGuild(el){
   var g=state.guild;
@@ -2647,7 +2656,7 @@ function createInviteCode(){
   var code=genCode();
   state.guild.codes.unshift({code:code,created:'Just now',used:false,usedBy:null,usedTime:null});
   addNotif('🔑 New invite code '+code+' created for "'+state.guild.name+'"');
-  renderGuild();
+  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
 }
 function copyCode(code){
   var btn=document.getElementById('copy-btn-'+code);
@@ -2658,7 +2667,7 @@ function copyCode(code){
 function deleteCode(code){
   if(!state.guild)return;
   state.guild.codes=state.guild.codes.filter(c=>c.code!==code);
-  renderGuild();
+  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
 }
 function leaveGuild(){
   if(!state.guild)return;
@@ -2666,7 +2675,7 @@ function leaveGuild(){
   var name=state.guild.name;
   state.guild=null;
   addNotif('You have left the Guild "'+name+'".');
-  renderGuild();
+  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
 }
 function disbandGuild(){
   if(!state.guild)return;
@@ -2674,7 +2683,7 @@ function disbandGuild(){
   state.allGuilds=state.allGuilds.filter(g=>g.id!==state.guild.id);
   state.guild=null;
   addNotif('Guild "'+name+'" has been disbanded.');
-  renderGuild();
+  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
 }
 
 // ═══════════════ SIGN OUT
