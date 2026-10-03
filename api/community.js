@@ -2,7 +2,7 @@ const supabase = require('./supabase');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -163,6 +163,20 @@ module.exports = async (req, res) => {
       } catch (err) {
         return res.status(500).json({ error: err.message });
       }
+    }
+  }
+
+  // ── DELETE ───────────────────────────────────────
+  if (req.method === 'DELETE') {
+    const { id, type: delType } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'ID required.' });
+    try {
+      const table = delType === 'prayer' ? 'prayer_requests' : 'events';
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) throw error;
+      return res.status(200).json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
     }
   }
 
