@@ -1195,16 +1195,20 @@ function renderRefItem(r){
   return '<div class="ref-item"><div class="ref-name">'+r.name+'</div><div class="ref-detail">📞 '+r.phone+(r.email?' · ✉️ '+r.email:'')+'</div>'+(r.need?'<div class="ref-detail">Need: '+r.need+'</div>':'')+(r.faith?'<span class="ref-faith-tag '+fc+'">'+r.faith+'</span>':'')+'</div>';
 }
 function switchDashTab(tab){
-  ['overview','jobs','referrals','testimonials','messages','listing'].forEach(function(t){
-    document.getElementById('dash-panel-'+t).classList[t===tab?'remove':'add']('hidden');
-    document.getElementById('dash-tab-'+t).classList[t===tab?'add':'remove']('active');
-    var btn=document.getElementById('dash-btn-'+t);if(btn)btn.classList[t===tab?'add':'remove']('active-biz');
+  ['overview','jobs','referrals','testimonials','messages','listing','biz-community'].forEach(function(t){
+    var panel=document.getElementById('dash-panel-'+t);
+    if(panel)panel.classList[t===tab?'remove':'add']('hidden');
+    var tabBtn=document.getElementById('dash-tab-'+t);
+    if(tabBtn)tabBtn.classList[t===tab?'add':'remove']('active');
+    var navBtn=document.getElementById('dash-btn-'+t);
+    if(navBtn)navBtn.classList[t===tab?'add':'remove']('active-biz');
   });
   if(tab==='jobs')renderDashJobs();
   if(tab==='referrals')renderDashReferrals();
   if(tab==='testimonials')renderDashTestimonials();
   if(tab==='messages'){renderDashMessages();markMessagesRead();}
   if(tab==='listing')renderDashListing();
+  if(tab==='biz-community')renderBizCommunity();
 }
 function renderDashReferrals(){
   var panel=document.getElementById('dash-panel-referrals');
@@ -1254,6 +1258,70 @@ function markRefContacted(id){
   // Save to Supabase
   apiFetch('/api/referrals','PUT',{id:id,contacted:true}).catch(function(){});
   addNotif('Referral marked as contacted. 🙏');
+}
+
+function renderBizCommunity(){
+  var panel=document.getElementById('dash-panel-biz-community');
+  if(!panel)return;
+  panel.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Loading community…</p>';
+
+  // Load prayer requests and events in parallel
+  Promise.all([
+    apiFetch('/api/community?type=prayer'),
+    apiFetch('/api/community?type=events')
+  ]).then(function(results){
+    var prayers=results[0].prayers||[];
+    var events=results[1].events||[];
+
+    panel.innerHTML=
+      // Prayer Board Section
+      '<div class="dash-card" style="margin-bottom:1rem;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">'+
+          '<div class="dash-card-title" style="margin-bottom:0;">🙏 Prayer Board</div>'+
+          '<button onclick="openPrayerModal()" style="padding:5px 12px;background:var(--red);color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;">+ Prayer Request</button>'+
+        '</div>'+
+        (prayers.length?prayers.slice(0,5).map(function(p){
+          var alreadyPrayed=p.prayed_by&&p.prayed_by.includes(state.user?state.user.name:'');
+          return '<div class="prayer-card" style="margin-bottom:.65rem;">'+
+            '<div class="prayer-header"><div class="prayer-author">🙏 '+(p.author||'Anonymous')+'</div>'+
+            '<div class="prayer-time">'+(p.created_at?new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div></div>'+
+            '<p class="prayer-text">'+p.text+'</p>'+
+            '<div style="display:flex;align-items:center;justify-content:space-between;">'+
+              '<span class="prayer-prayed" id="biz-pray-cnt-'+p.id+'">'+(p.prayed_by?p.prayed_by.length:0)+' praying</span>'+
+              '<button class="prayer-pray-btn'+(alreadyPrayed?' prayed':'')+'" id="biz-pray-btn-'+p.id+'" '+(alreadyPrayed?'disabled':'')+' onclick="prayFor(\''+p.id+'\')">'+(alreadyPrayed?'🙏 Praying':'🙏 Pray')+'</button>'+
+            '</div>'+
+          '</div>';
+        }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No prayer requests yet.</p>')+
+      '</div>'+
+
+      // Events Section
+      '<div class="dash-card">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.875rem;">'+
+          '<div class="dash-card-title" style="margin-bottom:0;">📅 Events Board</div>'+
+          '<button onclick="openEventModal()" style="padding:5px 12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;">+ Post Event</button>'+
+        '</div>'+
+        (events.length?events.slice(0,5).map(function(e){
+          var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
+          return '<div class="event-card" style="margin-bottom:.65rem;">'+
+            '<div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div>'+
+            '<div class="event-body"><div class="event-title">'+e.title+'</div>'+
+            '<div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+'</div>'+
+            '<div class="event-host">Hosted by '+(e.host||'Community')+'</div></div>'+
+          '</div>';
+        }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No events yet.</p>')+
+      '</div>';
+
+    // Sync prayer state so prayFor works correctly from dashboard too
+    state.prayerRequests=prayers.map(function(p){return {
+      id:p.id,author:p.author||'Anonymous',
+      text:p.text,time:'',
+      prayedBy:p.prayed_by||[],
+      prayedByMe:p.prayed_by&&p.prayed_by.includes(state.user?state.user.name:'')
+    };});
+
+  }).catch(function(){
+    panel.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Could not load community. Please refresh.</p>';
+  });
 }
 
 function renderDashTestimonials(){
