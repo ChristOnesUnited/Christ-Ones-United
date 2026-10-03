@@ -86,8 +86,10 @@ async function loadJobs() {
         pay: j.pay || '',
         description: j.description,
         faithNote: j.faith_note || '',
-        applyMethod: j.apply_method || 'email',
-        applyContact: j.apply_contact || '',
+        applyMethod: j.apply_method || 'contact',
+        applyContact: j.apply_contact || j.contact_email || '',
+        contactPhone: j.contact_phone || '',
+        contactEmail: j.contact_email || '',
         tags: [],
         postedDate: new Date(j.created_at),
         savedByUsers: [],
@@ -1117,20 +1119,28 @@ function makeJobCard(j){
   var daysAgo=Math.floor((Date.now()-new Date(j.postedDate).getTime())/86400000);
   var posted=daysAgo===0?'Today':daysAgo===1?'Yesterday':daysAgo+' days ago';
   var div=document.createElement('div');div.className='job-card'+(ntw?' new-job':'');
+  var contactPhone=j.contactPhone||j.contact_phone||'';
+  var contactEmail=j.contactEmail||j.contact_email||'';
   div.innerHTML=
     (ntw?'<div class="job-new-badge">🆕 New This Week</div>':'')+
     '<div class="job-card-head"><div class="job-title">'+j.title+'</div><span class="job-type-badge '+typeClass+'">'+j.type+'</span></div>'+
-    '<div class="job-company">'+j.company+'</div>'+
-    '<div class="job-meta-row"><span class="job-meta-item">📍 '+j.location+'</span><span class="job-meta-item">'+( j.pay?'💵 '+j.pay:'')+'</span><span class="job-meta-item">🗓 '+posted+'</span></div>'+
+    '<div class="job-company">🏢 '+j.company+'</div>'+
+    '<div class="job-meta-row"><span class="job-meta-item">📍 '+j.location+'</span>'+(j.pay?'<span class="job-meta-item">💵 '+j.pay+'</span>':'')+'<span class="job-meta-item">🗓 '+posted+'</span></div>'+
     '<p class="job-desc">'+j.description+'</p>'+
     (j.faithNote?'<div class="job-faith-note">✝️ '+j.faithNote+'</div>':'')+
-    (j.tags.length?'<div class="job-tags">'+j.tags.map(t=>'<span class="job-tag">'+t+'</span>').join('')+'</div>':'')+
-    '<div class="job-actions">'+
-      '<button class="job-apply-btn" onclick="openApplyModal('+j.id+')">Apply Now →</button>'+
-      '<button class="job-save-btn'+(saved?' saved':'')+'" onclick="toggleJobSave('+j.id+')">'+(saved?'♥':'♡')+'</button>'+
+    (j.tags&&j.tags.length?'<div class="job-tags">'+j.tags.map(t=>'<span class="job-tag">'+t+'</span>').join('')+'</div>':'')+
+    // Contact info section
+    ((contactPhone||contactEmail)?
+      '<div style="background:#f7f4ef;border-radius:9px;padding:.75rem 1rem;margin-top:.75rem;font-size:.82rem;">'+
+        '<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--muted);margin-bottom:.4rem;">Contact to Apply</div>'+
+        (contactPhone?'<div style="margin-bottom:.25rem;">📞 <strong>'+contactPhone+'</strong></div>':'')+
+        (contactEmail?'<div><a href="mailto:'+contactEmail+'" style="color:var(--red);font-weight:600;text-decoration:none;">✉️ '+contactEmail+'</a></div>':'')+
+      '</div>':'')+ 
+    '<div class="job-actions" style="margin-top:.75rem;">'+
+      '<button class="job-save-btn'+(saved?' saved':'')+'" onclick="toggleJobSave(\''+j.id+'\')" style="margin-right:auto;">'+(saved?'♥ Saved':'♡ Save')+'</button>'+
       '<span style="position:relative;display:inline-flex;align-items:center;">'+
         '<button class="job-report-btn" onclick="toggleJobReport(this)" title="Report this posting">?</button>'+
-        '<span class="job-report-bubble">If any inappropriate information or activity is found in or through this job posting, please report for immediate administrative review. <br/><br/><button onclick="submitJobReport('+j.id+')" style="margin-top:6px;padding:5px 12px;background:var(--red);color:#fff;border:none;border-radius:6px;font-family:DM Sans,sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;width:100%;">Report This Post</button></span>'+
+        '<span class="job-report-bubble">If any inappropriate information or activity is found in or through this job posting, please report for immediate administrative review.<br/><br/><button onclick="submitJobReport(\''+j.id+'\')" style="margin-top:6px;padding:5px 12px;background:var(--red);color:#fff;border:none;border-radius:6px;font-family:DM Sans,sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;width:100%;">Report This Post</button></span>'+
       '</span>'+
     '</div>';
   return div;
@@ -1221,26 +1231,31 @@ function openPostJobModal(){
     '<div class="form-group"><label class="lbl">Pay Range</label><input class="inp" id="pj-pay" placeholder="e.g. $18–$22/hr (optional)"/></div>'+
     '<div class="form-group"><label class="lbl">Job Description <span class="req">*</span></label><textarea class="inp" id="pj-desc" style="min-height:90px;" placeholder="Describe the role, responsibilities, and requirements…"></textarea></div>'+
     '<div class="form-group"><label class="lbl">Faith Note <span style="color:var(--muted);font-weight:400;">(optional)</span></label><input class="inp" id="pj-faith" placeholder="e.g. We open every shift with prayer…"/></div>'+
-    '<div class="form-group"><label class="lbl">How to Apply <span class="req">*</span></label><select class="inp" id="pj-apply-method" onchange="toggleApplyInput()"><option value="email">Email</option><option value="link">External Link</option><option value="inapp">In-App Message</option></select></div>'+
-    '<div class="form-group" id="pj-apply-contact-wrap"><label class="lbl" id="pj-apply-label">Apply Email</label><input class="inp" id="pj-apply-contact" placeholder="hiring@yourbiz.com"/></div>'+
+    '<div class="form-group"><label class="lbl">Business Name <span class="req">*</span></label><input class="inp" id="pj-bizname" placeholder="e.g. The Golden Fork" value="'+(state.myBiz?state.myBiz.name:'')+'"/></div>'+
+    '<div class="form-row">'+
+      '<div class="form-group"><label class="lbl">Contact Phone <span class="req">*</span></label><input class="inp" id="pj-contact-phone" placeholder="(555) 000-0000" value="'+(state.myBiz?state.myBiz.phone||'':'')+'"/></div>'+
+      '<div class="form-group"><label class="lbl">Contact Email <span class="req">*</span></label><input class="inp" type="email" id="pj-contact-email" placeholder="hiring@yourbiz.com" value="'+(state.myBiz?state.myBiz.email||'':'')+'"/></div>'+
+    '</div>'+
     '<button class="btn btn-green btn-mt" onclick="submitPostJob()">Post Job →</button>';
   document.getElementById('jobModal').classList.add('open');
 }
-function toggleApplyInput(){
-  var m=document.getElementById('pj-apply-method').value;
-  var lbl=document.getElementById('pj-apply-label');var inp=document.getElementById('pj-apply-contact');
-  if(m==='email'){lbl.textContent='Apply Email';inp.placeholder='hiring@yourbiz.com';}
-  else if(m==='link'){lbl.textContent='Application URL';inp.placeholder='https://yoursite.com/apply';}
-  else{document.getElementById('pj-apply-contact-wrap').style.display='none';return;}
-  document.getElementById('pj-apply-contact-wrap').style.display='';
-}
+// toggleApplyInput removed — apply fields replaced with contact info fields
 function submitPostJob(){
-  var title=document.getElementById('pj-title').value.trim(),type=document.getElementById('pj-type').value,loc=document.getElementById('pj-loc').value.trim(),desc=document.getElementById('pj-desc').value.trim();
-  if(!title||!type||!loc||!desc){alert('Please fill in all required fields.');return;}
+  var title=document.getElementById('pj-title').value.trim();
+  var type=document.getElementById('pj-type').value;
+  var loc=document.getElementById('pj-loc').value.trim();
+  var desc=document.getElementById('pj-desc').value.trim();
+  var bizName=document.getElementById('pj-bizname').value.trim();
+  var contactPhone=document.getElementById('pj-contact-phone').value.trim();
+  var contactEmail=document.getElementById('pj-contact-email').value.trim();
+  if(!title||!type||!loc||!desc||!bizName||!contactPhone||!contactEmail){
+    alert('Please fill in all required fields.');return;
+  }
   var biz=state.myBiz||state.businesses[0];
   var newJob={
-    id:Date.now(),title:title,
-    company:biz?biz.name:'My Business',
+    id:Date.now(),
+    title:title,
+    company:bizName,
     bizId:biz?biz.id:0,
     category:document.getElementById('pj-cat').value,
     type:type,location:loc,
@@ -1248,8 +1263,10 @@ function submitPostJob(){
     pay:document.getElementById('pj-pay').value,
     description:desc,
     faithNote:document.getElementById('pj-faith').value,
-    applyMethod:document.getElementById('pj-apply-method').value,
-    applyContact:document.getElementById('pj-apply-contact')?document.getElementById('pj-apply-contact').value:'',
+    contactPhone:contactPhone,
+    contactEmail:contactEmail,
+    applyMethod:'contact',
+    applyContact:contactEmail,
     tags:[],postedDate:new Date(),savedByUsers:[],applicants:[]
   };
   // Save to Supabase
@@ -1262,8 +1279,9 @@ function submitPostJob(){
     pay:newJob.pay,
     description:desc,
     faith_note:newJob.faithNote,
-    apply_method:newJob.applyMethod,
-    apply_contact:newJob.applyContact,
+    company:bizName,
+    contact_phone:contactPhone,
+    contact_email:contactEmail,
   }).then(function(data){
     if(data.success&&data.job)newJob.id=data.job.id;
   }).catch(function(){});
