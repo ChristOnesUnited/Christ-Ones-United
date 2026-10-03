@@ -428,33 +428,87 @@ function submitPasswordReset(){
       setTimeout(function(){msg.remove();}, 5000);
     }, 500);
   }
-  // Auto-open sign in screen after successful Stripe payment
+  // Auto sign in after successful Stripe payment
   if(params.get('signin')==='true'){
     window.history.replaceState({},'','/');
-    // Wait for DOM and app to fully initialize before switching screen
-    function goToSignIn(){
+    var pendingEmail = params.get('email') ? decodeURIComponent(params.get('email')) : null;
+    var pendingType = params.get('type') || 'individual';
+
+    function autoSignInAfterPayment(){
       var siScreen = document.getElementById('screen-signin');
-      if(siScreen){
+      if(!siScreen){ setTimeout(autoSignInAfterPayment, 100); return; }
+
+      // If we still have the user in state from the signup flow, sign them in directly
+      if(state.user && state.user.email && state.pendingPassword){
+        var email = state.user.email;
+        var pass = state.pendingPassword;
+        state.pendingPassword = null;
+
+        // Show loading screen while signing in
         showScreen('screen-signin');
-        // Show a welcome toast
-        setTimeout(function(){
-          var msg = document.createElement('div');
-          msg.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#1a6b4a;color:#fff;border-radius:12px;padding:.875rem 1.25rem;font-family:DM Sans,sans-serif;font-size:.82rem;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.2);z-index:999;text-align:center;max-width:320px;';
-          msg.innerHTML = '✓ Membership active — please sign in!';
-          document.body.appendChild(msg);
-          setTimeout(function(){msg.remove();}, 4000);
-        }, 300);
+        var e = document.getElementById('si-err');
+        if(e){ e.style.color='#1a6b4a'; e.textContent='Welcome! Signing you in…'; e.classList.remove('hidden'); }
+
+        apiFetch('/api/auth-signin','POST',{email:email,password:pass}).then(function(data){
+          if(data.success && data.user){
+            var user = data.user;
+            state.user = {id:user.id, name:user.name, email:user.email, plan:user.plan, church:user.church||'', zip:user.zip||''};
+            state.profileType = user.type || pendingType;
+            state.plan = user.plan || 'monthly';
+            if(data.token) state.authToken = data.token;
+            autoSubscribeNewsletter(user.email, user.name);
+            if(state.profileType === 'business'){
+              apiFetch('/api/businesses?user_id='+user.id).then(function(bizData){
+                if(bizData.success && bizData.businesses && bizData.businesses.length > 0){
+                  state.myBiz = bizData.businesses[0];
+                  enterDashboard();
+                } else {
+                  state.plan = user.plan || 'monthly';
+                  makeDots(4,'g','bp-stepdots');
+                  state.bizTags = [];
+                  populateBizForm();
+                  showScreen('screen-biz-profile');
+                }
+              }).catch(function(){
+                makeDots(4,'g','bp-stepdots');
+                state.bizTags = [];
+                populateBizForm();
+                showScreen('screen-biz-profile');
+              });
+            } else {
+              enterDirectory();
+            }
+          } else {
+            // Auto sign in failed — show sign in screen with helpful message
+            showScreen('screen-signin');
+            var err = document.getElementById('si-err');
+            if(err){ err.style.color='#1a6b4a'; err.textContent='✓ Payment successful! Please sign in to continue.'; err.classList.remove('hidden'); }
+            var emailEl = document.getElementById('si-email');
+            if(emailEl && email) emailEl.value = email;
+          }
+        }).catch(function(){
+          showScreen('screen-signin');
+          var err = document.getElementById('si-err');
+          if(err){ err.style.color='#1a6b4a'; err.textContent='✓ Payment successful! Please sign in to continue.'; err.classList.remove('hidden'); }
+          var emailEl = document.getElementById('si-email');
+          if(emailEl && email) emailEl.value = email;
+        });
       } else {
-        // DOM not ready yet — try again
-        setTimeout(goToSignIn, 100);
+        // State was lost (page refresh) — show sign in with email pre-filled
+        showScreen('screen-signin');
+        var err = document.getElementById('si-err');
+        if(err){ err.style.color='#1a6b4a'; err.textContent='✓ Payment successful! Please sign in to continue.'; err.classList.remove('hidden'); }
+        if(pendingEmail){
+          var emailEl = document.getElementById('si-email');
+          if(emailEl) emailEl.value = pendingEmail;
+        }
       }
     }
+
     if(document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', function(){
-        setTimeout(goToSignIn, 200);
-      });
+      document.addEventListener('DOMContentLoaded', function(){ setTimeout(autoSignInAfterPayment, 300); });
     } else {
-      setTimeout(goToSignIn, 200);
+      setTimeout(autoSignInAfterPayment, 300);
     }
   }
 })();
