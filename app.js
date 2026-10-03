@@ -982,7 +982,7 @@ function openMsgModal(bizId){
     '<div id="modal-bubbles" class="msg-bubbles"><p style="text-align:center;font-size:.8rem;color:var(--muted);padding:1rem;">Loading messages…</p></div>'+
     '<div class="msg-input-row"><input class="msg-input" id="modal-msg-inp" placeholder="Type a message…" onkeydown="if(event.key===\'Enter\')sendModalMsg(\''+bizId+'\')"/><button class="msg-send-btn" onclick="sendModalMsg(\''+bizId+'\')">Send</button></div>';
   modal.classList.add('open');
-  // Load messages from Supabase
+  // Load full thread from Supabase (includes both user messages and business replies)
   var userId=state.user?state.user.id:null;
   apiFetch('/api/community?type=messages&business_id='+bizId+(userId?'&user_id='+userId:'')).then(function(data){
     var msgs=data.messages||[];
@@ -992,8 +992,12 @@ function openMsgModal(bizId){
       bubbles.innerHTML='<div style="text-align:center;font-size:.78rem;color:var(--muted);padding:1rem;">This is a private conversation with <strong>'+biz.name+'</strong>. Messages are visible to both parties.</div>';
     } else {
       bubbles.innerHTML=msgs.map(function(m){
-        var isMine=m.from_role==='user'||(m.from_user_id&&String(m.from_user_id)===String(userId));
-        return '<div class="msg-bubble '+(isMine?'sent':'recv')+'">'+m.text+'</div>';
+        // Individual sees their own messages as sent, business replies as recv
+        var isMine=m.from_role==='user';
+        return '<div class="msg-bubble '+(isMine?'sent':'recv')+'">'+
+          (m.from_role==='business'?'<div style="font-size:.65rem;color:rgba(0,0,0,.4);margin-bottom:2px;">'+biz.name+'</div>':'')+
+          m.text+
+        '</div>';
       }).join('');
       bubbles.scrollTop=bubbles.scrollHeight;
     }
