@@ -18,6 +18,7 @@ var state = {
   prayerRequests:[],
   events:[],
   messages:[],
+  dashMsgThreads:[],
   leaderboard:[]
 };
 
@@ -412,6 +413,52 @@ function doPay(){
   });
 }
 
+// ═══════════════ UNREAD MESSAGES
+function updateUnreadMsgBadge(){
+  if(!state.user||!state.user.id)return;
+  var lastRead=null;
+  try{ lastRead=localStorage.getItem('cou_msg_last_read_'+state.user.id); }catch(e){}
+  var isBiz=state.profileType==='business';
+
+  if(isBiz&&state.myBiz&&state.myBiz.id){
+    // Business — count unread messages from members
+    apiFetch('/api/community?type=messages&business_id='+state.myBiz.id).then(function(data){
+      var msgs=(data.messages||[]).filter(function(m){
+        return m.from_role==='user'&&(!lastRead||new Date(m.created_at)>new Date(lastRead));
+      });
+      var cnt=msgs.length;
+      var badge=document.getElementById('dash-msg-cnt');
+      if(badge){
+        if(cnt>0){badge.textContent=cnt;badge.classList.remove('hidden');}
+        else badge.classList.add('hidden');
+      }
+    }).catch(function(){});
+  } else {
+    // Individual — count unread replies from businesses
+    apiFetch('/api/community?type=messages&user_id='+state.user.id).then(function(data){
+      var msgs=(data.messages||[]).filter(function(m){
+        return m.from_role==='business'&&(!lastRead||new Date(m.created_at)>new Date(lastRead));
+      });
+      var cnt=msgs.length;
+      var badge=document.getElementById('msg-cnt');
+      if(badge){
+        if(cnt>0){badge.textContent=cnt;badge.classList.remove('hidden');}
+        else badge.classList.add('hidden');
+      }
+    }).catch(function(){});
+  }
+}
+
+function markMessagesRead(){
+  if(!state.user||!state.user.id)return;
+  try{ localStorage.setItem('cou_msg_last_read_'+state.user.id, new Date().toISOString()); }catch(e){}
+  // Clear badge
+  var badge=document.getElementById('msg-cnt');
+  if(badge)badge.classList.add('hidden');
+  var dashBadge=document.getElementById('dash-msg-cnt');
+  if(dashBadge)dashBadge.classList.add('hidden');
+}
+
 // ═══════════════ SESSION RESTORE
 (function restoreSession(){
   try {
@@ -646,6 +693,8 @@ function enterDirectory(){
   switchDirTab('home');
   // Load sponsors for banner
   loadSponsors();
+  // Check for unread messages
+  setTimeout(updateUnreadMsgBadge, 1500);
   // Show loading state then load real data
   document.getElementById('biz-grid').innerHTML='<div class="empty-state"><div class="empty-icon" style="animation:spin 1s linear infinite;display:inline-block;">⟳</div><div class="empty-title">Loading listings…</div></div>';
   loadBusinesses().then(function(){
@@ -753,7 +802,7 @@ function switchDirTab(tab){
   if(activeBtn)activeBtn.classList.add('active-ind');
   if(tab==='saved')renderSaved();
   if(tab==='community'){renderPrayerBoard();renderEvents();renderLeaderboard();}
-  if(tab==='messages')renderMessages('individual');
+  if(tab==='messages'){renderMessages('individual');markMessagesRead();}
   if(tab==='jobs'){initJobFilters();renderJobs();}
   if(tab==='guild')renderGuild();
 }
@@ -1068,6 +1117,8 @@ function enterDashboard(){
     switchDashTab('overview');
     // Load sponsors for banner
     loadSponsors();
+    // Check for unread messages
+    setTimeout(updateUnreadMsgBadge, 1500);
   } catch(e) {
     console.error('enterDashboard error:', e.message);
     // Show dashboard anyway
@@ -1113,7 +1164,7 @@ function switchDashTab(tab){
   if(tab==='jobs')renderDashJobs();
   if(tab==='referrals')renderDashReferrals();
   if(tab==='testimonials')renderDashTestimonials();
-  if(tab==='messages')renderDashMessages();
+  if(tab==='messages'){renderDashMessages();markMessagesRead();}
   if(tab==='listing')renderDashListing();
 }
 function renderDashReferrals(){
@@ -1156,19 +1207,82 @@ function renderDashMessages(){
     var threads={};
     msgs.forEach(function(m){
       var key=m.from_user_id||m.from_name||'anonymous';
-      if(!threads[key]){threads[key]={name:m.from_name||'Member',messages:[]};}
+      if(!threads[key]){threads[key]={userId:m.from_user_id,name:m.from_name||'Member',messages:[]};}
       threads[key].messages.push(m);
     });
     var threadList=Object.values(threads);
+    if(!threadList.length){
+      panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div><p style="font-size:.82rem;color:var(--muted);">No messages yet. Messages from members will appear here.</p></div>';
+      return;
+    }
     panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages ('+threadList.length+')</div>'+
-      (threadList.length?threadList.map(function(t){
+      threadList.map(function(t,i){
         var last=t.messages[t.messages.length-1];
-        return '<div class="msg-thread"><div class="msg-thread-head"><div class="msg-thread-name">'+t.name+'</div><div class="msg-thread-time">'+(last?new Date(last.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';
-      }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No messages yet. Messages from members will appear here.</p>')+
+        return '<div class="msg-thread" onclick="openBizReplyThread('+i+')" style="cursor:pointer;">'+
+          '<div class="msg-thread-head">'+
+            '<div class="msg-thread-name">'+t.name+'</div>'+
+            '<div class="msg-thread-time">'+(last?new Date(last.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div>'+
+          '</div>'+
+          '<div class="msg-thread-preview">'+(last?last.text:'')+'</div>'+
+        '</div>';
+      }).join('')+
     '</div>';
+    // Store threads for reply access
+    state.dashMsgThreads=threadList;
   }).catch(function(){
     panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div><p style="font-size:.82rem;color:var(--muted);">Could not load messages. Please refresh.</p></div>';
   });
+}
+
+function openBizReplyThread(threadIdx){
+  var threads=state.dashMsgThreads;
+  if(!threads||!threads[threadIdx])return;
+  var thread=threads[threadIdx];
+  var bizId=state.myBiz?state.myBiz.id:null;
+  // Build reply modal
+  document.getElementById('msgModalContent').innerHTML=
+    '<div class="modal-biz-name">Conversation with '+thread.name+'</div>'+
+    '<div id="modal-bubbles" class="msg-bubbles">'+
+      thread.messages.map(function(m){
+        var isBiz=m.from_role==='business';
+        return '<div class="msg-bubble '+(isBiz?'sent':'recv')+'">'+
+          '<div style="font-size:.65rem;color:rgba(255,255,255,.6);margin-bottom:2px;">'+(isBiz?'You':m.from_name||'Member')+'</div>'+
+          m.text+
+        '</div>';
+      }).join('')+
+    '</div>'+
+    '<div class="msg-input-row">'+
+      '<input class="msg-input" id="modal-msg-inp" placeholder="Reply to '+thread.name+'…" onkeydown="if(event.key===\'Enter\')sendBizReply(\''+bizId+'\',\''+thread.name+'\')"/>'+
+      '<button class="msg-send-btn" onclick="sendBizReply(\''+bizId+'\',\''+thread.name+'\')">Send</button>'+
+    '</div>';
+  document.getElementById('msgModal').classList.add('open');
+  // Scroll to bottom
+  setTimeout(function(){
+    var b=document.getElementById('modal-bubbles');
+    if(b)b.scrollTop=b.scrollHeight;
+  },100);
+}
+
+function sendBizReply(bizId, memberName){
+  var inp=document.getElementById('modal-msg-inp');
+  var text=inp?inp.value.trim():'';
+  if(!text)return;
+  // Show immediately in UI
+  var bubbles=document.getElementById('modal-bubbles');
+  if(bubbles){
+    bubbles.innerHTML+='<div class="msg-bubble sent"><div style="font-size:.65rem;color:rgba(255,255,255,.6);margin-bottom:2px;">You</div>'+text+'</div>';
+    bubbles.scrollTop=bubbles.scrollHeight;
+  }
+  inp.value='';
+  // Save to Supabase
+  apiFetch('/api/community?type=messages','POST',{
+    business_id:bizId,
+    from_user_id:state.user?state.user.id:null,
+    from_name:state.myBiz?state.myBiz.name:'Business',
+    biz_name:state.myBiz?state.myBiz.name:'',
+    text:text,
+    from_role:'business'
+  }).catch(function(){});
 }
 function renderDashListing(){
   var biz=state.myBiz;
