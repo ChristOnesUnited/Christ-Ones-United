@@ -76,18 +76,50 @@ module.exports = async (req, res) => {
     if (req.method === 'GET') {
       const { business_id, user_id } = req.query;
       try {
-        let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
+        let data, error;
+
         if (business_id && user_id) {
-          // Get thread between specific user and business
-          query = query.eq('business_id', business_id).eq('from_user_id', user_id);
+          // Get full thread — all messages for this business_id
+          // regardless of who sent them (user OR business reply)
+          ({ data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('business_id', business_id)
+            .order('created_at', { ascending: true })
+            .limit(100));
         } else if (business_id) {
-          // Get all messages for a business
-          query = query.eq('business_id', business_id);
+          // Business dashboard — all messages for this business
+          ({ data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('business_id', business_id)
+            .order('created_at', { ascending: true })
+            .limit(100));
         } else if (user_id) {
-          // Get all messages for a user
-          query = query.eq('from_user_id', user_id);
+          // Individual messages tab — get all threads they are part of
+          // Find all business_ids they have messaged
+          const { data: userMsgs } = await supabase
+            .from('messages')
+            .select('business_id, biz_name')
+            .eq('from_user_id', user_id)
+            .eq('from_role', 'user');
+
+          if (!userMsgs || !userMsgs.length) {
+            return res.status(200).json({ success: true, messages: [] });
+          }
+
+          // Get unique business_ids
+          const bizIds = [...new Set(userMsgs.map(m => m.business_id))];
+
+          // Get all messages for those businesses (including business replies)
+          ({ data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .in('business_id', bizIds)
+            .order('created_at', { ascending: true })
+            .limit(200));
         }
-        const { data, error } = await query.limit(100);
+
         if (error) throw error;
         return res.status(200).json({ success: true, messages: data || [] });
       } catch (err) {
