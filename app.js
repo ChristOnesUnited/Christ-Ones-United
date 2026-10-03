@@ -978,9 +978,20 @@ function openMsgModal(bizId){
   // Show modal immediately with loading state
   var modal=document.getElementById('msgModal');
   document.getElementById('msgModalContent').innerHTML=
-    '<div class="modal-biz-name">'+biz.name+'</div>'+
-    '<div id="modal-bubbles" class="msg-bubbles"><p style="text-align:center;font-size:.8rem;color:var(--muted);padding:1rem;">Loading messages…</p></div>'+
-    '<div class="msg-input-row"><input class="msg-input" id="modal-msg-inp" placeholder="Type a message…" onkeydown="if(event.key===\'Enter\')sendModalMsg(\''+bizId+'\')"/><button class="msg-send-btn" onclick="sendModalMsg(\''+bizId+'\')">Send</button></div>';
+    '<div style="display:flex;align-items:center;gap:.75rem;padding-bottom:.875rem;margin-bottom:.5rem;border-bottom:1px solid #ede9e1;">'+
+      '<div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#c8452d,#e8644e);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.95rem;flex-shrink:0;">'+biz.name.charAt(0).toUpperCase()+'</div>'+
+      '<div>'+
+        '<div style="font-weight:700;font-size:.9rem;color:#1a1612;">'+biz.name+'</div>'+
+        '<div style="font-size:.7rem;color:var(--muted);">Business</div>'+
+      '</div>'+
+    '</div>'+
+    '<div id="modal-bubbles" style="min-height:180px;max-height:300px;overflow-y:auto;padding:.25rem 0;margin-bottom:.75rem;display:flex;flex-direction:column;gap:.4rem;">'+
+      '<p style="text-align:center;font-size:.78rem;color:var(--muted);padding:1rem;">Loading messages…</p>'+
+    '</div>'+
+    '<div style="display:flex;gap:.5rem;align-items:center;border-top:1px solid #ede9e1;padding-top:.75rem;">'+
+      '<input class="msg-input" id="modal-msg-inp" placeholder="Message '+biz.name+'…" style="flex:1;border-radius:20px;padding:.55rem 1rem;border:1.5px solid #ede9e1;font-size:.84rem;" onkeydown="if(event.key===\'Enter\')sendModalMsg(\''+bizId+'\')"/>'+
+      '<button onclick="sendModalMsg(\''+bizId+'\')" style="width:36px;height:36px;border-radius:50%;background:#c8452d;border:none;color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">↑</button>'+
+    '</div>';
   modal.classList.add('open');
   // Load full thread from Supabase (includes both user messages and business replies)
   var userId=state.user?state.user.id:null;
@@ -992,11 +1003,11 @@ function openMsgModal(bizId){
       bubbles.innerHTML='<div style="text-align:center;font-size:.78rem;color:var(--muted);padding:1rem;">This is a private conversation with <strong>'+biz.name+'</strong>. Messages are visible to both parties.</div>';
     } else {
       bubbles.innerHTML=msgs.map(function(m){
-        // Individual sees their own messages as sent, business replies as recv
         var isMine=m.from_role==='user';
-        return '<div class="msg-bubble '+(isMine?'sent':'recv')+'">'+
-          (m.from_role==='business'?'<div style="font-size:.65rem;color:rgba(0,0,0,.4);margin-bottom:2px;">'+biz.name+'</div>':'')+
-          m.text+
+        var time=m.created_at?new Date(m.created_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+        return '<div style="display:flex;flex-direction:column;align-items:'+(isMine?'flex-end':'flex-start')+';gap:.15rem;margin-bottom:.4rem;">'+
+          '<div style="max-width:75%;padding:.55rem .875rem;border-radius:'+(isMine?'18px 18px 4px 18px':'18px 18px 18px 4px')+';background:'+(isMine?'#1a6b4a':'#f0ece6')+';color:'+(isMine?'#fff':'#1a1612')+';font-size:.84rem;line-height:1.5;word-break:break-word;">'+m.text+'</div>'+
+          '<div style="font-size:.62rem;color:#bbb;padding:0 4px;">'+(isMine?'You':biz.name)+(time?' · '+time:'')+'</div>'+
         '</div>';
       }).join('');
       bubbles.scrollTop=bubbles.scrollHeight;
@@ -1014,10 +1025,15 @@ function sendModalMsg(bizId){
   var inp=document.getElementById('modal-msg-inp');
   var text=inp?inp.value.trim():'';
   if(!text)return;
-  // Show message immediately in UI
+  // Show message immediately in SMS style
   var bubbles=document.getElementById('modal-bubbles');
   if(bubbles){
-    bubbles.innerHTML+=('<div class="msg-bubble sent">'+text+'</div>');
+    var now=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    bubbles.innerHTML+=
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.15rem;margin-bottom:.4rem;">'+
+        '<div style="max-width:75%;padding:.55rem .875rem;border-radius:18px 18px 4px 18px;background:#1a6b4a;color:#fff;font-size:.84rem;line-height:1.5;word-break:break-word;">'+text+'</div>'+
+        '<div style="font-size:.62rem;color:#bbb;padding:0 4px;">You · '+now+'</div>'+
+      '</div>';
     bubbles.scrollTop=bubbles.scrollHeight;
   }
   inp.value='';
@@ -1207,14 +1223,30 @@ function renderDashMessages(){
   }
   apiFetch('/api/community?type=messages&business_id='+state.myBiz.id).then(function(data){
     var msgs=data.messages||[];
-    // Group by member using member_user_id (works for both user messages and business replies)
+    // Group by member_user_id first, then fallback to from_user_id for user messages
+    // All messages (user + business replies) for same member go into one thread
     var threads={};
+    var memberIdToKey={};
     msgs.forEach(function(m){
-      // Use member_user_id if available, otherwise from_user_id for user messages
-      var key=m.member_user_id||( m.from_role==='user'?m.from_user_id:null)||m.from_name||'anon';
-      var memberName=m.from_role==='user'?(m.from_name||'Member'):(threads[key]?threads[key].name:'Member');
-      if(!threads[key]){threads[key]={userId:key,name:memberName,messages:[]};}
-      else if(m.from_role==='user'&&m.from_name)threads[key].name=m.from_name;
+      var key=null;
+      if(m.from_role==='user'){
+        // Member message — key by their user_id
+        key=m.from_user_id||m.from_name||'anon';
+        memberIdToKey[key]=key;
+      } else {
+        // Business reply — find matching member thread via member_user_id
+        key=m.member_user_id||null;
+        if(!key){
+          // Fallback — attach to first available thread
+          var keys=Object.keys(threads);
+          key=keys.length?keys[0]:'anon';
+        }
+      }
+      if(!threads[key]){
+        var name=m.from_role==='user'?(m.from_name||'Member'):'Member';
+        threads[key]={userId:key,name:name,messages:[]};
+      }
+      if(m.from_role==='user'&&m.from_name)threads[key].name=m.from_name;
       threads[key].messages.push(m);
     });
     var threadList=Object.values(threads);
@@ -1223,26 +1255,27 @@ function renderDashMessages(){
       panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div><p style="font-size:.82rem;color:var(--muted);">No messages yet. Messages from members will appear here.</p></div>';
       return;
     }
-    // Show conversation list
+    // Show ONE conversation box per member thread
     panel.innerHTML=
       '<div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:1rem;">Conversations ('+threadList.length+')</div>'+
       threadList.map(function(t,i){
         var last=t.messages[t.messages.length-1];
-        var lastTime=last?new Date(last.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+        var lastTime=last&&last.created_at?new Date(last.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
         var lastText=last?last.text:'';
         var isLastFromBiz=last&&last.from_role==='business';
-        return '<div onclick="openBizReplyThread('+i+')" style="display:flex;align-items:center;gap:.875rem;padding:.875rem;background:#fff;border-radius:12px;margin-bottom:.6rem;cursor:pointer;border:1.5px solid #ede9e1;transition:border-color .15s;" onmouseover="this.style.borderColor=\'#1a6b4a\'" onmouseout="this.style.borderColor=\'#ede9e1\'">'+
-          '<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#1a6b4a,#2d9b6f);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1rem;flex-shrink:0;">'+t.name.charAt(0).toUpperCase()+'</div>'+
+        var unread=t.messages.filter(function(m){return m.from_role==='user';}).length;
+        return '<div onclick="openBizReplyThread('+i+')" style="display:flex;align-items:center;gap:.875rem;padding:.875rem 1rem;background:#fff;border-radius:14px;margin-bottom:.6rem;cursor:pointer;border:1.5px solid #ede9e1;box-shadow:0 1px 4px rgba(0,0,0,.04);" onmouseover="this.style.borderColor=\'#1a6b4a\'" onmouseout="this.style.borderColor=\'#ede9e1\'">'+
+          '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1a6b4a,#2d9b6f);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">'+t.name.charAt(0).toUpperCase()+'</div>'+
           '<div style="flex:1;min-width:0;">'+
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem;">'+
-              '<div style="font-weight:600;font-size:.88rem;color:#1a1612;">'+t.name+'</div>'+
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;">'+
+              '<div style="font-weight:700;font-size:.9rem;color:#1a1612;">'+t.name+'</div>'+
               '<div style="font-size:.7rem;color:var(--muted);">'+lastTime+'</div>'+
             '</div>'+
-            '<div style="font-size:.78rem;color:'+(isLastFromBiz?'var(--green)':'var(--muted)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
-              (isLastFromBiz?'You: ':'')+lastText+
+            '<div style="font-size:.8rem;color:'+(isLastFromBiz?'#1a6b4a':'#7a7369')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">'+
+              (isLastFromBiz?'<span style="color:#1a6b4a;font-weight:500;">You: </span>':'')+lastText+
             '</div>'+
           '</div>'+
-          '<div style="color:#ccc;font-size:.9rem;">›</div>'+
+          '<div style="color:#bbb;font-size:1.1rem;flex-shrink:0;">›</div>'+
         '</div>';
       }).join('');
   }).catch(function(){
@@ -1258,23 +1291,38 @@ function openBizReplyThread(threadIdx){
   var bizName=state.myBiz?state.myBiz.name:'Us';
   // Build chat bubble conversation
   document.getElementById('msgModalContent').innerHTML=
-    '<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.875rem;padding-bottom:.875rem;border-bottom:1px solid #ede9e1;">'+
-      '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1a6b4a,#2d9b6f);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.9rem;">'+thread.name.charAt(0).toUpperCase()+'</div>'+
-      '<div style="font-family:\'Playfair Display\',serif;font-size:1rem;font-weight:600;">'+thread.name+'</div>'+
+    // Header
+    '<div style="display:flex;align-items:center;gap:.75rem;padding-bottom:.875rem;margin-bottom:.5rem;border-bottom:1px solid #ede9e1;">'+
+      '<div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1a6b4a,#2d9b6f);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.95rem;flex-shrink:0;">'+thread.name.charAt(0).toUpperCase()+'</div>'+
+      '<div>'+
+        '<div style="font-weight:700;font-size:.9rem;color:#1a1612;">'+thread.name+'</div>'+
+        '<div style="font-size:.7rem;color:var(--muted);">Member</div>'+
+      '</div>'+
     '</div>'+
-    '<div id="modal-bubbles" class="msg-bubbles" style="min-height:200px;max-height:320px;overflow-y:auto;padding:.5rem 0;margin-bottom:.875rem;">'+
+    // Chat bubbles
+    '<div id="modal-bubbles" style="min-height:180px;max-height:300px;overflow-y:auto;padding:.25rem 0;margin-bottom:.75rem;display:flex;flex-direction:column;gap:.4rem;">'+
       thread.messages.map(function(m){
         var isBiz=m.from_role==='business';
         var time=m.created_at?new Date(m.created_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
-        return '<div style="display:flex;flex-direction:column;align-items:'+(isBiz?'flex-end':'flex-start')+';margin-bottom:.6rem;">'+
-          '<div style="max-width:78%;background:'+(isBiz?'#1a6b4a':'#f0f0f0')+';color:'+(isBiz?'#fff':'#1a1612')+';padding:.6rem .875rem;border-radius:'+(isBiz?'14px 14px 4px 14px':'14px 14px 14px 4px')+';font-size:.84rem;line-height:1.5;">'+m.text+'</div>'+
-          '<div style="font-size:.65rem;color:var(--muted);margin-top:.2rem;">'+(isBiz?bizName:thread.name)+(time?' · '+time:'')+'</div>'+
+        return '<div style="display:flex;flex-direction:column;align-items:'+(isBiz?'flex-end':'flex-start')+';gap:.15rem;">'+
+          '<div style="'+
+            'max-width:75%;'+
+            'padding:.55rem .875rem;'+
+            'border-radius:'+(isBiz?'18px 18px 4px 18px':'18px 18px 18px 4px')+';'+
+            'background:'+(isBiz?'#1a6b4a':'#f0ece6')+';'+
+            'color:'+(isBiz?'#fff':'#1a1612')+';'+
+            'font-size:.84rem;'+
+            'line-height:1.5;'+
+            'word-break:break-word;'+
+          '">'+m.text+'</div>'+
+          '<div style="font-size:.62rem;color:#bbb;padding:0 4px;">'+time+'</div>'+
         '</div>';
       }).join('')+
     '</div>'+
-    '<div class="msg-input-row">'+
-      '<input class="msg-input" id="modal-msg-inp" placeholder="Reply to '+thread.name+'…" onkeydown="if(event.key===\'Enter\')sendBizReply(\''+bizId+'\',\''+thread.name+'\')"/>'+
-      '<button class="msg-send-btn" onclick="sendBizReply(\''+bizId+'\',\''+thread.name+'\')">Send</button>'+
+    // Input
+    '<div style="display:flex;gap:.5rem;align-items:center;border-top:1px solid #ede9e1;padding-top:.75rem;">'+
+      '<input class="msg-input" id="modal-msg-inp" placeholder="Message '+thread.name+'…" style="flex:1;border-radius:20px;padding:.55rem 1rem;border:1.5px solid #ede9e1;font-size:.84rem;" onkeydown="if(event.key===\'Enter\')sendBizReply(\''+bizId+'\',\''+thread.name+'\')"/>'+
+      '<button onclick="sendBizReply(\''+bizId+'\',\''+thread.name+'\')" style="width:36px;height:36px;border-radius:50%;background:#1a6b4a;border:none;color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">↑</button>'+
     '</div>';
   document.getElementById('msgModal').classList.add('open');
   setTimeout(function(){var b=document.getElementById('modal-bubbles');if(b)b.scrollTop=b.scrollHeight;},100);
@@ -1284,10 +1332,15 @@ function sendBizReply(bizId, memberName){
   var inp=document.getElementById('modal-msg-inp');
   var text=inp?inp.value.trim():'';
   if(!text)return;
-  // Show immediately in UI
+  // Show immediately in SMS style
   var bubbles=document.getElementById('modal-bubbles');
   if(bubbles){
-    bubbles.innerHTML+='<div class="msg-bubble sent"><div style="font-size:.65rem;color:rgba(255,255,255,.6);margin-bottom:2px;">You</div>'+text+'</div>';
+    var now=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    bubbles.innerHTML+=
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.15rem;">'+
+        '<div style="max-width:75%;padding:.55rem .875rem;border-radius:18px 18px 4px 18px;background:#1a6b4a;color:#fff;font-size:.84rem;line-height:1.5;word-break:break-word;">'+text+'</div>'+
+        '<div style="font-size:.62rem;color:#bbb;padding:0 4px;">'+now+'</div>'+
+      '</div>';
     bubbles.scrollTop=bubbles.scrollHeight;
   }
   inp.value='';
