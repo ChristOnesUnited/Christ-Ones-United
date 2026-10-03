@@ -192,8 +192,14 @@ function doSignIn(){
   if(!pass){e.textContent='Enter your password.';e.classList.remove('hidden');return;}
   e.style.color='#1a6b4a';e.textContent='Signing in…';e.classList.remove('hidden');
   apiFetch('/api/auth-signin','POST',{email:email,password:pass}).then(function(data){
-    e.classList.add('hidden');e.style.color='';
-    if(data.error){e.textContent=data.error;e.classList.remove('hidden');return;}
+    e.style.color='';
+    if(data.error){
+      e.textContent=data.error;
+      e.style.color='var(--red)';
+      e.classList.remove('hidden');
+      return;
+    }
+    e.classList.add('hidden');
     if(data.success&&data.user){
       var user=data.user;
       state.user={id:user.id,name:user.name,email:user.email,plan:user.plan,church:user.church||'',zip:user.zip||''};
@@ -233,8 +239,9 @@ function doSignIn(){
       e.textContent='Sign in failed. Please try again.';e.classList.remove('hidden');
     }
   }).catch(function(){
-    e.style.color='';
-    e.textContent='Connection error. Please try again.';e.classList.remove('hidden');
+    e.style.color='var(--red)';
+    e.textContent='Connection error. Please try again.';
+    e.classList.remove('hidden');
   });
 }
 
@@ -884,12 +891,29 @@ function submitRev(bizId){
 
 // ═══════════════ DASHBOARD
 function enterDashboard(){
-  document.getElementById('dash-biz-name').textContent=state.myBiz?state.myBiz.name:state.user.name;
-  var planLabel={monthly:'Monthly Plan',annual:'Annual Plan'}[state.plan]||'Business Member';
-  document.getElementById('dash-plan-chip').textContent='✓ '+planLabel;
-  if(state.myBiz&&!state.myBiz.approved)document.getElementById('dash-pending-banner').classList.remove('hidden');
-  updateNotifUI();renderDashOverview();renderDashMessages();
-  showScreen('screen-dashboard');switchDashTab('overview');
+  try {
+    var bizNameEl=document.getElementById('dash-biz-name');
+    if(bizNameEl) bizNameEl.textContent=state.myBiz?state.myBiz.name:(state.user?state.user.name:'My Business');
+    var planLabel={monthly:'Monthly Plan',annual:'Annual Plan'}[state.plan]||'Business Member';
+    var planChipEl=document.getElementById('dash-plan-chip');
+    if(planChipEl) planChipEl.textContent='✓ '+planLabel;
+    var pendingEl=document.getElementById('dash-pending-banner');
+    if(pendingEl){
+      if(state.myBiz&&!state.myBiz.approved) pendingEl.classList.remove('hidden');
+      else pendingEl.classList.add('hidden');
+    }
+    updateNotifUI();
+    renderDashOverview();
+    renderDashMessages();
+    showScreen('screen-dashboard');
+    switchDashTab('overview');
+    // Load sponsors for banner
+    loadSponsors();
+  } catch(e) {
+    console.error('enterDashboard error:', e.message);
+    // Show dashboard anyway
+    showScreen('screen-dashboard');
+  }
 }
 function renderDashOverview(){
   var biz=state.myBiz,refs=biz?biz.referrals:[],tms=biz?biz.testimonials:[];
