@@ -1222,30 +1222,119 @@ function enterDashboard(){
   }
 }
 function renderDashOverview(){
+  var panel=document.getElementById('dash-panel-overview');
+  if(!panel)return;
   var biz=state.myBiz;
-  // Load real referrals from Supabase
-  if(biz&&biz.id){
-    apiFetch('/api/referrals?business_id='+biz.id).then(function(data){
-      if(data.referrals&&state.myBiz)state.myBiz.referrals=data.referrals;
-      var refs=data.referrals||[];
-      var refBadge=document.getElementById('dash-ref-cnt');
-      if(refBadge){if(refs.length>0){refBadge.textContent=refs.length;refBadge.classList.remove('hidden');}else refBadge.classList.add('hidden');}
-      // Update the stats card
-      var statsEl=document.querySelector('.stats-row .stat-card:nth-child(2) .stat-val');
-      if(statsEl)statsEl.textContent=refs.length;
-      // Update recent referrals
-      var recentEl=document.querySelector('.dash-card .dash-card-title');
-      if(refs.length&&recentEl&&recentEl.textContent==='Recent Referrals'){
-        recentEl.parentElement.innerHTML='<div class="dash-card-title">Recent Referrals</div>'+refs.slice(0,3).map(renderRefItem).join('');
-      }
-    }).catch(function(){});
+  if(!biz||!biz.id){
+    panel.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:2rem;">No listing found. Please submit your business profile.</p>';
+    return;
   }
-  var refs=biz&&biz.referrals?biz.referrals:[],tms=biz?biz.testimonials:[];
-  document.getElementById('dash-panel-overview').innerHTML=
-    '<div class="stats-row"><div class="stat-card"><div class="stat-val">'+(biz?biz.views:0)+'</div><div class="stat-lbl">Views</div></div><div class="stat-card"><div class="stat-val">'+refs.length+'</div><div class="stat-lbl">Referrals</div></div><div class="stat-card"><div class="stat-val">'+tms.length+'</div><div class="stat-lbl">Testimonials</div></div></div>'+
-    '<div class="dash-card"><div class="dash-card-title">Recent Referrals</div>'+(refs.length?refs.slice(0,3).map(renderRefItem).join(''):'<p style="font-size:.82rem;color:var(--muted);">No referrals yet.</p>')+'</div>'+
-    '<div class="dash-card" style="background:linear-gradient(135deg,var(--ink),#1a1612);color:#f7f4ef;"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);font-weight:700;margin-bottom:.4rem;">Weekly Newsletter</div><div style="font-family:\'Playfair Display\',serif;font-size:1rem;margin-bottom:.4rem;">The Christ One\'s United Weekly</div><p style="font-size:.78rem;color:#8a8278;margin-bottom:.875rem;">Your business may be featured in our weekly community digest. Keep your listing active!</p><div style="font-size:.76rem;color:#4dbb8a;font-weight:600;">✓ Active listing — eligible for weekly feature</div></div>';
-  var refBadge=document.getElementById('dash-ref-cnt');if(refs.length>0){refBadge.textContent=refs.length;refBadge.classList.remove('hidden');}else refBadge.classList.add('hidden');
+
+  // Show loading state
+  panel.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:2rem;">Loading overview…</p>';
+
+  // Load all stats in parallel
+  Promise.all([
+    apiFetch('/api/referrals?business_id='+biz.id),
+    apiFetch('/api/jobs?business_id='+biz.id),
+    apiFetch('/api/community?type=messages&business_id='+biz.id),
+  ]).then(function(results){
+    var refs=results[0].referrals||[];
+    var jobs=results[1].jobs||[];
+    var msgs=results[2].messages||[];
+
+    // Count unique message senders
+    var uniqueSenders=new Set(msgs.filter(function(m){return m.from_role==='user';}).map(function(m){return m.from_user_id||m.from_name;}));
+    var msgCount=uniqueSenders.size;
+
+    // Testimonials from local state
+    var tms=biz.testimonials||[];
+
+    // Count contacted referrals
+    var contactedRefs=refs.filter(function(r){return r.contacted;}).length;
+
+    // Update referral badge
+    var refBadge=document.getElementById('dash-ref-cnt');
+    if(refBadge){if(refs.length>0){refBadge.textContent=refs.length;refBadge.classList.remove('hidden');}else refBadge.classList.add('hidden');}
+
+    // Update local state
+    if(state.myBiz)state.myBiz.referrals=refs;
+
+    panel.innerHTML=
+      // Stats Row
+      '<div class="stats-row">'+
+        '<div class="stat-card"><div class="stat-val">'+refs.length+'</div><div class="stat-lbl">Referrals</div></div>'+
+        '<div class="stat-card"><div class="stat-val">'+msgCount+'</div><div class="stat-lbl">Messages</div></div>'+
+        '<div class="stat-card"><div class="stat-val">'+jobs.length+'</div><div class="stat-lbl">Active Jobs</div></div>'+
+        '<div class="stat-card"><div class="stat-val">'+contactedRefs+'</div><div class="stat-lbl">Contacted</div></div>'+
+      '</div>'+
+
+      // Listing Status
+      '<div class="dash-card" style="margin-bottom:1rem;">'+
+        '<div class="dash-card-title">📋 Listing Status</div>'+
+        '<div style="display:flex;align-items:center;gap:.75rem;padding:.5rem 0;">'+
+          '<div style="width:10px;height:10px;border-radius:50%;background:'+(biz.approved?'#1a6b4a':'#c9973a')+';flex-shrink:0;"></div>'+
+          '<div style="font-size:.84rem;font-weight:600;color:'+(biz.approved?'#1a6b4a':'#c9973a')+'">'+(biz.approved?'✅ Live — visible in directory':'⏳ Pending admin review')+'</div>'+
+        '</div>'+
+        '<div style="font-size:.78rem;color:var(--muted);">'+biz.name+' · '+biz.category+'</div>'+
+      '</div>'+
+
+      // Recent Referrals
+      '<div class="dash-card" style="margin-bottom:1rem;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">'+
+          '<div class="dash-card-title" style="margin-bottom:0;">🤝 Recent Referrals</div>'+
+          (refs.length?'<button onclick="switchDashTab(\'referrals\')" style="font-size:.72rem;color:var(--green);background:none;border:none;cursor:pointer;font-weight:600;">View all →</button>':'')+
+        '</div>'+
+        (refs.length?refs.slice(0,3).map(function(r){
+          var fc=!r.faith_status?'rf-other':r.faith_status.toLowerCase().includes('believer')?'rf-believer':r.faith_status.toLowerCase().includes('exploring')?'rf-exploring':'rf-other';
+          return '<div class="ref-item" style="border-left:3px solid '+(r.contacted?'#1a6b4a':'#e8b4aa')+';padding-left:.75rem;margin-bottom:.5rem;">'+
+            '<div class="ref-name">'+r.name+(r.contacted?' <span style="font-size:.65rem;background:#e0f0ea;color:#1a6b4a;padding:1px 6px;border-radius:8px;">✓ Contacted</span>':'')+'</div>'+
+            '<div class="ref-detail">📞 '+r.phone+'</div>'+
+            '<div style="font-size:.7rem;color:var(--muted);">Referred by '+(r.referred_by||'A Member')+'</div>'+
+          '</div>';
+        }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No referrals yet.</p>')+
+      '</div>'+
+
+      // Recent Messages
+      '<div class="dash-card" style="margin-bottom:1rem;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">'+
+          '<div class="dash-card-title" style="margin-bottom:0;">💬 Recent Messages</div>'+
+          (msgCount?'<button onclick="switchDashTab(\'messages\')" style="font-size:.72rem;color:var(--green);background:none;border:none;cursor:pointer;font-weight:600;">View all →</button>':'')+
+        '</div>'+
+        (msgs.length?
+          (function(){
+            // Show last 3 unique member messages
+            var seen={};var recent=[];
+            msgs.filter(function(m){return m.from_role==='user';}).reverse().forEach(function(m){
+              var key=m.from_user_id||m.from_name;
+              if(!seen[key]){seen[key]=true;recent.push(m);}
+            });
+            return recent.slice(0,3).map(function(m){
+              var time=m.created_at?new Date(m.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+              return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid #f0ece6;">'+
+                '<div>'+
+                  '<div style="font-size:.84rem;font-weight:600;">'+( m.from_name||'Member')+'</div>'+
+                  '<div style="font-size:.76rem;color:var(--muted);margin-top:.15rem;">'+m.text.substring(0,60)+(m.text.length>60?'…':'')+'</div>'+
+                '</div>'+
+                '<div style="font-size:.7rem;color:var(--muted);flex-shrink:0;margin-left:.5rem;">'+time+'</div>'+
+              '</div>';
+            }).join('');
+          })()
+        :'<p style="font-size:.82rem;color:var(--muted);">No messages yet.</p>')+
+      '</div>'+
+
+      // Newsletter card
+      '<div class="dash-card" style="background:linear-gradient(135deg,var(--ink),#1a1612);color:#f7f4ef;">'+
+        '<div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);font-weight:700;margin-bottom:.4rem;">Weekly Newsletter</div>'+
+        '<div style="font-family:\'Playfair Display\',serif;font-size:1rem;margin-bottom:.4rem;">The Christ One\'s United Weekly</div>'+
+        '<p style="font-size:.78rem;color:#8a8278;margin-bottom:.875rem;">Your business may be featured in our weekly community digest. Keep your listing active!</p>'+
+        '<div style="font-size:.76rem;color:#4dbb8a;font-weight:600;">✓ Active listing — eligible for weekly feature</div>'+
+      '</div>';
+
+  }).catch(function(err){
+    console.error('Overview load error:', err);
+    panel.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:2rem;">Could not load overview. Please refresh.</p>';
+  });
 }
 function renderRefItem(r){
   var fc=!r.faith?'rf-other':r.faith.toLowerCase().includes('believer')?'rf-believer':r.faith.toLowerCase().includes('exploring')?'rf-exploring':'rf-other';
