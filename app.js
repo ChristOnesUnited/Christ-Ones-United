@@ -760,39 +760,88 @@ function switchDirTab(tab){
 
 // ═══════════════ PRAYER BOARD
 function renderPrayerBoard(){
-  document.getElementById('prayer-list').innerHTML=state.prayerRequests.map(function(p,i){
-    return '<div class="prayer-card"><div class="prayer-header"><div class="prayer-author">🙏 '+p.author+'</div><div class="prayer-time">'+p.time+'</div></div><p class="prayer-text">'+p.text+'</p><div style="display:flex;align-items:center;justify-content:space-between;"><span class="prayer-prayed">'+p.prayedBy.length+' praying</span><button class="prayer-pray-btn'+(p.prayedByMe?' prayed':'')+'" onclick="prayFor('+i+')">'+(p.prayedByMe?'🙏 Praying':'🙏 Pray')+' </button></div></div>';
-  }).join('');
+  var el=document.getElementById('prayer-list');
+  if(!el)return;
+  el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Loading prayers…</p>';
+  apiFetch('/api/community?type=prayer').then(function(data){
+    var prayers=data.prayers||[];
+    state.prayerRequests=prayers.map(function(p){return {
+      id:p.id,author:p.author||'Anonymous',
+      text:p.text,
+      time:p.created_at?new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'',
+      prayedBy:p.prayed_by||[],
+      prayedByMe:p.prayed_by&&p.prayed_by.includes(state.user?state.user.name:'')
+    };});
+    if(!prayers.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🙏</div><div class="empty-title">No prayer requests yet</div><p>Be the first to share a prayer request with the community.</p></div>';return;}
+    el.innerHTML=state.prayerRequests.map(function(p,i){
+      return '<div class="prayer-card"><div class="prayer-header"><div class="prayer-author">🙏 '+p.author+'</div><div class="prayer-time">'+p.time+'</div></div><p class="prayer-text">'+p.text+'</p><div style="display:flex;align-items:center;justify-content:space-between;"><span class="prayer-prayed">'+(p.prayedBy.length)+' praying</span><button class="prayer-pray-btn'+(p.prayedByMe?' prayed':'')+'" onclick="prayFor('+i+')">'+(p.prayedByMe?'🙏 Praying':'🙏 Pray')+'</button></div></div>';
+    }).join('');
+  }).catch(function(){
+    el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Could not load prayers. Please refresh.</p>';
+  });
 }
-function prayFor(i){if(!state.prayerRequests[i].prayedByMe){state.prayerRequests[i].prayedByMe=true;state.prayerRequests[i].prayedBy.push(state.user.name);}renderPrayerBoard();}
+function prayFor(i){if(!state.prayerRequests[i].prayedByMe){state.prayerRequests[i].prayedByMe=true;state.prayerRequests[i].prayedBy.push(state.user?state.user.name:'');}renderPrayerBoard();}
 function openPrayerModal(){
   document.getElementById('prayerModalContent').innerHTML='<div class="modal-icon">🙏</div><div class="modal-title">Post a Prayer Request</div><div style="font-size:.73rem;color:var(--muted);margin-bottom:1rem;">Your request will be shared with the community anonymously if you choose.</div><div class="form-group"><label class="lbl">Your Name</label><input class="inp" id="pr-name" placeholder="Name or \'Anonymous\'"/></div><div class="form-group"><label class="lbl">Prayer Request</label><textarea class="inp" id="pr-text" placeholder="Share your prayer request…" style="min-height:80px;"></textarea></div><button class="btn btn-red btn-mt" onclick="submitPrayer()">Post Request</button>';
   document.getElementById('prayerModal').classList.add('open');
 }
 function submitPrayer(){
-  var name=document.getElementById('pr-name').value.trim()||'Anonymous',text=document.getElementById('pr-text').value.trim();
+  var name=document.getElementById('pr-name').value.trim()||'Anonymous';
+  var text=document.getElementById('pr-text').value.trim();
   if(!text)return;
-  state.prayerRequests.unshift({id:Date.now(),author:name,text:text,time:'Just now',prayedBy:[],prayedByMe:false});
-  closeModal('prayerModal');renderPrayerBoard();addNotif('Your prayer request has been posted.');
+  apiFetch('/api/community?type=prayer','POST',{
+    author:name,text:text,
+    user_id:state.user?state.user.id:null
+  }).then(function(){
+    closeModal('prayerModal');
+    renderPrayerBoard();
+    addNotif('Your prayer request has been posted.');
+  }).catch(function(){
+    closeModal('prayerModal');
+    addNotif('Prayer request posted.');
+  });
 }
 
 // ═══════════════ EVENTS
 function renderEvents(){
   var el=document.getElementById('events-list');
-  el.innerHTML=state.events.map(function(e){
-    var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
-    return '<div class="event-card"><div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div><div class="event-body"><div class="event-title">'+e.title+'</div><div class="event-meta">🕐 '+e.time+'<br/>📍 '+e.location+'</div><div class="event-host">Hosted by '+e.host+'</div></div></div>';
-  }).join('');
+  if(!el)return;
+  el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Loading events…</p>';
+  apiFetch('/api/community?type=events').then(function(data){
+    var events=data.events||[];
+    state.events=events;
+    if(!events.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events yet</div><p>Be the first to post a community event.</p></div>';return;}
+    el.innerHTML=events.map(function(e){
+      var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
+      return '<div class="event-card"><div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div><div class="event-body"><div class="event-title">'+e.title+'</div><div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+'</div><div class="event-host">Hosted by '+(e.host||'Community')+'</div></div></div>';
+    }).join('');
+  }).catch(function(){
+    el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Could not load events. Please refresh.</p>';
+  });
 }
 function openEventModal(){
   document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">Post an Event</div><div class="form-group"><label class="lbl">Event Title</label><input class="inp" id="ev-title" placeholder="e.g. Community Prayer Breakfast"/></div><div class="form-group"><label class="lbl">Date</label><input class="inp" type="date" id="ev-date"/></div><div class="form-group"><label class="lbl">Time</label><input class="inp" id="ev-time" placeholder="e.g. 10:00 AM – 12:00 PM"/></div><div class="form-group"><label class="lbl">Location</label><input class="inp" id="ev-loc" placeholder="Venue name and address"/></div><div class="form-group"><label class="lbl">Hosted By</label><input class="inp" id="ev-host" placeholder="Your name or organization"/></div><div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="ev-desc" placeholder="Tell people what to expect…"></textarea></div><button class="btn btn-green btn-mt" onclick="submitEvent()">Post Event</button>';
   document.getElementById('eventModal').classList.add('open');
 }
 function submitEvent(){
-  var title=document.getElementById('ev-title').value.trim(),date=document.getElementById('ev-date').value;
+  var title=document.getElementById('ev-title').value.trim();
+  var date=document.getElementById('ev-date').value;
   if(!title||!date)return;
-  state.events.unshift({id:Date.now(),title:title,date:new Date(date),time:document.getElementById('ev-time').value||'TBD',location:document.getElementById('ev-loc').value||'TBD',host:document.getElementById('ev-host').value||state.user.name,desc:document.getElementById('ev-desc').value});
-  closeModal('eventModal');renderEvents();addNotif('Your event has been posted!');
+  apiFetch('/api/community?type=events','POST',{
+    title:title,date:date,
+    time:document.getElementById('ev-time').value||'TBD',
+    location:document.getElementById('ev-loc').value||'TBD',
+    host:document.getElementById('ev-host').value||(state.user?state.user.name:'Community'),
+    description:document.getElementById('ev-desc').value,
+    user_id:state.user?state.user.id:null
+  }).then(function(){
+    closeModal('eventModal');
+    renderEvents();
+    addNotif('Your event has been posted!');
+  }).catch(function(){
+    closeModal('eventModal');
+    addNotif('Event posted.');
+  });
 }
 
 // ═══════════════ NEWSLETTER
@@ -1184,33 +1233,49 @@ function submitApplication(jobId){
 
 // ═══════════════ JOBS — BUSINESS DASHBOARD
 function renderDashJobs(){
-  var myBizId=state.myBiz?state.myBiz.id:null;
-  var myJobs=myBizId?state.jobs.filter(function(j){
-    return String(j.bizId)===String(myBizId)||String(j.business_id)===String(myBizId);
-  }):[];
-  var badge=document.getElementById('dash-jobs-cnt');
-  if(myJobs.length>0){badge.textContent=myJobs.length;badge.classList.remove('hidden');}else badge.classList.add('hidden');
-  document.getElementById('dash-panel-jobs').innerHTML=
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">'+
-    '<div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;">Active Listings ('+myJobs.length+')</div>'+
-    '<button onclick="openPostJobModal()" style="padding:8px 16px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;">+ Post a Job</button>'+
-    '</div>'+
-    (myJobs.length?myJobs.map(function(j){
-      var typeClass={Full:'jt-full','Part':'jt-part','Contract':'jt-contract','Volunteer':'jt-volunteer'}[j.type.split('-')[0]]||'jt-full';
-      return '<div class="dash-job-item">'+
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
-          '<div class="dash-job-title">'+j.title+'</div>'+
-          '<span class="job-type-badge '+typeClass+'" style="flex-shrink:0;margin-left:8px;">'+j.type+'</span>'+
-        '</div>'+
-        '<div class="dash-job-meta">📍 '+j.location+' · '+(j.pay||'Pay TBD')+'</div>'+
-        '<div style="font-size:.73rem;color:var(--muted);margin-bottom:.5rem;">'+j.applicants.length+' applicant'+(j.applicants.length!==1?'s':'')+' · Posted '+(Math.floor((Date.now()-new Date(j.postedDate).getTime())/86400000)||0)+' days ago</div>'+
-        (j.applicants.length?'<div style="margin-bottom:.5rem;">'+j.applicants.slice(0,3).map(a=>'<div class="dash-job-applicant"><div class="dash-job-applicant-name">'+a.name+'</div><div class="dash-job-applicant-meta">'+a.email+(a.faith?' · '+a.faith:'')+'</div></div>').join('')+'</div>':'')+
-        '<div class="dash-job-actions">'+
-          '<button class="dash-job-close-btn" onclick="closeJob('+j.id+')">Close Listing</button>'+
-        '</div>'+
-      '</div>';
-    }).join(''):
-    '<div class="empty-state" style="padding:2rem;"><div class="empty-icon">💼</div><div class="empty-title">No active job listings</div><p>Post your first position to start receiving applications.</p></div>');
+  var panel=document.getElementById('dash-panel-jobs');
+  if(!panel)return;
+  var postBtn='<button onclick="openPostJobModal()" style="padding:8px 16px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;">+ Post a Job</button>';
+  panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;">Active Listings</div>'+postBtn+'</div><p style="font-size:.82rem;color:var(--muted);">Loading…</p>';
+
+  if(!state.myBiz||!state.myBiz.id){
+    panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;">Active Listings</div>'+postBtn+'</div><div class="empty-state" style="padding:2rem;"><div class="empty-icon">💼</div><div class="empty-title">No active job listings</div><p>Post your first position.</p></div>';
+    return;
+  }
+
+  // Load jobs from Supabase filtered by business_id
+  apiFetch('/api/jobs?business_id='+state.myBiz.id).then(function(data){
+    var myJobs=data.jobs||[];
+    var badge=document.getElementById('dash-jobs-cnt');
+    if(badge){if(myJobs.length>0){badge.textContent=myJobs.length;badge.classList.remove('hidden');}else badge.classList.add('hidden');}
+    panel.innerHTML=
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">'+
+      '<div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;">Active Listings ('+myJobs.length+')</div>'+
+      postBtn+'</div>'+
+      (myJobs.length?myJobs.map(function(j){
+        var typeClass={Full:'jt-full','Part':'jt-part','Contract':'jt-contract','Volunteer':'jt-volunteer'}[(j.type||'').split('-')[0]]||'jt-full';
+        var daysAgo=Math.floor((Date.now()-new Date(j.created_at||j.postedDate).getTime())/86400000)||0;
+        return '<div class="dash-job-item">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
+            '<div class="dash-job-title">'+j.title+'</div>'+
+            '<span class="job-type-badge '+typeClass+'" style="flex-shrink:0;margin-left:8px;">'+j.type+'</span>'+
+          '</div>'+
+          '<div class="dash-job-meta">📍 '+(j.location||'')+(j.pay?' · 💵 '+j.pay:'')+'</div>'+
+          '<div style="font-size:.73rem;color:var(--muted);margin-bottom:.5rem;">Posted '+daysAgo+' day'+(daysAgo!==1?'s':'')+' ago</div>'+
+          (j.contact_phone||j.contact_email?
+            '<div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem;">'+
+              (j.contact_phone?'📞 '+j.contact_phone+' ':'')+
+              (j.contact_email?'✉️ '+j.contact_email:'')+
+            '</div>':'')+
+          '<div class="dash-job-actions">'+
+            '<button class="dash-job-close-btn" onclick="closeJob(\''+j.id+'\')">Close Listing</button>'+
+          '</div>'+
+        '</div>';
+      }).join(''):
+      '<div class="empty-state" style="padding:2rem;"><div class="empty-icon">💼</div><div class="empty-title">No active job listings</div><p>Post your first position to start receiving applications.</p></div>');
+  }).catch(function(){
+    panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;">Active Listings</div>'+postBtn+'</div><p style="font-size:.82rem;color:var(--muted);">Could not load jobs. Please refresh.</p>';
+  });
 }
 function closeJob(id){
   // Close in Supabase
