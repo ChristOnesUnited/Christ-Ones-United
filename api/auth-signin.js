@@ -34,14 +34,12 @@ module.exports = async (req, res) => {
     // Step 2 — Get profile using SERVICE KEY (bypasses RLS)
     let userProfile = null;
 
-    // Try by id first (most reliable)
     const { data: byId } = await supabaseService
       .from('users').select('*').eq('id', authData.user.id).single();
 
     if (byId) {
       userProfile = byId;
     } else {
-      // Try by email
       const { data: byEmail } = await supabaseService
         .from('users').select('*').eq('email', email.toLowerCase().trim()).single();
       userProfile = byEmail;
