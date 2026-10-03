@@ -969,7 +969,25 @@ function enterDashboard(){
   }
 }
 function renderDashOverview(){
-  var biz=state.myBiz,refs=biz?biz.referrals:[],tms=biz?biz.testimonials:[];
+  var biz=state.myBiz;
+  // Load real referrals from Supabase
+  if(biz&&biz.id){
+    apiFetch('/api/referrals?business_id='+biz.id).then(function(data){
+      if(data.referrals&&state.myBiz)state.myBiz.referrals=data.referrals;
+      var refs=data.referrals||[];
+      var refBadge=document.getElementById('dash-ref-cnt');
+      if(refBadge){if(refs.length>0){refBadge.textContent=refs.length;refBadge.classList.remove('hidden');}else refBadge.classList.add('hidden');}
+      // Update the stats card
+      var statsEl=document.querySelector('.stats-row .stat-card:nth-child(2) .stat-val');
+      if(statsEl)statsEl.textContent=refs.length;
+      // Update recent referrals
+      var recentEl=document.querySelector('.dash-card .dash-card-title');
+      if(refs.length&&recentEl&&recentEl.textContent==='Recent Referrals'){
+        recentEl.parentElement.innerHTML='<div class="dash-card-title">Recent Referrals</div>'+refs.slice(0,3).map(renderRefItem).join('');
+      }
+    }).catch(function(){});
+  }
+  var refs=biz&&biz.referrals?biz.referrals:[],tms=biz?biz.testimonials:[];
   document.getElementById('dash-panel-overview').innerHTML=
     '<div class="stats-row"><div class="stat-card"><div class="stat-val">'+(biz?biz.views:0)+'</div><div class="stat-lbl">Views</div></div><div class="stat-card"><div class="stat-val">'+refs.length+'</div><div class="stat-lbl">Referrals</div></div><div class="stat-card"><div class="stat-val">'+tms.length+'</div><div class="stat-lbl">Testimonials</div></div></div>'+
     '<div class="dash-card"><div class="dash-card-title">Recent Referrals</div>'+(refs.length?refs.slice(0,3).map(renderRefItem).join(''):'<p style="font-size:.82rem;color:var(--muted);">No referrals yet.</p>')+'</div>'+
@@ -993,8 +1011,27 @@ function switchDashTab(tab){
   if(tab==='listing')renderDashListing();
 }
 function renderDashReferrals(){
-  var refs=state.myBiz?state.myBiz.referrals:[];
-  document.getElementById('dash-panel-referrals').innerHTML='<div class="dash-card"><div class="dash-card-title">All Referrals ('+refs.length+')</div>'+(refs.length?refs.map(renderRefItem).join(''):'<p style="font-size:.82rem;color:var(--muted);">No referrals yet.</p>')+'</div>';
+  var panel=document.getElementById('dash-panel-referrals');
+  if(!panel)return;
+  panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Loading referrals…</div></div>';
+  if(!state.myBiz||!state.myBiz.id){
+    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">All Referrals</div><p style="font-size:.82rem;color:var(--muted);">No referrals yet.</p></div>';
+    return;
+  }
+  apiFetch('/api/referrals?business_id='+state.myBiz.id).then(function(data){
+    var refs=data.referrals||[];
+    // Also update local state
+    if(state.myBiz)state.myBiz.referrals=refs;
+    // Update overview badge
+    var refBadge=document.getElementById('dash-ref-cnt');
+    if(refBadge){if(refs.length>0){refBadge.textContent=refs.length;refBadge.classList.remove('hidden');}else refBadge.classList.add('hidden');}
+    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">All Referrals ('+refs.length+')</div>'+(refs.length?refs.map(function(r){
+      var fc=!r.faith_status?'rf-other':r.faith_status.toLowerCase().includes('believer')?'rf-believer':r.faith_status.toLowerCase().includes('exploring')?'rf-exploring':'rf-other';
+      return '<div class="ref-item"><div class="ref-name">'+r.name+'</div><div class="ref-detail">📞 '+r.phone+(r.email?' · ✉️ '+r.email:'')+'</div>'+(r.need?'<div class="ref-detail">Need: '+r.need+'</div>':'')+(r.faith_status?'<span class="ref-faith-tag '+fc+'">'+r.faith_status+'</span>':'')+'</div>';
+    }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No referrals yet.</p>')+'</div>';
+  }).catch(function(){
+    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">All Referrals</div><p style="font-size:.82rem;color:var(--muted);">Could not load referrals. Please refresh.</p></div>';
+  });
 }
 function renderDashTestimonials(){
   var tms=state.myBiz?state.myBiz.testimonials:[];
