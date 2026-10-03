@@ -1207,32 +1207,44 @@ function renderDashMessages(){
   }
   apiFetch('/api/community?type=messages&business_id='+state.myBiz.id).then(function(data){
     var msgs=data.messages||[];
-    // Group by user
+    // Group by member using member_user_id (works for both user messages and business replies)
     var threads={};
     msgs.forEach(function(m){
-      var key=m.from_user_id||m.from_name||'anonymous';
-      if(!threads[key]){threads[key]={userId:m.from_user_id,name:m.from_name||'Member',messages:[]};}
+      // Use member_user_id if available, otherwise from_user_id for user messages
+      var key=m.member_user_id||( m.from_role==='user'?m.from_user_id:null)||m.from_name||'anon';
+      var memberName=m.from_role==='user'?(m.from_name||'Member'):(threads[key]?threads[key].name:'Member');
+      if(!threads[key]){threads[key]={userId:key,name:memberName,messages:[]};}
+      else if(m.from_role==='user'&&m.from_name)threads[key].name=m.from_name;
       threads[key].messages.push(m);
     });
     var threadList=Object.values(threads);
+    state.dashMsgThreads=threadList;
     if(!threadList.length){
       panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div><p style="font-size:.82rem;color:var(--muted);">No messages yet. Messages from members will appear here.</p></div>';
       return;
     }
-    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages ('+threadList.length+')</div>'+
+    // Show conversation list
+    panel.innerHTML=
+      '<div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:1rem;">Conversations ('+threadList.length+')</div>'+
       threadList.map(function(t,i){
         var last=t.messages[t.messages.length-1];
-        return '<div class="msg-thread" onclick="openBizReplyThread('+i+')" style="cursor:pointer;">'+
-          '<div class="msg-thread-head">'+
-            '<div class="msg-thread-name">'+t.name+'</div>'+
-            '<div class="msg-thread-time">'+(last?new Date(last.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div>'+
+        var lastTime=last?new Date(last.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+        var lastText=last?last.text:'';
+        var isLastFromBiz=last&&last.from_role==='business';
+        return '<div onclick="openBizReplyThread('+i+')" style="display:flex;align-items:center;gap:.875rem;padding:.875rem;background:#fff;border-radius:12px;margin-bottom:.6rem;cursor:pointer;border:1.5px solid #ede9e1;transition:border-color .15s;" onmouseover="this.style.borderColor=\'#1a6b4a\'" onmouseout="this.style.borderColor=\'#ede9e1\'">'+
+          '<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#1a6b4a,#2d9b6f);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1rem;flex-shrink:0;">'+t.name.charAt(0).toUpperCase()+'</div>'+
+          '<div style="flex:1;min-width:0;">'+
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem;">'+
+              '<div style="font-weight:600;font-size:.88rem;color:#1a1612;">'+t.name+'</div>'+
+              '<div style="font-size:.7rem;color:var(--muted);">'+lastTime+'</div>'+
+            '</div>'+
+            '<div style="font-size:.78rem;color:'+(isLastFromBiz?'var(--green)':'var(--muted)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
+              (isLastFromBiz?'You: ':'')+lastText+
+            '</div>'+
           '</div>'+
-          '<div class="msg-thread-preview">'+(last?last.text:'')+'</div>'+
+          '<div style="color:#ccc;font-size:.9rem;">›</div>'+
         '</div>';
-      }).join('')+
-    '</div>';
-    // Store threads for reply access
-    state.dashMsgThreads=threadList;
+      }).join('');
   }).catch(function(){
     panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div><p style="font-size:.82rem;color:var(--muted);">Could not load messages. Please refresh.</p></div>';
   });
@@ -1243,15 +1255,20 @@ function openBizReplyThread(threadIdx){
   if(!threads||!threads[threadIdx])return;
   var thread=threads[threadIdx];
   var bizId=state.myBiz?state.myBiz.id:null;
-  // Build reply modal
+  var bizName=state.myBiz?state.myBiz.name:'Us';
+  // Build chat bubble conversation
   document.getElementById('msgModalContent').innerHTML=
-    '<div class="modal-biz-name">Conversation with '+thread.name+'</div>'+
-    '<div id="modal-bubbles" class="msg-bubbles">'+
+    '<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.875rem;padding-bottom:.875rem;border-bottom:1px solid #ede9e1;">'+
+      '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1a6b4a,#2d9b6f);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.9rem;">'+thread.name.charAt(0).toUpperCase()+'</div>'+
+      '<div style="font-family:\'Playfair Display\',serif;font-size:1rem;font-weight:600;">'+thread.name+'</div>'+
+    '</div>'+
+    '<div id="modal-bubbles" class="msg-bubbles" style="min-height:200px;max-height:320px;overflow-y:auto;padding:.5rem 0;margin-bottom:.875rem;">'+
       thread.messages.map(function(m){
         var isBiz=m.from_role==='business';
-        return '<div class="msg-bubble '+(isBiz?'sent':'recv')+'">'+
-          '<div style="font-size:.65rem;color:rgba(255,255,255,.6);margin-bottom:2px;">'+(isBiz?'You':m.from_name||'Member')+'</div>'+
-          m.text+
+        var time=m.created_at?new Date(m.created_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+        return '<div style="display:flex;flex-direction:column;align-items:'+(isBiz?'flex-end':'flex-start')+';margin-bottom:.6rem;">'+
+          '<div style="max-width:78%;background:'+(isBiz?'#1a6b4a':'#f0f0f0')+';color:'+(isBiz?'#fff':'#1a1612')+';padding:.6rem .875rem;border-radius:'+(isBiz?'14px 14px 4px 14px':'14px 14px 14px 4px')+';font-size:.84rem;line-height:1.5;">'+m.text+'</div>'+
+          '<div style="font-size:.65rem;color:var(--muted);margin-top:.2rem;">'+(isBiz?bizName:thread.name)+(time?' · '+time:'')+'</div>'+
         '</div>';
       }).join('')+
     '</div>'+
@@ -1260,11 +1277,7 @@ function openBizReplyThread(threadIdx){
       '<button class="msg-send-btn" onclick="sendBizReply(\''+bizId+'\',\''+thread.name+'\')">Send</button>'+
     '</div>';
   document.getElementById('msgModal').classList.add('open');
-  // Scroll to bottom
-  setTimeout(function(){
-    var b=document.getElementById('modal-bubbles');
-    if(b)b.scrollTop=b.scrollHeight;
-  },100);
+  setTimeout(function(){var b=document.getElementById('modal-bubbles');if(b)b.scrollTop=b.scrollHeight;},100);
 }
 
 function sendBizReply(bizId, memberName){
@@ -1278,14 +1291,16 @@ function sendBizReply(bizId, memberName){
     bubbles.scrollTop=bubbles.scrollHeight;
   }
   inp.value='';
-  // Save to Supabase
+  // Save to Supabase with member_user_id for proper threading
+  var thread=state.dashMsgThreads?state.dashMsgThreads.find(function(t){return t.name===memberName;}):null;
   apiFetch('/api/community?type=messages','POST',{
     business_id:bizId,
     from_user_id:state.user?state.user.id:null,
     from_name:state.myBiz?state.myBiz.name:'Business',
     biz_name:state.myBiz?state.myBiz.name:'',
     text:text,
-    from_role:'business'
+    from_role:'business',
+    member_user_id:thread?thread.userId:null
   }).catch(function(){});
 }
 function renderDashListing(){
