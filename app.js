@@ -206,6 +206,13 @@ function doSignIn(){
       state.profileType=user.type||'individual';
       state.plan=user.plan||'monthly';
       if(data.token)state.authToken=data.token;
+      // Save session to localStorage for page refresh persistence
+      try {
+        localStorage.setItem('cou_user', JSON.stringify(state.user));
+        localStorage.setItem('cou_profileType', state.profileType);
+        localStorage.setItem('cou_plan', state.plan);
+        if(data.token) localStorage.setItem('cou_token', data.token);
+      } catch(e){}
       // Auto-subscribe to newsletter (silently — won't duplicate if already subscribed)
       autoSubscribeNewsletter(user.email, user.name);
       if(state.profileType==='business'){
@@ -402,6 +409,44 @@ function doPay(){
     alert('Connection error. Please check your internet and try again.');
   });
 }
+
+// ═══════════════ SESSION RESTORE
+(function restoreSession(){
+  try {
+    var savedUser = localStorage.getItem('cou_user');
+    var savedType = localStorage.getItem('cou_profileType');
+    var savedPlan = localStorage.getItem('cou_plan');
+    var savedToken = localStorage.getItem('cou_token');
+    if(!savedUser || !savedType) return;
+    var user = JSON.parse(savedUser);
+    if(!user || !user.email) return;
+    state.user = user;
+    state.profileType = savedType;
+    state.plan = savedPlan || 'monthly';
+    if(savedToken) state.authToken = savedToken;
+    // Route to correct screen based on type
+    if(savedType === 'business'){
+      apiFetch('/api/businesses?user_id='+user.id).then(function(bizData){
+        if(bizData.success && bizData.businesses && bizData.businesses.length > 0){
+          state.myBiz = bizData.businesses[0];
+          enterDashboard();
+        } else {
+          enterDashboard();
+        }
+      }).catch(function(){ enterDashboard(); });
+    } else {
+      enterDirectory();
+    }
+  } catch(e) {
+    // Session restore failed — clear and show landing page normally
+    try {
+      localStorage.removeItem('cou_user');
+      localStorage.removeItem('cou_profileType');
+      localStorage.removeItem('cou_plan');
+      localStorage.removeItem('cou_token');
+    } catch(e2){}
+  }
+})();
 
 // ═══════════════ FORGOT PASSWORD
 function showForgotPassword(){
@@ -2124,5 +2169,12 @@ function disbandGuild(){
 function doSignOut(){
   state.user=null;state.profileType=null;state.plan=null;state.faithAnswer=null;
   state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;
+  // Clear saved session
+  try {
+    localStorage.removeItem('cou_user');
+    localStorage.removeItem('cou_profileType');
+    localStorage.removeItem('cou_plan');
+    localStorage.removeItem('cou_token');
+  } catch(e){}
   showScreen('screen-landing');
 }
