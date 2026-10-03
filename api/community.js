@@ -71,5 +71,51 @@ module.exports = async (req, res) => {
     }
   }
 
-  return res.status(400).json({ error: 'Invalid type. Use ?type=prayer or ?type=events' });
+  // ── MESSAGES ─────────────────────────────────────
+  if (type === 'messages') {
+    if (req.method === 'GET') {
+      const { business_id, user_id } = req.query;
+      try {
+        let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
+        if (business_id && user_id) {
+          // Get thread between specific user and business
+          query = query.eq('business_id', business_id).eq('from_user_id', user_id);
+        } else if (business_id) {
+          // Get all messages for a business
+          query = query.eq('business_id', business_id);
+        } else if (user_id) {
+          // Get all messages for a user
+          query = query.eq('from_user_id', user_id);
+        }
+        const { data, error } = await query.limit(100);
+        if (error) throw error;
+        return res.status(200).json({ success: true, messages: data || [] });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+    if (req.method === 'POST') {
+      const { business_id, from_user_id, from_name, biz_name, text, from_role } = req.body;
+      if (!business_id || !text) return res.status(400).json({ error: 'business_id and text required.' });
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .insert([{
+            business_id,
+            from_user_id: from_user_id || null,
+            from_name: from_name || 'Member',
+            biz_name: biz_name || '',
+            text,
+            from_role: from_role || 'user',
+          }])
+          .select().single();
+        if (error) throw error;
+        return res.status(200).json({ success: true, message: data });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+  }
+
+  return res.status(400).json({ error: 'Invalid type. Use ?type=prayer, ?type=events, or ?type=messages' });
 };
