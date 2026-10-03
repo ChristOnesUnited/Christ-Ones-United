@@ -838,12 +838,17 @@ function prayFor(id){
   prayer.prayedByMe=true;
   var userName=state.user?state.user.name:'Anonymous';
   prayer.prayedBy.push(userName);
-  // Update just the button and count — no full reload
+  // Update individual directory buttons
   var btn=document.getElementById('pray-btn-'+id);
   var cnt=document.getElementById('pray-cnt-'+id);
   if(btn){btn.textContent='🙏 Praying';btn.classList.add('prayed');btn.disabled=true;}
   if(cnt)cnt.textContent=prayer.prayedBy.length+' praying';
-  // Save to Supabase — update prayed_by array
+  // Update business dashboard buttons (different ID prefix)
+  var bizBtn=document.getElementById('biz-pray-btn-'+id);
+  var bizCnt=document.getElementById('biz-pray-cnt-'+id);
+  if(bizBtn){bizBtn.textContent='🙏 Praying';bizBtn.classList.add('prayed');bizBtn.disabled=true;}
+  if(bizCnt)bizCnt.textContent=prayer.prayedBy.length+' praying';
+  // Save to Supabase
   apiFetch('/api/community?type=prayer','PUT',{
     id:id,
     prayed_by:prayer.prayedBy
@@ -862,8 +867,13 @@ function submitPrayer(){
     user_id:state.user?state.user.id:null
   }).then(function(){
     closeModal('prayerModal');
-    renderPrayerBoard();
-    addNotif('Your prayer request has been posted.');
+    addNotif('Your prayer request has been posted. 🙏');
+    // Refresh the correct panel based on active screen
+    if(state.profileType==='business'){
+      renderBizCommunity();
+    } else {
+      renderPrayerBoard();
+    }
   }).catch(function(){
     closeModal('prayerModal');
     addNotif('Prayer request posted.');
@@ -904,8 +914,13 @@ function submitEvent(){
     user_id:state.user?state.user.id:null
   }).then(function(){
     closeModal('eventModal');
-    renderEvents();
-    addNotif('Your event has been posted!');
+    addNotif('Your event has been posted! 📅');
+    // Refresh the correct panel based on active screen
+    if(state.profileType==='business'){
+      renderBizCommunity();
+    } else {
+      renderEvents();
+    }
   }).catch(function(){
     closeModal('eventModal');
     addNotif('Event posted.');
