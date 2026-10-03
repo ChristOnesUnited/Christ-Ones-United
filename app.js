@@ -891,7 +891,18 @@ function renderEvents(){
     if(!events.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events yet</div><p>Be the first to post a community event.</p></div>';return;}
     el.innerHTML=events.map(function(e){
       var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
-      return '<div class="event-card"><div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div><div class="event-body"><div class="event-title">'+e.title+'</div><div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+'</div><div class="event-host">Hosted by '+(e.host||'Community')+'</div></div></div>';
+      var isOwner=state.user&&(e.user_id===state.user.id||e.host===state.user.name);
+      return '<div class="event-card" id="event-card-'+e.id+'">'+
+        '<div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div>'+
+        '<div class="event-body">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
+            '<div class="event-title">'+e.title+'</div>'+
+            (isOwner?'<button onclick="deleteEvent(\''+e.id+'\')" style="background:none;border:none;color:#ccc;font-size:.9rem;cursor:pointer;padding:0 0 0 8px;flex-shrink:0;" title="Delete event">🗑</button>':'')+
+          '</div>'+
+          '<div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+'</div>'+
+          '<div class="event-host">Hosted by '+(e.host||'Community')+'</div>'+
+        '</div>'+
+      '</div>';
     }).join('');
   }).catch(function(){
     el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Could not load events. Please refresh.</p>';
@@ -925,6 +936,16 @@ function submitEvent(){
     closeModal('eventModal');
     addNotif('Event posted.');
   });
+}
+
+function deleteEvent(id){
+  if(!confirm('Delete this event? This cannot be undone.'))return;
+  // Remove from UI immediately
+  var card=document.getElementById('event-card-'+id);
+  if(card)card.remove();
+  // Delete from Supabase
+  apiFetch('/api/community?type=events','DELETE',{id:id,type:'events'}).catch(function(){});
+  addNotif('Event deleted.');
 }
 
 // ═══════════════ NEWSLETTER
@@ -1325,11 +1346,17 @@ function renderBizCommunity(){
         '</div>'+
         (events.length?events.slice(0,5).map(function(e){
           var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
-          return '<div class="event-card" style="margin-bottom:.65rem;">'+
+          var isOwner=state.user&&(e.user_id===state.user.id||e.host===state.user.name);
+          return '<div class="event-card" id="event-card-'+e.id+'" style="margin-bottom:.65rem;">'+
             '<div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div>'+
-            '<div class="event-body"><div class="event-title">'+e.title+'</div>'+
-            '<div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+'</div>'+
-            '<div class="event-host">Hosted by '+(e.host||'Community')+'</div></div>'+
+            '<div class="event-body">'+
+              '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
+                '<div class="event-title">'+e.title+'</div>'+
+                (isOwner?'<button onclick="deleteEvent(\''+e.id+'\')" style="background:none;border:none;color:#ccc;font-size:.9rem;cursor:pointer;padding:0 0 0 8px;flex-shrink:0;" title="Delete event">🗑</button>':'')+
+              '</div>'+
+              '<div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+'</div>'+
+              '<div class="event-host">Hosted by '+(e.host||'Community')+'</div>'+
+            '</div>'+
           '</div>';
         }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No events yet.</p>')+
       '</div>';
