@@ -127,7 +127,7 @@ module.exports = async (req, res) => {
       }
     }
     if (req.method === 'POST') {
-      const { business_id, from_user_id, from_name, biz_name, text, from_role } = req.body;
+      const { business_id, from_user_id, from_name, biz_name, text, from_role, member_user_id } = req.body;
       if (!business_id || !text) return res.status(400).json({ error: 'business_id and text required.' });
       try {
         const { data, error } = await supabase
@@ -139,6 +139,7 @@ module.exports = async (req, res) => {
             biz_name: biz_name || '',
             text,
             from_role: from_role || 'user',
+            member_user_id: member_user_id || from_user_id || null,
           }])
           .select().single();
         if (error) throw error;
