@@ -836,12 +836,18 @@ function prayFor(id){
   if(!prayer||prayer.prayedByMe)return;
   // Update local state immediately
   prayer.prayedByMe=true;
-  prayer.prayedBy.push(state.user?state.user.name:'');
+  var userName=state.user?state.user.name:'Anonymous';
+  prayer.prayedBy.push(userName);
   // Update just the button and count — no full reload
   var btn=document.getElementById('pray-btn-'+id);
   var cnt=document.getElementById('pray-cnt-'+id);
-  if(btn){btn.textContent='🙏 Praying';btn.classList.add('prayed');}
+  if(btn){btn.textContent='🙏 Praying';btn.classList.add('prayed');btn.disabled=true;}
   if(cnt)cnt.textContent=prayer.prayedBy.length+' praying';
+  // Save to Supabase — update prayed_by array
+  apiFetch('/api/community?type=prayer','PUT',{
+    id:id,
+    prayed_by:prayer.prayedBy
+  }).catch(function(){});
 }
 function openPrayerModal(){
   document.getElementById('prayerModalContent').innerHTML='<div class="modal-icon">🙏</div><div class="modal-title">Post a Prayer Request</div><div style="font-size:.73rem;color:var(--muted);margin-bottom:1rem;">Your request will be shared with the community anonymously if you choose.</div><div class="form-group"><label class="lbl">Your Name</label><input class="inp" id="pr-name" placeholder="Name or \'Anonymous\'"/></div><div class="form-group"><label class="lbl">Prayer Request</label><textarea class="inp" id="pr-text" placeholder="Share your prayer request…" style="min-height:80px;"></textarea></div><button class="btn btn-red btn-mt" onclick="submitPrayer()">Post Request</button>';
