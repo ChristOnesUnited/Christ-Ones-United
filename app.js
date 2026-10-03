@@ -824,7 +824,21 @@ function renderPrayerBoard(){
     };});
     if(!prayers.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🙏</div><div class="empty-title">No prayer requests yet</div><p>Be the first to share a prayer request with the community.</p></div>';return;}
     el.innerHTML=state.prayerRequests.map(function(p,i){
-      return '<div class="prayer-card"><div class="prayer-header"><div class="prayer-author">🙏 '+p.author+'</div><div class="prayer-time">'+p.time+'</div></div><p class="prayer-text">'+p.text+'</p><div style="display:flex;align-items:center;justify-content:space-between;"><span class="prayer-prayed" id="pray-cnt-'+p.id+'">'+(p.prayedBy.length)+' praying</span><button class="prayer-pray-btn'+(p.prayedByMe?' prayed':'')+'" id="pray-btn-'+p.id+'" onclick="prayFor(\''+p.id+'\')">'+(p.prayedByMe?'🙏 Praying':'🙏 Pray')+'</button></div></div>';
+      var isOwner=state.user&&(p.userId===state.user.id||p.author===state.user.name);
+      return '<div class="prayer-card" id="prayer-card-'+p.id+'">'+
+        '<div class="prayer-header">'+
+          '<div class="prayer-author">🙏 '+p.author+'</div>'+
+          '<div style="display:flex;align-items:center;gap:.5rem;">'+
+            '<div class="prayer-time">'+p.time+'</div>'+
+            (isOwner?'<button onclick="deletePrayer(\''+p.id+'\')" style="background:none;border:none;color:#ccc;font-size:.85rem;cursor:pointer;padding:0;" title="Delete">🗑</button>':'')+
+          '</div>'+
+        '</div>'+
+        '<p class="prayer-text">'+p.text+'</p>'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;">'+
+          '<span class="prayer-prayed" id="pray-cnt-'+p.id+'">'+(p.prayedBy.length)+' praying</span>'+
+          '<button class="prayer-pray-btn'+(p.prayedByMe?' prayed':'')+'" id="pray-btn-'+p.id+'" '+(p.prayedByMe?'disabled':'')+' onclick="prayFor(\''+p.id+'\')">'+(p.prayedByMe?'🙏 Praying':'🙏 Pray')+'</button>'+
+        '</div>'+
+      '</div>';
     }).join('');
   }).catch(function(){
     el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Could not load prayers. Please refresh.</p>';
@@ -940,12 +954,19 @@ function submitEvent(){
 
 function deleteEvent(id){
   if(!confirm('Delete this event? This cannot be undone.'))return;
-  // Remove from UI immediately
   var card=document.getElementById('event-card-'+id);
   if(card)card.remove();
-  // Delete from Supabase
   apiFetch('/api/community?type=events','DELETE',{id:id,type:'events'}).catch(function(){});
   addNotif('Event deleted.');
+}
+function deletePrayer(id){
+  if(!confirm('Delete this prayer request? This cannot be undone.'))return;
+  var card=document.getElementById('prayer-card-'+id);
+  if(card)card.remove();
+  // Remove from local state
+  state.prayerRequests=state.prayerRequests.filter(function(p){return String(p.id)!==String(id);});
+  apiFetch('/api/community?type=prayer','DELETE',{id:id,type:'prayer'}).catch(function(){});
+  addNotif('Prayer request deleted.');
 }
 
 // ═══════════════ NEWSLETTER
@@ -1326,9 +1347,15 @@ function renderBizCommunity(){
         '</div>'+
         (prayers.length?prayers.slice(0,5).map(function(p){
           var alreadyPrayed=p.prayed_by&&p.prayed_by.includes(state.user?state.user.name:'');
-          return '<div class="prayer-card" style="margin-bottom:.65rem;">'+
-            '<div class="prayer-header"><div class="prayer-author">🙏 '+(p.author||'Anonymous')+'</div>'+
-            '<div class="prayer-time">'+(p.created_at?new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div></div>'+
+          var isOwner=state.user&&(p.user_id===state.user.id||p.author===state.user.name);
+          return '<div class="prayer-card" id="prayer-card-'+p.id+'" style="margin-bottom:.65rem;">'+
+            '<div class="prayer-header">'+
+              '<div class="prayer-author">🙏 '+(p.author||'Anonymous')+'</div>'+
+              '<div style="display:flex;align-items:center;gap:.5rem;">'+
+                '<div class="prayer-time">'+(p.created_at?new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div>'+
+                (isOwner?'<button onclick="deletePrayer(\''+p.id+'\')" style="background:none;border:none;color:#ccc;font-size:.85rem;cursor:pointer;padding:0;" title="Delete">🗑</button>':'')+
+              '</div>'+
+            '</div>'+
             '<p class="prayer-text">'+p.text+'</p>'+
             '<div style="display:flex;align-items:center;justify-content:space-between;">'+
               '<span class="prayer-prayed" id="biz-pray-cnt-'+p.id+'">'+(p.prayed_by?p.prayed_by.length:0)+' praying</span>'+
