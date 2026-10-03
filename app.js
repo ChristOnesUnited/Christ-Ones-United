@@ -926,34 +926,89 @@ function renderLeaderboard(){
 // ═══════════════ MESSAGING
 function openMsgModal(bizId){
   var biz=state.businesses.find(b=>String(b.id)===String(bizId));if(!biz)return;
-  var thread=state.messages.find(m=>String(m.bizId)===String(bizId));
-  if(!thread){thread={bizId:bizId,bizName:biz.name,messages:[{from:'system',text:'This is a private conversation with '+biz.name+'. Messages are visible to both parties.',time:'Now'}],unread:false};state.messages.push(thread);}
+  // Show modal immediately with loading state
+  var modal=document.getElementById('msgModal');
   document.getElementById('msgModalContent').innerHTML=
-    '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;"><div style="font-size:1.2rem;">💬</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;">'+biz.name+'</div></div>'+
-    '<div class="msg-bubble-wrap" id="modal-bubbles">'+thread.messages.map(function(m){return '<div class="msg-bubble '+(m.from==='user'?'sent':'recv')+'">'+m.text+'</div>';}).join('')+'</div>'+
+    '<div class="modal-biz-name">'+biz.name+'</div>'+
+    '<div id="modal-bubbles" class="msg-bubbles"><p style="text-align:center;font-size:.8rem;color:var(--muted);padding:1rem;">Loading messages…</p></div>'+
     '<div class="msg-input-row"><input class="msg-input" id="modal-msg-inp" placeholder="Type a message…" onkeydown="if(event.key===\'Enter\')sendModalMsg(\''+bizId+'\')"/><button class="msg-send-btn" onclick="sendModalMsg(\''+bizId+'\')">Send</button></div>';
-  document.getElementById('msgModal').classList.add('open');
+  modal.classList.add('open');
+  // Load messages from Supabase
+  var userId=state.user?state.user.id:null;
+  apiFetch('/api/community?type=messages&business_id='+bizId+(userId?'&user_id='+userId:'')).then(function(data){
+    var msgs=data.messages||[];
+    var bubbles=document.getElementById('modal-bubbles');
+    if(!bubbles)return;
+    if(!msgs.length){
+      bubbles.innerHTML='<div style="text-align:center;font-size:.78rem;color:var(--muted);padding:1rem;">This is a private conversation with <strong>'+biz.name+'</strong>. Messages are visible to both parties.</div>';
+    } else {
+      bubbles.innerHTML=msgs.map(function(m){
+        var isMine=m.from_role==='user'||(m.from_user_id&&String(m.from_user_id)===String(userId));
+        return '<div class="msg-bubble '+(isMine?'sent':'recv')+'">'+m.text+'</div>';
+      }).join('');
+      bubbles.scrollTop=bubbles.scrollHeight;
+    }
+    // Update local thread state
+    var thread=state.messages.find(m=>String(m.bizId)===String(bizId));
+    if(!thread){thread={bizId:bizId,bizName:biz.name,messages:msgs,unread:false};state.messages.push(thread);}
+    else thread.messages=msgs;
+  }).catch(function(){
+    var bubbles=document.getElementById('modal-bubbles');
+    if(bubbles)bubbles.innerHTML='<div style="text-align:center;font-size:.78rem;color:var(--muted);padding:1rem;">Could not load messages. Please try again.</div>';
+  });
 }
 function sendModalMsg(bizId){
-  var inp=document.getElementById('modal-msg-inp'),text=inp.value.trim();if(!text)return;
-  var thread=state.messages.find(m=>String(m.bizId)===String(bizId));
-  if(thread){
-    thread.messages.push({from:'user',text:text,time:'Now'});
-    inp.value='';
-    var bubbles=document.getElementById('modal-bubbles');
+  var inp=document.getElementById('modal-msg-inp');
+  var text=inp?inp.value.trim():'';
+  if(!text)return;
+  // Show message immediately in UI
+  var bubbles=document.getElementById('modal-bubbles');
+  if(bubbles){
     bubbles.innerHTML+=('<div class="msg-bubble sent">'+text+'</div>');
     bubbles.scrollTop=bubbles.scrollHeight;
-    setTimeout(function(){
-      thread.messages.push({from:'biz',text:'Thanks for reaching out! We\'ll get back to you shortly. God bless! 🙏',time:'Now'});
-      bubbles.innerHTML+=('<div class="msg-bubble recv">Thanks for reaching out! We\'ll get back to you shortly. God bless! 🙏</div>');
-      bubbles.scrollTop=bubbles.scrollHeight;
-    },1000);
   }
+  inp.value='';
+  // Save to Supabase
+  var biz=state.businesses.find(b=>String(b.id)===String(bizId));
+  apiFetch('/api/community?type=messages','POST',{
+    business_id:bizId,
+    from_user_id:state.user?state.user.id:null,
+    from_name:state.user?state.user.name:'Member',
+    biz_name:biz?biz.name:'',
+    text:text,
+    from_role:'user'
+  }).catch(function(){});
+  // Update local state
+  var thread=state.messages.find(m=>String(m.bizId)===String(bizId));
+  if(!thread){thread={bizId:bizId,bizName:biz?biz.name:'Business',messages:[],unread:false};state.messages.push(thread);}
+  thread.messages.push({from:'user',text:text,time:'Now'});
 }
 function renderMessages(role){
   var el=document.getElementById('messages-list');if(!el)return;
-  if(!state.messages.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><p>Tap 💬 Message on any business card to start a conversation.</p></div>';return;}
-  el.innerHTML=state.messages.map(function(t){var last=t.messages[t.messages.length-1];return '<div class="msg-thread" onclick="openMsgModal(\''+t.bizId+'\')"><div class="msg-thread-head"><div class="msg-thread-name">'+t.bizName+'</div><div class="msg-thread-time">'+(last?last.time:'')+'</div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';}).join('');
+  // Load from Supabase for individuals
+  if(state.user&&state.user.id&&role!=='biz'){
+    apiFetch('/api/community?type=messages&user_id='+state.user.id).then(function(data){
+      var msgs=data.messages||[];
+      // Group by business
+      var threads={};
+      msgs.forEach(function(m){
+        if(!threads[m.business_id]){threads[m.business_id]={bizId:m.business_id,bizName:m.biz_name||'Business',messages:[],unread:false};}
+        threads[m.business_id].messages.push(m);
+      });
+      var threadList=Object.values(threads);
+      state.messages=threadList;
+      if(!threadList.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><p>Tap 💬 Message on any business card to start a conversation.</p></div>';return;}
+      el.innerHTML=threadList.map(function(t){
+        var last=t.messages[t.messages.length-1];
+        return '<div class="msg-thread" onclick="openMsgModal(\''+t.bizId+'\')"><div class="msg-thread-head"><div class="msg-thread-name">'+t.bizName+'</div><div class="msg-thread-time">'+(last?new Date(last.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';
+      }).join('');
+    }).catch(function(){
+      el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><p>Tap 💬 Message on any business card to start a conversation.</p></div>';
+    });
+  } else {
+    if(!state.messages.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><p>Tap 💬 Message on any business card to start a conversation.</p></div>';return;}
+    el.innerHTML=state.messages.map(function(t){var last=t.messages[t.messages.length-1];return '<div class="msg-thread" onclick="openMsgModal(\''+t.bizId+'\')"><div class="msg-thread-head"><div class="msg-thread-name">'+t.bizName+'</div><div class="msg-thread-time">'+(last?last.time:'')+'</div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';}).join('');
+  }
 }
 
 // ═══════════════ REF / REVIEW MODALS
@@ -1090,8 +1145,30 @@ function renderDashTestimonials(){
 }
 function renderDashMessages(){
   var panel=document.getElementById('dash-panel-messages');if(!panel)return;
-  var msgs=state.messages.filter(m=>m.bizId===(state.myBiz?state.myBiz.id:null));
-  panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div>'+(msgs.length?msgs.map(function(t){var last=t.messages[t.messages.length-1];return '<div class="msg-thread"><div class="msg-thread-head"><div class="msg-thread-name">Member</div><div class="msg-thread-time">'+(last?last.time:'')+'</div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';}).join(''):'<p style="font-size:.82rem;color:var(--muted);">No messages yet. Messages from members will appear here.</p>')+'</div>';
+  panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div><p style="font-size:.82rem;color:var(--muted);">Loading messages…</p></div>';
+  if(!state.myBiz||!state.myBiz.id){
+    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div><p style="font-size:.82rem;color:var(--muted);">No messages yet. Messages from members will appear here.</p></div>';
+    return;
+  }
+  apiFetch('/api/community?type=messages&business_id='+state.myBiz.id).then(function(data){
+    var msgs=data.messages||[];
+    // Group by user
+    var threads={};
+    msgs.forEach(function(m){
+      var key=m.from_user_id||m.from_name||'anonymous';
+      if(!threads[key]){threads[key]={name:m.from_name||'Member',messages:[]};}
+      threads[key].messages.push(m);
+    });
+    var threadList=Object.values(threads);
+    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages ('+threadList.length+')</div>'+
+      (threadList.length?threadList.map(function(t){
+        var last=t.messages[t.messages.length-1];
+        return '<div class="msg-thread"><div class="msg-thread-head"><div class="msg-thread-name">'+t.name+'</div><div class="msg-thread-time">'+(last?new Date(last.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';
+      }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No messages yet. Messages from members will appear here.</p>')+
+    '</div>';
+  }).catch(function(){
+    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Member Messages</div><p style="font-size:.82rem;color:var(--muted);">Could not load messages. Please refresh.</p></div>';
+  });
 }
 function renderDashListing(){
   var biz=state.myBiz;
