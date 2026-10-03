@@ -267,34 +267,8 @@ function doSignup(){
   if(!email||!/\S+@\S+\.\S+/.test(email)){e.textContent='Enter a valid email.';e.classList.remove('hidden');return;}
   if(pass.length<6){e.textContent='Password must be 6+ characters.';e.classList.remove('hidden');return;}
   if(!terms){e.textContent='You must agree to the Terms of Service to continue.';e.classList.remove('hidden');return;}
-  // Check if email already exists before proceeding
-  var btn=document.getElementById('su-btn');
-  btn.textContent='Checking…';btn.disabled=true;
-  apiFetch('/api/auth-signin','POST',{email:email,password:'__check_only__'}).then(function(chk){
-    // If we get anything other than invalid credentials it means the email exists
-    if(chk.error&&(chk.error.toLowerCase().includes('incorrect')||chk.error.toLowerCase().includes('invalid'))){
-      // Email doesn't exist — safe to proceed
-      btn.textContent='Continue →';btn.disabled=false;
-      updateSignupBtn();
-      proceedToFaith(name,email,pass);
-    } else if(chk.success||(!chk.error)){
-      // Email exists and somehow authenticated — block signup
-      btn.textContent='Continue →';btn.disabled=false;
-      updateSignupBtn();
-      e.innerHTML='An account with this email already exists. <button onclick="showScreen(\'screen-signin\')" style="background:none;border:none;color:var(--red);font-weight:700;cursor:pointer;font-size:.82rem;text-decoration:underline;">Sign in instead →</button>';
-      e.classList.remove('hidden');
-    } else {
-      // Any other error means email doesn't exist — safe to proceed
-      btn.textContent='Continue →';btn.disabled=false;
-      updateSignupBtn();
-      proceedToFaith(name,email,pass);
-    }
-  }).catch(function(){
-    // Connection issue — proceed anyway
-    btn.textContent='Continue →';btn.disabled=false;
-    updateSignupBtn();
-    proceedToFaith(name,email,pass);
-  });
+  // Proceed to faith verification — duplicate check happens server-side in auth-signup
+  proceedToFaith(name,email,pass);
 }
 
 function proceedToFaith(name,email,pass){
@@ -333,17 +307,18 @@ function doFaith(){
       var faithBlock=document.getElementById('faith-block');
       faithBlock.style.cssText='background:#fde8e4;border:1.5px solid #e8b4aa;border-radius:9px;padding:1rem;text-align:left;font-size:.8rem;color:#c8452d;font-weight:500;line-height:1.7;margin-bottom:.8rem;';
       // If email already registered — block and redirect to sign in
-      if(data.error.toLowerCase().includes('already registered')||
-         data.error.toLowerCase().includes('already exists')||
-         data.error.toLowerCase().includes('already been registered')){
-        faithBlock.innerHTML='<strong>An account already exists with this email.</strong><br/>'+
-          'Please <button onclick="showScreen(\'screen-signin\')" style="background:none;border:none;color:#c8452d;font-weight:700;cursor:pointer;font-size:.8rem;text-decoration:underline;">sign in to your existing account</button> instead.';
+      if(data.error.toLowerCase().includes('already exists')||
+         data.error.toLowerCase().includes('already registered')||
+         data.error.toLowerCase().includes('sign in instead')){
+        faithBlock.innerHTML=
+          '<strong>An account already exists with this email.</strong><br/>'+
+          'Please <button onclick="showScreen(\'screen-signin\')" style="background:none;border:none;color:#c8452d;font-weight:700;cursor:pointer;font-size:.8rem;text-decoration:underline;padding:0;">sign in to your existing account →</button>';
         faithBlock.classList.remove('hidden');
         return;
       }
       // Any other error — block payment and show clear message
       faithBlock.innerHTML='<strong>Account could not be created.</strong><br/>'+
-        'Please check your email address and try again. If the problem persists contact us at support@christonesunited.org.<br/><br/>'+
+        'Please check your email address and try again. If the problem persists contact us at support@christonesunited.com.<br/><br/>'+
         '<em style="font-weight:400;opacity:.8;">Error: '+data.error+'</em>';
       faithBlock.classList.remove('hidden');
       return;
