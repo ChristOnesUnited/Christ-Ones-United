@@ -823,13 +823,25 @@ function renderPrayerBoard(){
     };});
     if(!prayers.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🙏</div><div class="empty-title">No prayer requests yet</div><p>Be the first to share a prayer request with the community.</p></div>';return;}
     el.innerHTML=state.prayerRequests.map(function(p,i){
-      return '<div class="prayer-card"><div class="prayer-header"><div class="prayer-author">🙏 '+p.author+'</div><div class="prayer-time">'+p.time+'</div></div><p class="prayer-text">'+p.text+'</p><div style="display:flex;align-items:center;justify-content:space-between;"><span class="prayer-prayed">'+(p.prayedBy.length)+' praying</span><button class="prayer-pray-btn'+(p.prayedByMe?' prayed':'')+'" onclick="prayFor('+i+')">'+(p.prayedByMe?'🙏 Praying':'🙏 Pray')+'</button></div></div>';
+      return '<div class="prayer-card"><div class="prayer-header"><div class="prayer-author">🙏 '+p.author+'</div><div class="prayer-time">'+p.time+'</div></div><p class="prayer-text">'+p.text+'</p><div style="display:flex;align-items:center;justify-content:space-between;"><span class="prayer-prayed" id="pray-cnt-'+p.id+'">'+(p.prayedBy.length)+' praying</span><button class="prayer-pray-btn'+(p.prayedByMe?' prayed':'')+'" id="pray-btn-'+p.id+'" onclick="prayFor(\''+p.id+'\')">'+(p.prayedByMe?'🙏 Praying':'🙏 Pray')+'</button></div></div>';
     }).join('');
   }).catch(function(){
     el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Could not load prayers. Please refresh.</p>';
   });
 }
-function prayFor(i){if(!state.prayerRequests[i].prayedByMe){state.prayerRequests[i].prayedByMe=true;state.prayerRequests[i].prayedBy.push(state.user?state.user.name:'');}renderPrayerBoard();}
+function prayFor(id){
+  // Find prayer in local state by id
+  var prayer=state.prayerRequests.find(function(p){return String(p.id)===String(id);});
+  if(!prayer||prayer.prayedByMe)return;
+  // Update local state immediately
+  prayer.prayedByMe=true;
+  prayer.prayedBy.push(state.user?state.user.name:'');
+  // Update just the button and count — no full reload
+  var btn=document.getElementById('pray-btn-'+id);
+  var cnt=document.getElementById('pray-cnt-'+id);
+  if(btn){btn.textContent='🙏 Praying';btn.classList.add('prayed');}
+  if(cnt)cnt.textContent=prayer.prayedBy.length+' praying';
+}
 function openPrayerModal(){
   document.getElementById('prayerModalContent').innerHTML='<div class="modal-icon">🙏</div><div class="modal-title">Post a Prayer Request</div><div style="font-size:.73rem;color:var(--muted);margin-bottom:1rem;">Your request will be shared with the community anonymously if you choose.</div><div class="form-group"><label class="lbl">Your Name</label><input class="inp" id="pr-name" placeholder="Name or \'Anonymous\'"/></div><div class="form-group"><label class="lbl">Prayer Request</label><textarea class="inp" id="pr-text" placeholder="Share your prayer request…" style="min-height:80px;"></textarea></div><button class="btn btn-red btn-mt" onclick="submitPrayer()">Post Request</button>';
   document.getElementById('prayerModal').classList.add('open');
