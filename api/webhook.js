@@ -39,39 +39,64 @@ module.exports = async (req, res) => {
         const plan = planKey && planKey.includes('annual') ? 'annual' : 'monthly';
         const type = profileType || 'individual';
 
-        // Check existing
-        const { data: existing } = await supabase.from('users').select('id').eq('email', email).single();
+        console.log(`Payment complete: ${email} (${type}/${plan})`);
+
+        // Check if user already exists (created by auth-signup during faith verification)
+        const { data: existing } = await supabase
+          .from('users')
+          .select('id, type, plan')
+          .eq('email', email)
+          .single();
 
         if (existing) {
-          await supabase.from('users').update({
+          // User already exists from auth-signup — only update payment fields
+          // Do NOT overwrite type or other profile data
+          const { error } = await supabase.from('users').update({
             stripe_customer_id: session.customer || '',
             stripe_subscription_id: session.subscription || '',
-            status: 'active', plan, type,
+            status: 'active',
+            plan: plan,
+            // Only update type if it was defaulted to individual
+            ...(existing.type === 'individual' && type === 'business' ? { type } : {}),
           }).eq('email', email);
+          if (error) console.error('Update error:', error.message);
+          else console.log(`Updated existing user: ${email}`);
         } else {
-          await supabase.from('users').insert([{
-            name: name || email, email, type, plan,
+          // No existing user — create one (fallback if auth-signup failed)
+          const { error } = await supabase.from('users').insert([{
+            name: name || email,
+            email,
+            type,
+            plan,
             stripe_customer_id: session.customer || '',
             stripe_subscription_id: session.subscription || '',
-            status: 'active', faith_answer: 'yes',
+            status: 'active',
+            faith_answer: 'yes',
           }]);
+          if (error) console.error('Insert error:', error.message);
+          else console.log(`New user saved: ${email}`);
         }
-        console.log(`✅ Payment complete: ${email} (${type}/${plan})`);
         break;
       }
       case 'invoice.payment_succeeded': {
         const inv = event.data.object;
-        await supabase.from('users').update({ status: 'active' }).eq('stripe_customer_id', inv.customer);
+        await supabase.from('users')
+          .update({ status: 'active' })
+          .eq('stripe_customer_id', inv.customer);
         break;
       }
       case 'invoice.payment_failed': {
         const inv = event.data.object;
-        await supabase.from('users').update({ status: 'pending' }).eq('stripe_customer_id', inv.customer);
+        await supabase.from('users')
+          .update({ status: 'pending' })
+          .eq('stripe_customer_id', inv.customer);
         break;
       }
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
-        await supabase.from('users').update({ status: 'inactive' }).eq('stripe_customer_id', sub.customer);
+        await supabase.from('users')
+          .update({ status: 'inactive' })
+          .eq('stripe_customer_id', sub.customer);
         break;
       }
       default:

@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
       customer_email: email,
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: { name, profileType, planKey },
-      success_url: `https://www.christonesunited.org/success.html?session_id={CHECKOUT_SESSION_ID}&plan=${planKey}&type=${profileType}&name=${encodeURIComponent(name)}`,
+      success_url: `https://www.christonesunited.org/success.html?session_id={CHECKOUT_SESSION_ID}&plan=${planKey}&type=${profileType}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`,
       cancel_url: `https://www.christonesunited.org/?cancelled=true`,
     });
 
