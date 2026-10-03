@@ -4,6 +4,8 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // GET
@@ -12,21 +14,27 @@ module.exports = async (req, res) => {
       const user_id = req.query && req.query.user_id;
       const approved = req.query && req.query.approved;
 
+      console.log(`GET businesses - user_id: ${user_id}, approved: ${approved}`);
+
       let query = supabase.from('businesses').select('*');
 
       if (user_id) {
-        // User's own listings (any status)
+        // Return ALL listings for this user regardless of approval status
         query = query.eq('user_id', user_id);
       } else if (approved === 'false') {
-        // Admin pending queue
         query = query.eq('approved', false);
       } else {
-        // Public directory
         query = query.eq('approved', true);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Businesses query error:', error.message, error.code, error.hint);
+        throw error;
+      }
+      
+      console.log(`Businesses found: ${data ? data.length : 0}`);
       return res.status(200).json({ success: true, businesses: data || [] });
     } catch (err) {
       console.error('GET businesses error:', err.message);
