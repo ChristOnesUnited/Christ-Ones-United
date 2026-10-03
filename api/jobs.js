@@ -30,7 +30,8 @@ module.exports = async (req, res) => {
   if (req.method === 'POST') {
     const {
       business_id, title, type, category, location,
-      zip, pay, description, faith_note, apply_method, apply_contact
+      zip, pay, description, faith_note, company,
+      contact_phone, contact_email
     } = req.body;
 
     if (!title || !type || !location || !description) {
@@ -50,8 +51,9 @@ module.exports = async (req, res) => {
           pay: pay || '',
           description,
           faith_note: faith_note || '',
-          apply_method: apply_method || 'email',
-          apply_contact: apply_contact || '',
+          company: company || '',
+          contact_phone: contact_phone || '',
+          contact_email: contact_email || '',
           active: true,
         }])
         .select()
