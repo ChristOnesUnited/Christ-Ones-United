@@ -28,12 +28,15 @@ export default async function handler(req, res) {
 
     try {
       // Find the guild this business belongs to
-      const { data: membership } = await supabase
+      const { data: membership, error: memberErr } = await supabase
         .from('guild_members')
         .select('guild_id, role')
         .eq('business_id', business_id)
         .single();
 
+      if (memberErr && memberErr.code !== 'PGRST116') {
+        console.error('Guild GET membership error:', memberErr.message, 'business_id:', business_id);
+      }
       if (!membership) return res.status(200).json({ guild: null });
 
       const { data: guild } = await supabase
