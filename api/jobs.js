@@ -8,15 +8,15 @@ module.exports = async (req, res) => {
   res.setHeader('Pragma', 'no-cache');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // GET — fetch all active jobs
+  // GET — fetch jobs (all active, or by business_id)
   if (req.method === 'GET') {
     try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('active', true)
-        .order('created_at', { ascending: false });
-
+      const business_id = req.query && req.query.business_id;
+      let query = supabase.from('jobs').select('*').eq('active', true);
+      if (business_id) {
+        query = query.eq('business_id', business_id);
+      }
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
       return res.status(200).json({ success: true, jobs: data });
 
@@ -68,16 +68,30 @@ module.exports = async (req, res) => {
     }
   }
 
-  // PUT — close a job listing
+  // PUT — close a job listing (owner only)
   if (req.method === 'PUT') {
-    const { id } = req.body;
+    const { id, business_id } = req.body;
     if (!id) return res.status(400).json({ error: 'Job ID required.' });
+    if (!business_id) return res.status(400).json({ error: 'Business ID required.' });
 
     try {
+      // Verify this job belongs to the requesting business before closing it
+      const { data: job, error: fetchErr } = await supabase
+        .from('jobs')
+        .select('id, business_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchErr || !job) return res.status(404).json({ error: 'Job not found.' });
+      if (job.business_id !== business_id) {
+        return res.status(403).json({ error: 'You do not have permission to close this listing.' });
+      }
+
       const { data, error } = await supabase
         .from('jobs')
         .update({ active: false })
         .eq('id', id)
+        .eq('business_id', business_id)   // double-lock: matches both id AND owner
         .select()
         .single();
 
