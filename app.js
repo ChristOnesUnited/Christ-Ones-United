@@ -1821,8 +1821,13 @@ function renderDashJobs(){
   });
 }
 function closeJob(id){
-  // Close in Supabase
-  apiFetch('/api/jobs','PUT',{id:id}).catch(function(){});
+  const bizId = state.myBiz && state.myBiz.id;
+  if(!bizId){addNotif('Unable to verify your business. Please refresh.');return;}
+  // Verify ownership client-side before even calling the API
+  const job = state.jobs && state.jobs.find(j=>j.id===id);
+  if(!job){addNotif('Job not found.');return;}
+  if(job.business_id !== bizId){addNotif('You can only close your own listings.');return;}
+  apiFetch('/api/jobs','PUT',{id:id,business_id:bizId}).catch(function(){});
   state.jobs=state.jobs.filter(j=>j.id!==id);
   renderDashJobs();addNotif('Your job listing has been closed.');
 }
