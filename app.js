@@ -1410,8 +1410,16 @@ function markRefContacted(id){
 function renderBizGuild(){
   var panel=document.getElementById('dash-panel-biz-guild');
   if(!panel)return;
-  // Render guild content into the dashboard panel
-  renderGuild(panel);
+  var bizId=state.myBiz&&state.myBiz.id;
+  if(!bizId){renderGuild(panel);return;}
+  // Load guild state from Supabase, then render
+  panel.innerHTML='<p style="font-size:.82rem;color:var(--muted);padding:1rem;">Loading Guild…</p>';
+  apiFetch('/api/guilds?business_id='+bizId)
+    .then(function(data){
+      state.guild=data.guild||null;
+      renderGuild(panel);
+    })
+    .catch(function(){renderGuild(panel);});
 }
 
 function renderBizCommunity(){
@@ -2695,25 +2703,26 @@ function formatGuildCode(el){
   if(v.length>4)v=v.slice(0,4)+'-'+v.slice(4);
   el.value=v;
 }
+function guildRefresh(){
+  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
+}
 function joinGuild(){
   var code=document.getElementById('guild-code-input').value.trim().toUpperCase();
   var errEl=document.getElementById('guild-join-err');
   errEl.style.display='none';
   if(code.length<9){errEl.textContent='Please enter a valid 8-character invite code.';errEl.style.display='block';return;}
-  // search all guilds for matching code
-  var found=null;var foundGuild=null;
-  state.allGuilds.forEach(function(g){
-    g.codes.forEach(function(c){
-      if(c.code===code&&!c.used){found=c;foundGuild=g;}
-    });
-  });
-  if(!foundGuild){errEl.textContent='Invalid or expired invite code. Please check with your Guild leader.';errEl.style.display='block';return;}
-  // Mark code as used and join
-  found.used=true;found.usedBy=state.user.name;found.usedTime='Just now';
-  foundGuild.members.push({name:state.user.name,role:'member',joined:'Just now'});
-  state.guild=foundGuild;
-  addNotif('🎉 You joined the Guild "'+foundGuild.name+'"!');
-  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
+  var bizId=state.myBiz&&state.myBiz.id;
+  if(!bizId){errEl.textContent='Business profile not found. Please refresh.';errEl.style.display='block';return;}
+  var btn=document.querySelector('.guild-join-btn');
+  if(btn){btn.disabled=true;btn.textContent='Joining…';}
+  apiFetch('/api/guilds','POST',{action:'join_guild',business_id:bizId,user_name:state.user.name,code:code})
+    .then(function(data){
+      if(data.error){errEl.textContent=data.error;errEl.style.display='block';if(btn){btn.disabled=false;btn.textContent='Join →';}return;}
+      state.guild=data.guild;
+      addNotif('🎉 You joined the Guild "'+data.guild.name+'"!');
+      guildRefresh();
+    })
+    .catch(function(){errEl.textContent='Something went wrong. Please try again.';errEl.style.display='block';if(btn){btn.disabled=false;btn.textContent='Join →';}});
 }
 function openCreateGuildModal(){
   document.getElementById('guildModalContent').innerHTML=
@@ -2730,47 +2739,47 @@ function createGuild(){
   var name=document.getElementById('cg-name').value.trim();
   var desc=document.getElementById('cg-desc').value.trim();
   if(!name||!desc){alert('Please fill in the Guild name and description.');return;}
-  var newGuild={
-    id:Date.now(),name:name,description:desc,
-    leader:state.user.name,
-    members:[{name:state.user.name,role:'leader',joined:'Just now'}],
-    codes:[],church:document.getElementById('cg-church').value.trim(),
-    created:'Just now'
-  };
-  state.allGuilds.push(newGuild);
-  state.guild=newGuild;
-  closeModal('guildModal');
-  addNotif('⚔️ Your Guild "'+name+'" has been created!');
-  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
+  var bizId=state.myBiz&&state.myBiz.id;
+  if(!bizId){alert('Business profile not found. Please refresh.');return;}
+  var church=document.getElementById('cg-church').value.trim();
+  var btn=document.querySelector('#guildModal .btn-green');
+  if(btn){btn.disabled=true;btn.textContent='Creating…';}
+  apiFetch('/api/guilds','POST',{action:'create_guild',business_id:bizId,user_name:state.user.name,name:name,description:desc,church:church})
+    .then(function(data){
+      if(data.error){alert(data.error);if(btn){btn.disabled=false;btn.textContent='Create Guild →';}return;}
+      state.guild=data.guild;
+      closeModal('guildModal');
+      addNotif('⚔️ Your Guild "'+name+'" has been created!');
+      guildRefresh();
+    })
+    .catch(function(){alert('Something went wrong. Please try again.');if(btn){btn.disabled=false;btn.textContent='Create Guild →';}});
 }
 function renderMyGuild(el){
   var g=state.guild;
-  var isLeader=g.leader===state.user.name;
-  var activeCodes=g.codes.filter(c=>!c.used);
-  var usedCodes=g.codes.filter(c=>c.used);
+  var isLeader=g.myRole==='leader';
+  var activeCodes=(g.codes||[]).filter(c=>!c.used);
+  var usedCodes=(g.codes||[]).filter(c=>c.used);
   el.innerHTML=
-    // Hero
     '<div class="guild-hero">'+
       '<div class="guild-hero-icon">⚔️</div>'+
       '<div class="guild-hero-name">'+g.name+'</div>'+
       '<div class="guild-hero-sub">'+g.description+'</div>'+
       (g.church?'<div class="guild-hero-badge">⛪ '+g.church+'</div>':'')+
     '</div>'+
-    // Invite Codes section (leader only)
     (isLeader?
       '<div class="guild-section-title">🔑 Invite Codes'+
         '<button class="guild-create-btn" onclick="createInviteCode()">+ New Code</button>'+
       '</div>'+
       (activeCodes.length?
-        activeCodes.map(function(c,i){
+        activeCodes.map(function(c){
           return '<div class="guild-code-card">'+
             '<div>'+
               '<div class="guild-code-val">'+c.code+'</div>'+
-              '<div class="guild-code-used">Single-use · Created '+c.created+'</div>'+
+              '<div class="guild-code-used">Single-use · Created '+new Date(c.created_at).toLocaleDateString()+'</div>'+
             '</div>'+
             '<div class="guild-code-actions">'+
               '<button class="guild-copy-btn" id="copy-btn-'+c.code+'" onclick="copyCode(\''+c.code+'\')">📋 Copy</button>'+
-              '<button class="guild-del-btn" onclick="deleteCode(\''+c.code+'\')">✕</button>'+
+              '<button class="guild-del-btn" onclick="deleteCode(\''+c.id+'\')">✕</button>'+
             '</div>'+
           '</div>';
         }).join(''):
@@ -2778,60 +2787,75 @@ function renderMyGuild(el){
       )+
       (usedCodes.length?
         '<div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin:.875rem 0 .5rem;">Used Codes</div>'+
-        usedCodes.map(function(c){return '<div class="guild-code-card" style="opacity:.5;"><div><div class="guild-code-val" style="text-decoration:line-through;">'+c.code+'</div><div class="guild-code-used">Used by '+c.usedBy+' · '+c.usedTime+'</div></div></div>';}).join('')
+        usedCodes.map(function(c){return '<div class="guild-code-card" style="opacity:.5;"><div><div class="guild-code-val" style="text-decoration:line-through;">'+c.code+'</div><div class="guild-code-used">Used by '+(c.used_by_name||'member')+' · '+new Date(c.used_at).toLocaleDateString()+'</div></div></div>';}).join('')
       :'')+
     '':
-    // Non-leader: show join info
     '<div style="background:#e0f0ea;border-radius:10px;padding:.875rem;margin-bottom:1.25rem;font-size:.8rem;color:var(--green);font-weight:500;">✓ You are a member of this Guild</div>'
     )+
-    // Members
-    '<div class="guild-section-title" style="margin-top:1.25rem;">👥 Members ('+g.members.length+')</div>'+
-    g.members.map(function(m){
-      var initials=m.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    '<div class="guild-section-title" style="margin-top:1.25rem;">👥 Members ('+(g.members||[]).length+')</div>'+
+    (g.members||[]).map(function(m){
+      var n=m.user_name||m.name||'Member';
+      var initials=n.split(' ').map(function(x){return x[0];}).join('').slice(0,2).toUpperCase();
       return '<div class="guild-member-item">'+
         '<div class="guild-member-avatar">'+initials+'</div>'+
-        '<div style="flex:1;"><div class="guild-member-name">'+m.name+'</div><div class="guild-member-meta">Joined '+m.joined+'</div></div>'+
+        '<div style="flex:1;"><div class="guild-member-name">'+n+'</div><div class="guild-member-meta">Joined '+new Date(m.joined_at).toLocaleDateString()+'</div></div>'+
         '<span class="guild-member-role '+(m.role==='leader'?'gmr-leader':'gmr-member')+'">'+(m.role==='leader'?'👑 Leader':'Member')+'</span>'+
       '</div>';
     }).join('')+
-    // Leave guild button (non-leaders) or Disband (leader only)
     (isLeader?
       '<button class="btn btn-mt" style="background:#fde8e4;color:var(--red);margin-top:1rem;" onclick="disbandGuild()">Disband Guild</button>':
       '<button class="btn btn-warm btn-mt" onclick="leaveGuild()" style="margin-top:1.25rem;">Leave Guild</button>');
 }
 function createInviteCode(){
   if(!state.guild)return;
-  var code=genCode();
-  state.guild.codes.unshift({code:code,created:'Just now',used:false,usedBy:null,usedTime:null});
-  addNotif('🔑 New invite code '+code+' created for "'+state.guild.name+'"');
-  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
+  var bizId=state.myBiz&&state.myBiz.id;if(!bizId)return;
+  apiFetch('/api/guilds','POST',{action:'create_code',business_id:bizId,user_name:state.user.name})
+    .then(function(data){
+      if(data.error){addNotif('Error: '+data.error);return;}
+      if(!state.guild.codes)state.guild.codes=[];
+      state.guild.codes.unshift(data.code);
+      addNotif('🔑 New invite code '+data.code.code+' created!');
+      guildRefresh();
+    }).catch(function(){addNotif('Could not create code. Please try again.');});
 }
 function copyCode(code){
   var btn=document.getElementById('copy-btn-'+code);
-  // Copy to clipboard
   if(navigator.clipboard){navigator.clipboard.writeText(code);}
   if(btn){btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(function(){btn.textContent='📋 Copy';btn.classList.remove('copied');},2000);}
 }
-function deleteCode(code){
+function deleteCode(codeId){
   if(!state.guild)return;
-  state.guild.codes=state.guild.codes.filter(c=>c.code!==code);
-  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
+  var bizId=state.myBiz&&state.myBiz.id;if(!bizId)return;
+  apiFetch('/api/guilds','POST',{action:'delete_code',business_id:bizId,code_id:codeId})
+    .then(function(data){
+      if(data.error){addNotif('Error: '+data.error);return;}
+      state.guild.codes=(state.guild.codes||[]).filter(c=>c.id!==codeId);
+      guildRefresh();
+    }).catch(function(){addNotif('Could not delete code. Please try again.');});
 }
 function leaveGuild(){
   if(!state.guild)return;
-  state.guild.members=state.guild.members.filter(m=>m.name!==state.user.name);
+  var bizId=state.myBiz&&state.myBiz.id;if(!bizId)return;
   var name=state.guild.name;
-  state.guild=null;
-  addNotif('You have left the Guild "'+name+'".');
-  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
+  apiFetch('/api/guilds','POST',{action:'leave',business_id:bizId})
+    .then(function(data){
+      if(data.error){addNotif('Error: '+data.error);return;}
+      state.guild=null;
+      addNotif('You have left the Guild "'+name+'".');
+      guildRefresh();
+    }).catch(function(){addNotif('Could not leave guild. Please try again.');});
 }
 function disbandGuild(){
   if(!state.guild)return;
+  var bizId=state.myBiz&&state.myBiz.id;if(!bizId)return;
   var name=state.guild.name;
-  state.allGuilds=state.allGuilds.filter(g=>g.id!==state.guild.id);
-  state.guild=null;
-  addNotif('Guild "'+name+'" has been disbanded.');
-  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
+  apiFetch('/api/guilds','POST',{action:'disband',business_id:bizId})
+    .then(function(data){
+      if(data.error){addNotif('Error: '+data.error);return;}
+      state.guild=null;
+      addNotif('Guild "'+name+'" has been disbanded.');
+      guildRefresh();
+    }).catch(function(){addNotif('Could not disband guild. Please try again.');});
 }
 
 // ═══════════════ SIGN OUT
