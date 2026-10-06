@@ -56,6 +56,10 @@ async function loadBusinesses() {
         linkedin: b.linkedin || '',
         church: b.church || '',
         churchAddress: b.church_address || '',
+        church_id: b.church_id || null,
+        lat: b.lat, lng: b.lng,
+        service_type: b.service_type || 'storefront',
+        service_radius: b.service_radius || null,
         hours: b.hours || {},
         tags: b.tags ? b.tags.split(',').map(t=>t.trim()).filter(Boolean) : [],
         featured: b.featured || false,
@@ -128,6 +132,9 @@ async function saveBusinessToAPI(biz) {
     description: biz.description,
     church: biz.church,
     church_address: biz.churchAddress,
+    church_id: biz.church_id || null,
+    service_type: biz.service_type || 'storefront',
+    service_radius: biz.service_radius || null,
     address: biz.address,
     zip: biz.zip,
     phone: biz.phone,
@@ -166,7 +173,6 @@ async function saveNewsletterToAPI(email, name) {
 }
 
 // ═══════════════ UTILS
-function escapeHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
 function toggleInfo(btn){
   var isActive=btn.classList.contains('active');
@@ -226,7 +232,7 @@ function doSignIn(){
     e.classList.add('hidden');
     if(data.success&&data.user){
       var user=data.user;
-      state.user={id:user.id,name:user.name,email:user.email,plan:user.plan,church:user.church||'',zip:user.zip||''};
+      state.user={id:user.id,name:user.name,email:user.email,plan:user.plan,church:user.church||'',church_id:user.church_id||null,zip:user.zip||''};
       state.profileType=user.type||'individual';
       state.plan=user.plan||'monthly';
       if(data.token)state.authToken=data.token;
@@ -647,7 +653,7 @@ function submitNewPassword(){
         apiFetch('/api/auth-signin','POST',{email:email,password:pass}).then(function(data){
           if(data.success && data.user){
             var user = data.user;
-            state.user = {id:user.id, name:user.name, email:user.email, plan:user.plan, church:user.church||'', zip:user.zip||''};
+            state.user = {id:user.id, name:user.name, email:user.email, plan:user.plan, church:user.church||'', church_id:user.church_id||null, zip:user.zip||''};
             state.profileType = user.type || pendingType;
             state.plan = user.plan || 'monthly';
             if(data.token) state.authToken = data.token;
@@ -732,6 +738,8 @@ function populateBizForm(){
   CATS.filter(c=>c!=='All').forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
   var planLabel={monthly:'Monthly Plan',annual:'Annual Plan'}[state.plan]||'Business Member';
   document.getElementById('bp-chip').textContent='🏢 '+planLabel;
+  renderSvcOpts('bp','storefront');
+  mountChurchPicker('bp-church',{zipInputId:'bp-zip',churchZipInputId:'bp-church-addr',onPick:function(ch){if(ch&&ch.zip)document.getElementById('bp-church-addr').value=ch.zip;}});
   // Hours rows
   var hr=document.getElementById('bp-hours-rows');hr.innerHTML='';
   DAYS.forEach(function(d){
@@ -745,14 +753,20 @@ function doBizProfile(){
   var name=document.getElementById('bp-name').value.trim(),cat=document.getElementById('bp-cat').value,desc=document.getElementById('bp-desc').value.trim(),
       addr=document.getElementById('bp-addr').value.trim(),phone=document.getElementById('bp-phone').value.trim(),email=document.getElementById('bp-email').value.trim(),
       church=document.getElementById('bp-church').value.trim(),churchAddr=document.getElementById('bp-church-addr').value.trim();
+  var svcType=(document.getElementById('bp-svc-opts')||{dataset:{}}).dataset.value||'storefront';
+  var bizZip=document.getElementById('bp-zip').value.trim();
+  var zipBad=svcType!=='national'&&!/^\d{5}(-\d{4})?$/.test(bizZip);
   var valid=true;
-  [['bp-name-err',!name],['bp-cat-err',!cat],['bp-desc-err',!desc],['bp-addr-err',!addr],['bp-phone-err',!phone],['bp-email-err',!email||!/\S+@\S+\.\S+/.test(email)],['bp-church-err',!church],['bp-church-addr-err',!churchAddr]].forEach(function(pair){document.getElementById(pair[0]).classList[pair[1]?'remove':'add']('hidden');if(pair[1])valid=false;});
+  [['bp-zip-err',zipBad],['bp-name-err',!name],['bp-cat-err',!cat],['bp-desc-err',!desc],['bp-addr-err',!addr],['bp-phone-err',!phone],['bp-email-err',!email||!/\S+@\S+\.\S+/.test(email)],['bp-church-err',!church],['bp-church-addr-err',!churchAddr]].forEach(function(pair){document.getElementById(pair[0]).classList[pair[1]?'remove':'add']('hidden');if(pair[1])valid=false;});
   if(!valid)return;
   var hours={};DAYS.forEach(function(d){hours[d]=document.getElementById('hr-'+d).value.trim()||'Closed';});
   var biz={id:Date.now(),name:name,category:cat,description:desc,address:addr,zip:document.getElementById('bp-zip').value,phone:phone,email:email,
     website:document.getElementById('bp-web').value,facebook:document.getElementById('bp-facebook').value,linkedin:document.getElementById('bp-linkedin').value,
     church:church,churchAddress:churchAddr,hours:hours,tags:state.bizTags.slice(),featured:false,verified:false,approved:false,
-    joinedDate:new Date(),views:0,referrals:[],testimonials:[]};
+    joinedDate:new Date(),views:0,referrals:[],testimonials:[],
+    church_id:document.getElementById('bp-church').dataset.churchId||null,
+    service_type:svcType,
+    service_radius:svcType==='service_area'?(parseInt(document.getElementById('bp-radius').value,10)||30):(svcType==='storefront'?25:null)};
   state.myBiz=biz;
   // Auto-subscribe to newsletter
   autoSubscribeNewsletter(email, name);
@@ -760,6 +774,10 @@ function doBizProfile(){
   saveBusinessToAPI(biz).then(function(data){
     if(data.success && data.business) {
       state.myBiz.id = data.business.id;
+      state.myBiz.church_id = data.business.church_id || null;
+      state.myBiz.user_id = data.business.user_id || null;
+    } else {
+      alert('Sorry — your listing could not be saved'+(data&&data.error?' ('+data.error+')':'')+'. Please try again in a few minutes, or contact support@christonesunited.com.');
     }
   });
   addNotif('Your listing has been submitted for review!');
@@ -777,6 +795,7 @@ function enterDirectory(){
   updateNotifUI();
   showScreen('screen-directory');
   switchDirTab('home');
+  renderLocNudge();
   // Load sponsors for banner
   loadSponsors();
   // Check for unread messages
@@ -799,10 +818,10 @@ function enterDirectory(){
   renderMessages('individual');
 }
 function populateChurchFilter(){
-  var sel=document.getElementById('church-filter');sel.innerHTML='<option value="">All Churches</option>';
+  var sel=document.getElementById('church-filter');sel.setAttribute('data-prev',sel.value||'');sel.innerHTML='<option value="">All Churches</option>';
   var churches=[...new Set(state.businesses.filter(b=>b.approved&&b.church).map(b=>b.church))].sort();
   churches.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
-  if(state.user&&state.user.church){sel.value=state.user.church;}
+  var prev=sel.getAttribute('data-prev')||'';if(prev&&churches.indexOf(prev)>-1)sel.value=prev;
 }
 function renderCatChips(){
   var el=document.getElementById('cat-chips');el.innerHTML='';
@@ -819,7 +838,12 @@ function renderDirectory(){
   var q=(document.getElementById('dir-search').value||'').toLowerCase();
   var cf=document.getElementById('church-filter').value;
   var userChurch=state.user?state.user.church:'';
+  var userChurchId=state.user?state.user.church_id:null;
   var userZip=state.user?state.user.zip||'':'';
+  function sameChurch(b){
+    if(userChurchId&&b.church_id)return String(b.church_id)===String(userChurchId);
+    return !!(userChurch&&b.church&&b.church.toLowerCase()===userChurch.toLowerCase());
+  }
 
   var filtered=state.businesses.filter(function(b){
     if(!b.approved)return false;
@@ -832,8 +856,8 @@ function renderDirectory(){
   if(!q && !cf && state.activeCat==='All' && userChurch){
     filtered.sort(function(a, b){
       // Tier 1: Same church as the user
-      var aChurch = userChurch && a.church && a.church.toLowerCase()===userChurch.toLowerCase();
-      var bChurch = userChurch && b.church && b.church.toLowerCase()===userChurch.toLowerCase();
+      var aChurch = sameChurch(a);
+      var bChurch = sameChurch(b);
       if(aChurch && !bChurch) return -1;
       if(!aChurch && bChurch) return 1;
 
@@ -865,7 +889,7 @@ function makeBizCard(b){
   var badges='';if(b.verified)badges+='<span class="biz-verified">✓ Verified</span>';if(ntw)badges+='<span class="biz-new">🆕 New This Week</span>';
   var hoursHtml=hrs?'<div class="biz-hours'+(hrs==='Closed'?' closed':'')+'">⏰ Today: '+hrs+'</div>':'';
   var metaHtml='<div class="biz-meta"><div class="biz-meta-row">📍 '+b.address+'</div><div class="biz-meta-row">📞 '+b.phone+'</div>'+(b.website?'<div class="biz-meta-row">🌐 <a href="https://'+b.website+'" target="_blank">'+b.website+'</a></div>':'')+(b.facebook?'<div class="biz-meta-row">👥 <a href="https://'+b.facebook+'" target="_blank">'+b.facebook+'</a></div>':'')+(b.linkedin?'<div class="biz-meta-row">💼 <a href="https://'+b.linkedin+'" target="_blank">'+b.linkedin+'</a></div>':'')+'<div class="biz-meta-row">✉️ '+b.email+'</div></div>';
-  var tmsHtml=b.testimonials&&b.testimonials.length?'<div class="testimonials">'+b.testimonials.slice(0,2).map(t=>'<div class="testimonial"><div class="testimonial-text">"'+escapeHtml(t.text)+'"</div><div class="testimonial-author">— '+escapeHtml(t.author)+'</div></div>').join('')+'</div>':'';
+  var tmsHtml=b.testimonials&&b.testimonials.length?'<div class="testimonials">'+b.testimonials.slice(0,2).map(t=>'<div class="testimonial"><div class="testimonial-text">"'+t.text+'"</div><div class="testimonial-author">— '+t.author+'</div></div>').join('')+'</div>':'';
   div.innerHTML='<div class="biz-topbar" style="background:'+color+'"></div><div class="biz-head"><div class="biz-name">'+b.name+'</div><span class="biz-cat-badge" style="background:'+color+'1a;color:'+color+'">'+b.category+'</span></div>'+(badges?'<div class="biz-badges">'+badges+'</div>':'')+hoursHtml+'<p class="biz-desc">'+b.description+'</p>'+metaHtml+(b.tags&&b.tags.length?'<div class="biz-tags">'+b.tags.map(t=>'<span class="biz-tag">'+t+'</span>').join('')+'</div>':'')+tmsHtml+'<div class="biz-actions"><button class="biz-btn biz-btn-save'+(saved?' saved':'')+'" onclick="toggleSave(\''+b.id+'\')">'+(saved?'♥ Saved':'♡ Save')+'</button><button class="biz-btn biz-btn-ref" onclick="openRefModal(\''+b.id+'\')">🤝 Refer</button><button class="biz-btn biz-btn-testify" onclick="openRevModal(\''+b.id+'\')">✍️ Testify</button><button class="biz-btn biz-btn-msg" onclick="openMsgModal(\''+b.id+'\')">💬 Message</button></div>';
   return div;
 }
@@ -890,7 +914,7 @@ function switchDirTab(tab){
   if(tab==='community'){renderPrayerBoard();renderEvents();renderLeaderboard();}
   if(tab==='messages'){renderMessages('individual');markMessagesRead();}
   if(tab==='jobs'){initJobFilters();renderJobs();}
-
+  if(tab==='account')renderAccLocation();
 }
 
 // ═══════════════ PRAYER BOARD
@@ -1243,7 +1267,7 @@ function renderMessages(role){
 
 // ═══════════════ REF / REVIEW MODALS
 function openRefModal(bizId){
-  var biz=state.businesses.find(b=>String(b.id)===String(bizId));if(!biz)return;
+  var biz=state.businesses.find(b=>b.id===bizId);if(!biz)return;
   document.getElementById('refModalContent').innerHTML='<div class="modal-icon">🤝</div><div class="modal-title">Share a Referral</div><div class="modal-for">Referring someone to <strong>'+biz.name+'</strong></div><div class="form-group"><label class="lbl">Name</label><input class="inp" id="ref-name" placeholder="Referral\'s full name"/></div><div class="form-group"><label class="lbl">Phone #</label><input class="inp" type="tel" id="ref-phone" placeholder="(555) 000-0000"/></div><div class="form-group"><label class="lbl">Email</label><input class="inp" type="email" id="ref-email" placeholder="their@email.com"/></div><div class="form-group"><label class="lbl">Current Need</label><textarea class="inp" id="ref-need" placeholder="What are they looking for?"></textarea></div><div class="form-group"><label class="lbl">Faith Status</label><select class="inp" id="ref-faith"><option value="">Select…</option><option>Believer</option><option>Exploring faith</option><option>Not yet a believer</option><option>Prefer not to say</option></select></div><button class="btn btn-red btn-mt" onclick="submitRef(\''+bizId+'\')">Send Referral →</button>';
   document.getElementById('refModal').classList.add('open');
 }
@@ -1251,8 +1275,8 @@ function submitRef(bizId){
   var name=document.getElementById('ref-name').value.trim(),phone=document.getElementById('ref-phone').value.trim();
   if(!name||!phone){alert('Name and phone are required.');return;}
   var ref={name:name,phone:phone,email:document.getElementById('ref-email').value,need:document.getElementById('ref-need').value,faith:document.getElementById('ref-faith').value,time:'Just now'};
-  var biz=state.businesses.find(b=>String(b.id)===String(bizId));if(biz)biz.referrals.unshift(ref);
-  if(state.myBiz&&String(state.myBiz.id)===String(bizId))state.myBiz.referrals.unshift(ref);
+  var biz=state.businesses.find(b=>b.id===bizId);if(biz)biz.referrals.unshift(ref);
+  if(state.myBiz&&state.myBiz.id===bizId)state.myBiz.referrals.unshift(ref);
   state.myReferralCount++;
   document.getElementById('my-ref-count').textContent=state.myReferralCount;
   var me=state.leaderboard.find(l=>l.name===state.user.name);
@@ -1265,7 +1289,7 @@ function submitRef(bizId){
   setTimeout(function(){closeModal('refModal');},2000);
 }
 function openRevModal(bizId){
-  var biz=state.businesses.find(b=>String(b.id)===String(bizId));if(!biz)return;
+  var biz=state.businesses.find(b=>b.id===bizId);if(!biz)return;
   document.getElementById('revModalContent').innerHTML='<div class="modal-icon">✍️</div><div class="modal-title">Leave a Word</div><div class="modal-for">Share your experience with <strong>'+biz.name+'</strong></div><div class="form-group"><label class="lbl">Your testimonial (1–3 sentences)</label><textarea class="inp" id="rev-text" style="min-height:80px;" placeholder="Share how this business has blessed you…"></textarea></div><button class="btn btn-green btn-mt" onclick="submitRev(\''+bizId+'\')">Share →</button>';
   document.getElementById('revModal').classList.add('open');
 }
@@ -1280,9 +1304,9 @@ function submitRev(bizId){
     if(data.success){
       // Update local state so card re-renders without a full reload
       var tm={author:data.testimonial.author_name,text:data.testimonial.text};
-      var biz=state.businesses.find(b=>String(b.id)===String(bizId));
+      var biz=state.businesses.find(b=>b.id===bizId);
       if(biz){if(!biz.testimonials)biz.testimonials=[];biz.testimonials.unshift(tm);}
-      if(state.myBiz&&String(state.myBiz.id)===String(bizId)){if(!state.myBiz.testimonials)state.myBiz.testimonials=[];state.myBiz.testimonials.unshift(tm);}
+      if(state.myBiz&&state.myBiz.id===bizId){if(!state.myBiz.testimonials)state.myBiz.testimonials=[];state.myBiz.testimonials.unshift(tm);}
       document.getElementById('revModalContent').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.55rem;">✍️</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:.35rem;">Word shared!</div><p style="font-size:.8rem;color:#7a7369;">Thank you! Your testimonial has been added.</p></div>';
       setTimeout(function(){closeModal('revModal');renderDirectory();},2000);
     } else {
@@ -1337,7 +1361,6 @@ function renderDashOverview(){
     apiFetch('/api/referrals?business_id='+biz.id),
     apiFetch('/api/jobs?business_id='+biz.id),
     apiFetch('/api/community?type=messages&business_id='+biz.id),
-    apiFetch('/api/testimonials?business_id='+biz.id),
   ]).then(function(results){
     var refs=results[0].referrals||[];
     var jobs=results[1].jobs||[];
@@ -1347,9 +1370,8 @@ function renderDashOverview(){
     var uniqueSenders=new Set(msgs.filter(function(m){return m.from_role==='user';}).map(function(m){return m.from_user_id||m.from_name;}));
     var msgCount=uniqueSenders.size;
 
-    // Testimonials loaded fresh from Supabase
-    var tms=results[3].testimonials||[];
-    if(state.myBiz)state.myBiz.testimonials=tms.map(function(t){return{author:t.author_name,text:t.text};});
+    // Testimonials from local state
+    var tms=biz.testimonials||[];
 
     // Count contacted referrals
     var contactedRefs=refs.filter(function(r){return r.contacted;}).length;
@@ -1368,7 +1390,6 @@ function renderDashOverview(){
         '<div class="stat-card"><div class="stat-val">'+msgCount+'</div><div class="stat-lbl">Messages</div></div>'+
         '<div class="stat-card"><div class="stat-val">'+jobs.length+'</div><div class="stat-lbl">Active Jobs</div></div>'+
         '<div class="stat-card"><div class="stat-val">'+contactedRefs+'</div><div class="stat-lbl">Contacted</div></div>'+
-        '<div class="stat-card" onclick="switchDashTab(\'testimonials\')" style="cursor:pointer;"><div class="stat-val">'+tms.length+'</div><div class="stat-lbl">Testimonials</div></div>'+
       '</div>'+
 
       // Listing Status
@@ -1423,17 +1444,6 @@ function renderDashOverview(){
             }).join('');
           })()
         :'<p style="font-size:.82rem;color:var(--muted);">No messages yet.</p>')+
-      '</div>'+
-
-      // Recent Testimonials
-      '<div class="dash-card" style="margin-bottom:1rem;">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">'+
-          '<div class="dash-card-title" style="margin-bottom:0;">✍️ Recent Testimonials</div>'+
-          (tms.length?'<button onclick="switchDashTab(\'testimonials\')" style="font-size:.72rem;color:var(--green);background:none;border:none;cursor:pointer;font-weight:600;">View all →</button>':'')+
-        '</div>'+
-        (tms.length?tms.slice(0,3).map(function(t){
-          return '<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+escapeHtml(t.text)+'"</div><div class="testimonial-author">— '+escapeHtml(t.author_name||'Member')+'</div></div>';
-        }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet.</p>')+
       '</div>'+
 
       // Newsletter card
@@ -1622,7 +1632,7 @@ function renderDashTestimonials(){
       // Sync back to local state
       state.myBiz.testimonials=tms.map(function(t){return{author:t.author_name,text:t.text};});
     }
-    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Testimonials ('+tms.length+')</div>'+(tms.length?tms.map(t=>'<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+escapeHtml(t.text)+'"</div><div class="testimonial-author">— '+escapeHtml(t.author_name)+'</div></div>').join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet. Members can tap ✍️ Testify on your listing to leave one.</p>')+'</div>';
+    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Testimonials ('+tms.length+')</div>'+(tms.length?tms.map(t=>'<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+t.text+'"</div><div class="testimonial-author">— '+t.author_name+'</div></div>').join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet. Members can tap ✍️ Testify on your listing to leave one.</p>')+'</div>';
   });
 }
 function renderDashMessages(){
@@ -1769,9 +1779,46 @@ function sendBizReply(bizId, memberName){
 }
 function renderDashListing(){
   var biz=state.myBiz;
-  document.getElementById('dash-panel-listing').innerHTML='<div class="dash-card"><div class="dash-card-title">Your Listing '+(biz&&!biz.approved?'<span class="biz-pending">⏳ Pending Review</span>':'<span class="biz-verified">✓ Live</span>')+'</div><p style="font-size:.84rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">'+(biz?biz.description:'No listing yet.')+'</p><div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="edit-desc" style="min-height:72px;">'+(biz?biz.description:'')+'</textarea></div><button class="btn btn-green btn-mt" onclick="saveListing()">Save Changes</button></div>';
+  var panel=document.getElementById('dash-panel-listing');
+  if(!biz){panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Your Listing</div><p style="font-size:.84rem;color:var(--muted);">No listing yet.</p></div>';return;}
+  var svc=biz.service_type||'storefront';
+  panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Your Listing '+(!biz.approved?'<span class="biz-pending">⏳ Pending Review</span>':'<span class="biz-verified">✓ Live</span>')+'</div>'+
+    '<div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="edit-desc" style="min-height:72px;">'+escHtml(biz.description||'')+'</textarea></div>'+
+    '<div class="form-group"><label class="lbl">Business ZIP Code</label><input class="inp" id="edit-zip" maxlength="10" value="'+escHtml(biz.zip||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">How do you serve customers?</label><div class="svc-opts" id="ed-svc-opts"></div></div>'+
+    '<div class="form-group hidden" id="ed-radius-wrap"><label class="lbl">How far do you travel? (miles)</label><input class="inp" id="ed-radius" type="number" min="1" max="500" value="'+(svc==='service_area'&&biz.service_radius?biz.service_radius:30)+'"/></div>'+
+    '<div class="form-group"><label class="lbl">Church</label><input class="inp" id="edit-church" autocomplete="off" placeholder="Start typing your church name…" value="'+escHtml(biz.church||'')+'"/></div>'+
+    '<button class="btn btn-green btn-mt" id="edit-save-btn" onclick="saveListing()">Save Changes</button>'+
+    '<div class="hint-msg" id="edit-msg" style="margin-top:.45rem;"></div></div>';
+  renderSvcOpts('ed',svc);
+  mountChurchPicker('edit-church',{zipInputId:'edit-zip'});
+  if(biz.church_id)document.getElementById('edit-church').dataset.churchId=biz.church_id;
 }
-function saveListing(){var desc=document.getElementById('edit-desc').value.trim();if(state.myBiz){state.myBiz.description=desc;var b=state.businesses.find(x=>x.id===state.myBiz.id);if(b)b.description=desc;}renderDashListing();}
+function saveListing(){
+  var biz=state.myBiz,msg=document.getElementById('edit-msg'),btn=document.getElementById('edit-save-btn');
+  function fail(t){msg.style.color='var(--red)';msg.textContent=t;}
+  if(!biz||!biz.id||typeof biz.id==='number'){fail('Your listing is still being saved. Please try again in a moment.');return;}
+  var desc=document.getElementById('edit-desc').value.trim();
+  var zip=document.getElementById('edit-zip').value.trim();
+  var svc=document.getElementById('ed-svc-opts').dataset.value||'storefront';
+  var chInp=document.getElementById('edit-church');
+  if(!desc){fail('Description is required.');return;}
+  if(svc!=='national'&&!/^\d{5}(-\d{4})?$/.test(zip)){fail('Enter a valid 5-digit ZIP code.');return;}
+  var payload={id:biz.id,user_id:state.user?state.user.id:null,description:desc,zip:zip,service_type:svc,
+    service_radius:svc==='service_area'?(parseInt(document.getElementById('ed-radius').value,10)||30):(svc==='storefront'?25:null)};
+  if(chInp.dataset.churchId){if(String(chInp.dataset.churchId)!==String(biz.church_id||''))payload.church_id=chInp.dataset.churchId;}
+  else if(chInp.value.trim()!==(biz.church||'')){fail('Please pick your church from the list, or tap "Add" to add it.');return;}
+  btn.disabled=true;btn.textContent='Saving…';msg.textContent='';
+  apiFetch('/api/businesses','PUT',payload).then(function(d){
+    btn.disabled=false;btn.textContent='Save Changes';
+    if(!d.success||!d.business){fail(d.error||'Could not save. Please try again.');return;}
+    var u=d.business;
+    ['description','zip','service_type','service_radius','church','church_id','lat','lng'].forEach(function(k){biz[k]=u[k];});
+    var b=state.businesses.find(function(x){return x.id===biz.id;});
+    if(b)['description','zip','service_type','service_radius','church','church_id','lat','lng'].forEach(function(k){b[k]=u[k];});
+    msg.style.color='var(--green)';msg.textContent='✓ Saved';
+  });
+}
 
 // ═══════════════ ADMIN (accessible for demo — in production would be auth-gated)
 // Simulated: pending listings get auto-reviewed after 3 seconds on dashboard entry
@@ -2096,11 +2143,11 @@ function updateAdminBadges(){
   });
 }
 function switchAdminTab(tab){
-  ['overview','approvals','reports','members','jobs','sponsors','newsletter','appeals','audit'].forEach(function(t){
+  ['overview','approvals','reports','members','jobs','sponsors','newsletter','appeals','audit','churches'].forEach(function(t){
     document.getElementById('adm-tab-'+t).classList[t===tab?'remove':'add']('hidden');
     document.getElementById('adm-btn-'+t).classList[t===tab?'add':'remove']('on');
   });
-  var renders={overview:renderAdminOverview,approvals:renderAdminApprovals,reports:renderAdminReports,members:renderAdminMembers,jobs:renderAdminJobs,sponsors:renderAdminSponsors,newsletter:renderAdminNewsletter,appeals:renderAdminAppeals,audit:renderAdminAudit};
+  var renders={overview:renderAdminOverview,approvals:renderAdminApprovals,reports:renderAdminReports,members:renderAdminMembers,jobs:renderAdminJobs,sponsors:renderAdminSponsors,newsletter:renderAdminNewsletter,appeals:renderAdminAppeals,audit:renderAdminAudit,churches:renderAdminChurches};
   if(renders[tab])renders[tab]();
 }
 function addAuditLog(icon,text){state.admin.auditLog.unshift({icon:icon,text:text,time:'Just now'});}
@@ -2974,6 +3021,230 @@ function doSignOut(){
     localStorage.removeItem('cou_token');
   } catch(e){}
   showScreen('screen-landing');
+}
+
+// ═══════════════ ADMIN CHURCHES
+function adminPost(body){
+  return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify(body)})
+    .then(function(r){return r.json();}).catch(function(e){return {error:e.message};});
+}
+function renderAdminChurches(){
+  var el=document.getElementById('adm-tab-churches');
+  el.innerHTML='<div class="admin-card"><p style="font-size:.82rem;color:var(--muted);">Loading churches…</p></div>';
+  adminPost({action:'get_churches'}).then(function(d){
+    if(!d.success){el.innerHTML='<div class="admin-card"><p style="color:var(--red);font-size:.82rem;">'+escHtml(d.error||'Could not load churches.')+'</p></div>';return;}
+    state.admin.churches=d.churches||[];
+    var p=d.pending||{};
+    var pendingTotal=(p.members_unlinked||0)+(p.businesses_unlinked||0)+(p.businesses_no_location||0);
+    el.innerHTML=
+      '<div class="admin-card" style="margin-bottom:1rem;">'+
+        '<div style="font-weight:700;font-size:.95rem;margin-bottom:.35rem;">⛪ Churches ('+state.admin.churches.length+')</div>'+
+        '<div style="font-size:.78rem;color:var(--muted);line-height:1.55;margin-bottom:.7rem;">'+
+          (pendingTotal?'Not yet linked: <strong>'+(p.businesses_unlinked||0)+'</strong> businesses and <strong>'+(p.members_unlinked||0)+'</strong> members with a typed church name; <strong>'+(p.businesses_no_location||0)+'</strong> businesses without map coordinates.':'Everything is linked. ✓')+
+        '</div>'+
+        '<button class="btn" style="background:#1a1a2e;color:#fff;padding:.55rem 1rem;font-size:.78rem;" id="adm-cleanup-btn" onclick="runAdminLocationCleanup()">Run Church & Location Cleanup</button>'+
+        '<div id="adm-cleanup-result" style="font-size:.75rem;margin-top:.6rem;line-height:1.55;">'+(state.admin.cleanupResult||'')+'</div>'+
+      '</div>'+
+      '<div class="admin-card">'+
+        '<input class="member-search" id="adm-church-search" placeholder="Search churches…" oninput="renderAdminChurchTable()"/>'+
+        '<div id="adm-church-mergebar" style="margin:.6rem 0;"></div>'+
+        '<div id="adm-church-table"></div>'+
+      '</div>';
+    renderAdminChurchTable();
+  });
+}
+function renderAdminChurchTable(){
+  var q=((document.getElementById('adm-church-search')||{}).value||'').toLowerCase();
+  var sel=state.admin.churchSel||(state.admin.churchSel={});
+  var rows=(state.admin.churches||[]).filter(function(c){return !q||c.name.toLowerCase().indexOf(q)>-1||(c.city||'').toLowerCase().indexOf(q)>-1||(c.zip||'').indexOf(q)>-1;});
+  document.getElementById('adm-church-table').innerHTML=rows.length?
+    '<div style="overflow-x:auto;"><table class="member-table"><thead><tr><th></th><th>Church</th><th>Location</th><th>Members</th><th>Businesses</th><th></th></tr></thead><tbody>'+
+    rows.map(function(c){
+      return '<tr><td><input type="checkbox" '+(sel[c.id]?'checked':'')+' onchange="toggleAdminChurchSel(\''+c.id+'\',this.checked)"/></td>'+
+        '<td><strong>'+escHtml(c.name)+'</strong></td><td style="font-size:.73rem;">'+escHtml([c.city,c.state].filter(Boolean).join(', '))+' '+escHtml(c.zip||'')+'</td>'+
+        '<td>'+c.members+'</td><td>'+c.businesses+'</td>'+
+        '<td><button style="font-size:.7rem;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;" onclick="renameAdminChurch(\''+c.id+'\')">Rename</button></td></tr>';
+    }).join('')+'</tbody></table></div>':
+    '<p style="font-size:.8rem;color:var(--muted);">No churches yet. They are added when members and businesses pick or add their church, or when you run the cleanup.</p>';
+  renderAdminMergeBar();
+}
+function toggleAdminChurchSel(id,on){var sel=state.admin.churchSel||(state.admin.churchSel={});if(on)sel[id]=true;else delete sel[id];renderAdminMergeBar();}
+function renderAdminMergeBar(){
+  var bar=document.getElementById('adm-church-mergebar');if(!bar)return;
+  var ids=Object.keys(state.admin.churchSel||{});
+  var picked=(state.admin.churches||[]).filter(function(c){return ids.indexOf(String(c.id))>-1;});
+  if(picked.length<2){bar.innerHTML='<div style="font-size:.72rem;color:var(--muted);">Tick two or more duplicates to merge them.</div>';return;}
+  bar.innerHTML='<div style="background:#fff8e6;border:1.5px solid #f2d48a;border-radius:9px;padding:.7rem .8rem;font-size:.78rem;">'+
+    '<div style="font-weight:700;margin-bottom:.4rem;">Merge '+picked.length+' churches — which one should stay?</div>'+
+    picked.map(function(c,i){return '<label style="display:block;margin:.2rem 0;cursor:pointer;"><input type="radio" name="adm-keep" value="'+c.id+'" '+(i===0?'checked':'')+'/> '+escHtml(c.name)+' <span style="color:var(--muted);">('+escHtml([c.city,c.state].filter(Boolean).join(', '))+' · '+c.members+' members, '+c.businesses+' businesses)</span></label>';}).join('')+
+    '<button class="btn" style="background:var(--green);color:#fff;padding:.45rem .9rem;font-size:.75rem;margin-top:.4rem;" onclick="mergeAdminChurches()">Merge</button></div>';
+}
+function mergeAdminChurches(){
+  var keep=document.querySelector('input[name="adm-keep"]:checked');if(!keep)return;
+  var ids=Object.keys(state.admin.churchSel||{}).filter(function(id){return id!==keep.value;});
+  var keepName=((state.admin.churches||[]).find(function(c){return String(c.id)===keep.value;})||{}).name;
+  if(!confirm('Merge '+ids.length+' duplicate(s) into "'+keepName+'"? Members and businesses will be moved over. This cannot be undone.'))return;
+  adminPost({action:'merge_churches',keep_id:keep.value,merge_ids:ids}).then(function(d){
+    if(!d.success){alert(d.error||'Merge failed.');return;}
+    addAuditLog('⛪','Merged '+d.merged+' church(es) into '+keepName);
+    state.admin.churchSel={};
+    renderAdminChurches();
+  });
+}
+function renameAdminChurch(id){
+  var c=(state.admin.churches||[]).find(function(x){return String(x.id)===String(id);});if(!c)return;
+  var name=prompt('New name for this church:',c.name);
+  if(!name||!name.trim()||name.trim()===c.name)return;
+  adminPost({action:'rename_church',church_id:id,name:name.trim()}).then(function(d){
+    if(!d.success){alert(d.error||'Rename failed.');return;}
+    addAuditLog('⛪','Renamed church "'+c.name+'" to "'+name.trim()+'"');
+    renderAdminChurches();
+  });
+}
+function runAdminLocationCleanup(){
+  var btn=document.getElementById('adm-cleanup-btn'),out=document.getElementById('adm-cleanup-result');
+  btn.disabled=true;btn.textContent='Running…';out.textContent='';
+  adminPost({action:'run_location_cleanup'}).then(function(d){
+    btn.disabled=false;btn.textContent='Run Church & Location Cleanup';
+    if(!d.success){out.style.color='var(--red)';out.textContent=d.error||'Cleanup failed.';return;}
+    var s=d.summary;
+    addAuditLog('🧹','Ran church & location cleanup');
+    state.admin.cleanupResult='✓ Linked <strong>'+s.businesses_linked+'</strong> businesses and <strong>'+s.members_linked+'</strong> members to churches. Added coordinates for <strong>'+s.businesses_located+'</strong> businesses and <strong>'+s.members_located+'</strong> members.'+
+      (s.needs_review.length?'<div style="margin-top:.4rem;color:var(--muted);">Needs review ('+s.needs_review.length+'):<br/>'+s.needs_review.slice(0,30).map(escHtml).join('<br/>')+(s.needs_review.length>30?'<br/>…':'')+'</div>':'');
+    renderAdminChurches();
+  });
+}
+
+// ═══════════════ CHURCH PICKER & LOCATION
+function escHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+var SVC_OPTS=[
+  {id:'storefront',icon:'🏪',title:'Storefront',sub:'Customers come to my location.'},
+  {id:'service_area',icon:'🚐',title:'Service Area',sub:'I travel to customers within a set distance.'},
+  {id:'national',icon:'🇺🇸',title:'Nationally Available Services',sub:'I ship products or serve customers anywhere in the U.S.'}
+];
+// Renders the 3 service-type choices into #<prefix>-svc-opts and toggles #<prefix>-radius-wrap
+function renderSvcOpts(prefix,selected){
+  var box=document.getElementById(prefix+'-svc-opts');if(!box)return;
+  var val=SVC_OPTS.some(function(o){return o.id===selected;})?selected:'storefront';
+  box.dataset.value=val;
+  box.innerHTML=SVC_OPTS.map(function(o){
+    return '<button type="button" class="svc-opt'+(o.id===val?' sel':'')+'" onclick="renderSvcOpts(\''+prefix+'\',\''+o.id+'\')">'+
+      '<span class="svc-opt-icon">'+o.icon+'</span><span><span class="svc-opt-title">'+o.title+'</span><span class="svc-opt-sub">'+o.sub+'</span></span></button>';
+  }).join('');
+  var rw=document.getElementById(prefix+'-radius-wrap');
+  if(rw)rw.classList[val==='service_area'?'remove':'add']('hidden');
+}
+
+// Turns a text input into a search-as-you-type church picker.
+// The chosen church's ID is stored on input.dataset.churchId (empty if the user typed without picking).
+function mountChurchPicker(inputId,opts){
+  opts=opts||{};
+  var inp=document.getElementById(inputId);if(!inp||inp._cp)return;
+  inp._cp=true;inp.setAttribute('autocomplete','off');
+  var wrap=document.createElement('div');wrap.className='cp-wrap';
+  inp.parentNode.insertBefore(wrap,inp);wrap.appendChild(inp);
+  var list=document.createElement('div');list.className='cp-list hidden';wrap.appendChild(list);
+  var picked=document.createElement('div');picked.className='cp-picked hidden';wrap.appendChild(picked);
+  var timer=null,seq=0;
+  function setPicked(ch){
+    inp.dataset.churchId=ch?ch.id:'';
+    if(ch){
+      inp.value=ch.name;
+      picked.textContent='✓ '+[ch.city,ch.state].filter(Boolean).join(', ')+(ch.zip?' '+ch.zip:'');
+      picked.classList.remove('hidden');
+    } else picked.classList.add('hidden');
+    list.classList.add('hidden');
+    if(opts.onPick)opts.onPick(ch);
+  }
+  function nearZip(){
+    var z=opts.zipInputId?document.getElementById(opts.zipInputId):null;
+    return (z&&z.value)||(state.user&&state.user.zip)||'';
+  }
+  function showAdd(q){
+    var pre=opts.churchZipInputId?((document.getElementById(opts.churchZipInputId)||{}).value||''):'';
+    list.innerHTML='<div class="cp-addform"><span style="width:100%;">What ZIP code is <strong>'+escHtml(q)+'</strong> in?</span>'+
+      '<input placeholder="Church ZIP" maxlength="10" inputmode="numeric" value="'+escHtml(pre)+'"/><button type="button">Add Church</button>'+
+      '<span class="cp-add-err" style="width:100%;color:var(--red);display:none;"></span></div>';
+    var form=list.querySelector('.cp-addform'),zi=form.querySelector('input'),btn=form.querySelector('button'),err=form.querySelector('.cp-add-err');
+    form.addEventListener('mousedown',function(e){if(e.target!==zi)e.preventDefault();});
+    zi.addEventListener('blur',function(){setTimeout(function(){if(!wrap.contains(document.activeElement))list.classList.add('hidden');},150);});
+    zi.focus();
+    btn.onclick=function(){
+      btn.disabled=true;btn.textContent='Adding…';err.style.display='none';
+      apiFetch('/api/churches','POST',{action:'add',name:q,zip:zi.value}).then(function(d){
+        btn.disabled=false;btn.textContent='Add Church';
+        if(d.success&&d.church)setPicked(d.church);
+        else{err.textContent=d.error||'Could not add church.';err.style.display='block';}
+      });
+    };
+  }
+  function render(results,q){
+    list.innerHTML=results.map(function(c,i){
+      return '<div class="cp-item" data-i="'+i+'">'+escHtml(c.name)+'<small>'+escHtml([c.city,c.state].filter(Boolean).join(', '))+(c.distance!=null?' · '+c.distance+' mi away':'')+'</small></div>';
+    }).join('')+'<div class="cp-item cp-add" data-add="1">+ Add "'+escHtml(q)+'" as a new church</div>';
+    list.classList.remove('hidden');
+    Array.prototype.forEach.call(list.querySelectorAll('.cp-item'),function(el){
+      el.addEventListener('mousedown',function(e){e.preventDefault();});
+      el.addEventListener('click',function(){if(el.dataset.add)showAdd(q);else setPicked(results[+el.dataset.i]);});
+    });
+  }
+  inp.addEventListener('input',function(){
+    inp.dataset.churchId='';picked.classList.add('hidden');
+    var q=inp.value.trim();clearTimeout(timer);
+    if(q.length<2){list.classList.add('hidden');return;}
+    timer=setTimeout(function(){
+      var my=++seq;
+      apiFetch('/api/churches?q='+encodeURIComponent(q)+'&zip='+encodeURIComponent(nearZip())).then(function(d){
+        if(my!==seq)return;
+        render((d&&d.churches)||[],q);
+      });
+    },250);
+  });
+  inp.addEventListener('blur',function(){
+    setTimeout(function(){if(!wrap.contains(document.activeElement))list.classList.add('hidden');},150);
+  });
+}
+
+// Account tab: member's church and ZIP
+function renderAccLocation(){
+  var el=document.getElementById('acc-location');if(!el||!state.user)return;
+  el.innerHTML='<div class="info-label">My Church & Location</div>'+
+    '<div class="info-sub" style="margin-bottom:.6rem;">Used to show businesses from your church first, then those serving your area.</div>'+
+    '<div class="form-group"><label class="lbl">Your Church</label><input class="inp" id="acc-church" placeholder="Start typing your church name…" value="'+escHtml(state.user.church||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">Your ZIP Code</label><input class="inp" id="acc-zip" maxlength="10" inputmode="numeric" placeholder="e.g. 80470" value="'+escHtml(state.user.zip||'')+'"/></div>'+
+    '<button class="btn btn-ink" style="width:100%;" id="acc-loc-btn" onclick="saveMyLocation()">Save</button>'+
+    '<div class="hint-msg" id="acc-loc-msg" style="margin-top:.4rem;"></div>';
+  mountChurchPicker('acc-church',{zipInputId:'acc-zip'});
+  if(state.user.church_id)document.getElementById('acc-church').dataset.churchId=state.user.church_id;
+}
+function saveMyLocation(){
+  var inp=document.getElementById('acc-church'),zip=document.getElementById('acc-zip').value.trim();
+  var msg=document.getElementById('acc-loc-msg'),btn=document.getElementById('acc-loc-btn');
+  function fail(t){msg.style.color='var(--red)';msg.textContent=t;}
+  var churchId=inp.dataset.churchId||'';
+  if(inp.value.trim()&&!churchId){fail('Please pick your church from the list, or tap "Add" to add it.');return;}
+  if(zip&&!/^\d{5}(-\d{4})?$/.test(zip)){fail('Enter a valid 5-digit ZIP code.');return;}
+  if(!state.user||!state.user.id){fail('Please sign out and sign back in, then try again.');return;}
+  btn.disabled=true;btn.textContent='Saving…';msg.textContent='';
+  apiFetch('/api/churches','POST',{action:'update_member',user_id:state.user.id,church_id:churchId||null,zip:zip}).then(function(d){
+    btn.disabled=false;btn.textContent='Save';
+    if(!d.success||!d.user){fail(d.error||'Could not save. Please try again.');return;}
+    state.user.church=d.user.church||'';
+    state.user.church_id=d.user.church_id||null;
+    state.user.zip=d.user.zip||'';
+    try{localStorage.setItem('cou_user',JSON.stringify(state.user));}catch(e){}
+    msg.style.color='var(--green)';msg.textContent='✓ Saved. Your directory now shows your church first.';
+    renderLocNudge();
+    renderDirectory();
+  });
+}
+// Home tab prompt for members who haven't set their church or ZIP yet
+function renderLocNudge(){
+  var el=document.getElementById('loc-nudge');if(!el)return;
+  if(!state.user||state.profileType==='business'||(state.user.church_id&&state.user.zip)){el.innerHTML='';return;}
+  var missing=(!state.user.church_id&&!state.user.zip)?'your church and ZIP code':(!state.user.church_id?'your church':'your ZIP code');
+  el.innerHTML='<div class="loc-nudge"><span style="font-size:1.3rem;">✝</span><div class="loc-nudge-text">Add '+missing+' to see businesses from your church first, then those serving your area.</div><button onclick="switchDirTab(\'account\')">Add Now</button></div>';
 }
 
 // ═══════════════ INSTALL MODAL

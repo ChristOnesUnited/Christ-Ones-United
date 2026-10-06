@@ -8,6 +8,31 @@
 .logo-img-xl{height:130px;width:auto;object-fit:contain;display:block;margin:0 auto 1.1rem;}
 /* override topnav background to white when logo shown */
 .topnav-logo-wrap{display:flex;align-items:center;}
+
+/* ── Church picker & service area (Phase 1) */
+.cp-wrap{position:relative;}
+.cp-list{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:#fff;border:1.5px solid var(--border);border-radius:9px;box-shadow:0 10px 28px rgba(0,0,0,.12);z-index:50;max-height:260px;overflow-y:auto;}
+.cp-item{padding:.6rem .75rem;cursor:pointer;font-size:.8rem;border-bottom:1px solid var(--warm);color:var(--ink);}
+.cp-item:last-child{border-bottom:none;}
+.cp-item:hover,.cp-item:focus{background:var(--cream);outline:none;}
+.cp-item small{display:block;color:var(--muted);font-size:.68rem;margin-top:1px;}
+.cp-add{color:var(--green);font-weight:600;}
+.cp-addform{padding:.7rem .75rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:.75rem;color:var(--muted);}
+.cp-addform input{flex:1;min-width:90px;padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:.8rem;font-family:inherit;}
+.cp-addform button{background:var(--green);color:#fff;border:none;border-radius:7px;padding:7px 12px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.cp-picked{font-size:.68rem;color:var(--green);margin-top:3px;font-weight:600;}
+.svc-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:.6rem;}
+.svc-opt{display:flex;gap:.65rem;align-items:flex-start;border:1.5px solid var(--border);border-radius:10px;padding:.7rem .8rem;cursor:pointer;background:#fff;text-align:left;font-family:inherit;width:100%;}
+.svc-opt.sel{border-color:var(--green);background:#eaf4ef;}
+.svc-opt-icon{font-size:1.15rem;line-height:1.2;flex-shrink:0;}
+.svc-opt-title{display:block;font-size:.82rem;font-weight:700;color:var(--ink);}
+.svc-opt-sub{display:block;font-size:.7rem;color:var(--muted);margin-top:1px;line-height:1.4;}
+.loc-nudge{display:flex;align-items:center;gap:.7rem;background:#eaf4ef;border:1.5px solid #b9dccb;border-radius:11px;padding:.75rem .9rem;margin-bottom:1rem;}
+.loc-nudge-text{flex:1;font-size:.78rem;color:var(--ink);line-height:1.45;}
+.loc-nudge button{background:var(--green);color:#fff;border:none;border-radius:8px;padding:.5rem .8rem;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;}
+/* Admin bottom bar: scroll sideways on phones now that there are 10 tabs */
+.admin-botnav{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.admin-botnav .admin-btn{flex:1 0 auto;min-width:64px;}
 </style>
 <meta charset="UTF-8"/>
 <link rel="manifest" href="/manifest.json"/>
@@ -630,6 +655,7 @@ body.admin-mode{padding-bottom:0;}
     <div id="adm-tab-newsletter" class="admin-body hidden"></div>
     <div id="adm-tab-appeals" class="admin-body hidden"></div>
     <div id="adm-tab-audit" class="admin-body hidden"></div>
+    <div id="adm-tab-churches" class="admin-body hidden"></div>
 
     <div class="admin-botnav">
       <button class="admin-btn on" id="adm-btn-overview" onclick="switchAdminTab('overview')"><span class="admin-btn-icon">📊</span><span class="admin-btn-lbl">Overview</span></button>
@@ -640,6 +666,7 @@ body.admin-mode{padding-bottom:0;}
       <button class="admin-btn" id="adm-btn-sponsors" onclick="switchAdminTab('sponsors')"><span class="admin-btn-icon">📢</span><span class="admin-btn-lbl">Sponsors</span></button>
       <button class="admin-btn" id="adm-btn-newsletter" onclick="switchAdminTab('newsletter')"><span class="admin-btn-icon">📬</span><span class="admin-btn-lbl">Newsletter</span></button>
       <button class="admin-btn" id="adm-btn-appeals" onclick="switchAdminTab('appeals')"><span class="admin-btn-icon">⚖️</span><span class="admin-btn-lbl">Appeals</span><span class="admin-btn-cnt hidden" id="adm-cnt-appeals"></span></button>
+      <button class="admin-btn" id="adm-btn-churches" onclick="switchAdminTab('churches')"><span class="admin-btn-icon">⛪</span><span class="admin-btn-lbl">Churches</span></button>
       <button class="admin-btn" id="adm-btn-audit" onclick="switchAdminTab('audit')"><span class="admin-btn-icon">📋</span><span class="admin-btn-lbl">Audit</span></button>
     </div>
   </div>
@@ -826,7 +853,11 @@ body.admin-mode{padding-bottom:0;}
         <div class="form-group"><label class="lbl">Email <span class="req">*</span></label><input class="inp" type="email" id="bp-email" placeholder="hello@biz.com"/><div class="err-msg hidden" id="bp-email-err">Required</div></div>
       </div>
       <div class="form-group"><label class="lbl">Street Address <span class="req">*</span></label><input class="inp" id="bp-addr" placeholder="123 Main St, City, State"/><div class="err-msg hidden" id="bp-addr-err">Required</div></div>
-      <div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="bp-zip" placeholder="e.g. 90210" maxlength="10"/></div>
+      <div class="form-group"><label class="lbl">Business ZIP Code <span class="req">*</span></label><input class="inp" id="bp-zip" placeholder="e.g. 90210" maxlength="10"/><div class="hint-msg">Used to show your listing to members near you.</div><div class="err-msg hidden" id="bp-zip-err">Enter a valid 5-digit ZIP code</div></div>
+
+      <div class="section-div">🧭 How Do You Serve Customers?</div>
+      <div class="svc-opts" id="bp-svc-opts"></div>
+      <div class="form-group hidden" id="bp-radius-wrap"><label class="lbl">How far do you travel? (miles)</label><input class="inp" id="bp-radius" type="number" min="1" max="500" placeholder="e.g. 30" value="30"/><div class="hint-msg">Members within this distance of your ZIP will see you under "Serving your area."</div></div>
 
       <div class="section-div">🌐 Online Presence</div>
       <div class="form-group"><label class="lbl">Website</label><input class="inp" id="bp-web" placeholder="www.yourbiz.com"/><div class="hint-msg">Optional</div></div>
@@ -834,7 +865,7 @@ body.admin-mode{padding-bottom:0;}
       <div class="form-group"><label class="lbl">LinkedIn</label><input class="inp" id="bp-linkedin" placeholder="linkedin.com/company/yourbusiness"/><div class="hint-msg">Optional</div></div>
 
       <div class="section-div">✝️ Faith Affiliation</div>
-      <div class="form-group"><label class="lbl"><span class="info-wrap">Church / Faith Affiliation <span class="req">*</span> <button class="info-btn" type="button" onclick="toggleInfo(this)">?</button><span class="info-bubble">We collect your Church information to help identify your closest networking opportunities and make recommendations to individual members.</span></span></label><input class="inp" id="bp-church" placeholder="e.g. First Baptist Church"/><div class="hint-msg">Helps connect you with fellow congregation members.</div><div class="err-msg hidden" id="bp-church-err">Required</div></div>
+      <div class="form-group"><label class="lbl"><span class="info-wrap">Church / Faith Affiliation <span class="req">*</span> <button class="info-btn" type="button" onclick="toggleInfo(this)">?</button><span class="info-bubble">We collect your Church information to help identify your closest networking opportunities and make recommendations to individual members.</span></span></label><input class="inp" id="bp-church" placeholder="Start typing your church name…" autocomplete="off"/><div class="hint-msg">Pick your church from the list, or add it if it isn't there yet.</div><div class="err-msg hidden" id="bp-church-err">Required</div></div>
       <div class="form-group"><label class="lbl">Church ZIP Code <span class="req">*</span></label><input class="inp" id="bp-church-addr" placeholder="e.g. 80470" maxlength="10"/><div class="hint-msg">Used to match you with nearby congregation members.</div><div class="err-msg hidden" id="bp-church-addr-err">Required</div></div>
 
       <div class="section-div">🕐 Business Hours</div>
@@ -882,6 +913,7 @@ body.admin-mode{padding-bottom:0;}
         <div class="newsletter-sub">New listings, testimonials, prayer highlights & community events — delivered to your inbox every Monday.</div>
         <button class="newsletter-btn" onclick="openNewsletterModal()">📬 Read This Week's Edition →</button>
       </div>
+      <div id="loc-nudge"></div>
       <div class="church-filter-wrap">
         <span class="church-filter-label">⛪ Filter by Church:</span>
         <select class="church-filter-sel" id="church-filter" onchange="renderDirectory()">
@@ -959,6 +991,7 @@ body.admin-mode{padding-bottom:0;}
       <div class="page-sub">Individual Member</div>
       <div class="info-card"><div class="info-label">Profile</div><div class="info-val" id="acc-name"></div><div class="info-sub" id="acc-email"></div></div>
       <div class="info-card" style="background:#f0e4e0;border-color:#e8b4aa;"><div class="info-label" style="color:var(--red);">Membership</div><div class="info-sub" id="acc-plan"></div></div>
+      <div class="info-card" id="acc-location"></div>
       <div class="reward-bar"><div class="reward-icon">🤝</div><div><div class="reward-label">My Referrals</div><div class="reward-sub">Keep referring to earn your badge!</div></div><div class="reward-count" id="my-ref-count">0</div></div>
       <button class="btn btn-ink btn-mt" onclick="doSignOut()">Sign Out</button>
     </div>
