@@ -67,7 +67,26 @@ async function loadBusinesses() {
         testimonials: [],
       };
     });
+    // Load testimonials for all businesses in one pass
+    loadAllTestimonials();
   }
+}
+
+async function loadAllTestimonials() {
+  // Fetch testimonials for each business and attach to state
+  await Promise.all(state.businesses.map(async function(biz) {
+    try {
+      var data = await apiFetch('/api/testimonials?business_id=' + biz.id);
+      if(data.success && data.testimonials) {
+        biz.testimonials = data.testimonials.map(function(t){
+          return { author: t.author_name, text: t.text };
+        });
+      }
+    } catch(e) {}
+  }));
+  // Re-render directory so testimonials appear on cards
+  renderDirectory();
+  renderSaved();
 }
 
 // Load jobs from Supabase
@@ -1251,11 +1270,25 @@ function openRevModal(bizId){
 }
 function submitRev(bizId){
   var txt=document.getElementById('rev-text').value.trim();if(!txt)return;
-  var tm={author:state.user?state.user.name:'Member',text:txt};
-  var biz=state.businesses.find(b=>b.id===bizId);if(biz)biz.testimonials.push(tm);
-  if(state.myBiz&&state.myBiz.id===bizId)state.myBiz.testimonials.push(tm);
-  document.getElementById('revModalContent').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.55rem;">✍️</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:.35rem;">Word shared!</div><p style="font-size:.8rem;color:#7a7369;">Thank you! Your testimonial has been added.</p></div>';
-  setTimeout(function(){closeModal('revModal');renderDirectory();},2000);
+  var btn=document.querySelector('#revModalContent .btn-green');if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  apiFetch('/api/testimonials','POST',{
+    business_id: bizId,
+    author_name: state.user ? state.user.name : 'Member',
+    text: txt
+  }).then(function(data){
+    if(data.success){
+      // Update local state so card re-renders without a full reload
+      var tm={author:data.testimonial.author_name,text:data.testimonial.text};
+      var biz=state.businesses.find(b=>b.id===bizId);
+      if(biz){if(!biz.testimonials)biz.testimonials=[];biz.testimonials.unshift(tm);}
+      if(state.myBiz&&state.myBiz.id===bizId){if(!state.myBiz.testimonials)state.myBiz.testimonials=[];state.myBiz.testimonials.unshift(tm);}
+      document.getElementById('revModalContent').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.55rem;">✍️</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:.35rem;">Word shared!</div><p style="font-size:.8rem;color:#7a7369;">Thank you! Your testimonial has been added.</p></div>';
+      setTimeout(function(){closeModal('revModal');renderDirectory();},2000);
+    } else {
+      if(btn){btn.disabled=false;btn.textContent='Share →';}
+      alert(data.error||'Could not save testimonial. Please try again.');
+    }
+  });
 }
 
 // ═══════════════ DASHBOARD
@@ -1564,8 +1597,18 @@ function renderBizCommunity(){
 }
 
 function renderDashTestimonials(){
-  var tms=state.myBiz?state.myBiz.testimonials:[];
-  document.getElementById('dash-panel-testimonials').innerHTML='<div class="dash-card"><div class="dash-card-title">Testimonials ('+tms.length+')</div>'+(tms.length?tms.map(t=>'<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+t.text+'"</div><div class="testimonial-author">— '+t.author+'</div></div>').join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet.</p>')+'</div>';
+  var panel=document.getElementById('dash-panel-testimonials');
+  panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Testimonials</div><p style="font-size:.82rem;color:var(--muted);">Loading…</p></div>';
+  if(!state.myBiz){panel.innerHTML='<div class="dash-card"><p style="font-size:.82rem;color:var(--muted);">No business listing found.</p></div>';return;}
+  apiFetch('/api/testimonials?business_id='+state.myBiz.id).then(function(data){
+    var tms=[];
+    if(data.success&&data.testimonials){
+      tms=data.testimonials;
+      // Sync back to local state
+      state.myBiz.testimonials=tms.map(function(t){return{author:t.author_name,text:t.text};});
+    }
+    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Testimonials ('+tms.length+')</div>'+(tms.length?tms.map(t=>'<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+t.text+'"</div><div class="testimonial-author">— '+t.author_name+'</div></div>').join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet. Members can tap ✍️ Testify on your listing to leave one.</p>')+'</div>';
+  });
 }
 function renderDashMessages(){
   var panel=document.getElementById('dash-panel-messages');if(!panel)return;
