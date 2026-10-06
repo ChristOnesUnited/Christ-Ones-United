@@ -2917,3 +2917,50 @@ function doSignOut(){
   } catch(e){}
   showScreen('screen-landing');
 }
+
+// ═══════════════ INSTALL BANNER
+(function(){
+  // Only show on mobile, only once, only if not already installed
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isAndroid = /android/i.test(navigator.userAgent);
+  var isMobile = isIOS || isAndroid;
+  var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+
+  if(!isMobile || isStandalone) return;
+
+  try { if(localStorage.getItem('cou_install_dismissed')) return; } catch(e){ return; }
+
+  var instructions = isIOS
+    ? 'Tap the <strong>Share</strong> button (□↑) at the bottom of Safari, then choose <strong>"Add to Home Screen"</strong>.'
+    : 'Tap the <strong>three-dot menu</strong> (⋮) in Chrome, then choose <strong>"Add to Home Screen"</strong>.';
+
+  function showInstallBanner(){
+    if(document.getElementById('cou-install-banner')) return;
+    var banner = document.createElement('div');
+    banner.id = 'cou-install-banner';
+    banner.style.cssText = [
+      'position:fixed','bottom:0','left:0','right:0','z-index:9999',
+      'background:#1a2a5e','color:#fff',
+      'padding:.875rem 1rem','display:flex','align-items:flex-start','gap:.75rem',
+      'box-shadow:0 -4px 24px rgba(0,0,0,.18)',
+      'font-family:DM Sans,sans-serif','font-size:.78rem','line-height:1.45'
+    ].join(';');
+    banner.innerHTML =
+      '<img src="/icon-192.png" style="width:40px;height:40px;border-radius:9px;flex-shrink:0;margin-top:2px;" onerror="this.style.display=\'none\'"/>'+
+      '<div style="flex:1;">'+
+        '<div style="font-weight:700;font-size:.84rem;margin-bottom:.2rem;">Add to Home Screen</div>'+
+        '<div style="color:rgba(255,255,255,.82);">'+instructions+'</div>'+
+      '</div>'+
+      '<button onclick="dismissInstallBanner()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:1.2rem;cursor:pointer;padding:0 0 0 .5rem;flex-shrink:0;line-height:1;">✕</button>';
+    document.body.appendChild(banner);
+  }
+
+  window.dismissInstallBanner = function(){
+    var b = document.getElementById('cou-install-banner');
+    if(b) b.remove();
+    try { localStorage.setItem('cou_install_dismissed','1'); } catch(e){}
+  };
+
+  // Wait until the landing screen is visible before showing
+  setTimeout(showInstallBanner, 2500);
+})();
