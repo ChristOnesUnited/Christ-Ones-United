@@ -37,10 +37,18 @@ async function apiFetch(path, method, body) {
   }
 }
 
-// Load businesses from Supabase
-async function loadBusinesses() {
-  var data = await apiFetch('/api/businesses');
+// Load businesses from Supabase.
+// opts.query overrides the location part of the URL; opts.keepTestimonials reuses
+// testimonials already loaded (used when only the location changed).
+// Returns true when this load's results were applied.
+async function loadBusinesses(opts) {
+  opts = opts || {};
+  var mySeq = state.bizLoadSeq = (state.bizLoadSeq || 0) + 1;
+  var data = await apiFetch('/api/businesses'+(opts.query!==undefined?opts.query:dirLocQuery()));
+  if(mySeq !== state.bizLoadSeq) return false; // a newer request has started — ignore this one
   if(data.success && data.businesses) {
+    var oldTms = {};
+    (state.businesses||[]).forEach(function(b){ if(b.testimonials&&b.testimonials.length) oldTms[b.id]=b.testimonials; });
     state.businesses = data.businesses.map(function(b) {
       return {
         id: b.id,
@@ -60,6 +68,8 @@ async function loadBusinesses() {
         lat: b.lat, lng: b.lng,
         service_type: b.service_type || 'storefront',
         service_radius: b.service_radius || null,
+        distance_mi: (b.distance_mi===undefined?null:b.distance_mi),
+        serves_area: !!b.serves_area,
         hours: b.hours || {},
         tags: b.tags ? b.tags.split(',').map(t=>t.trim()).filter(Boolean) : [],
         featured: b.featured || false,
@@ -68,12 +78,14 @@ async function loadBusinesses() {
         joinedDate: new Date(b.created_at),
         views: b.views || 0,
         referrals: [],
-        testimonials: [],
+        testimonials: (opts.keepTestimonials && oldTms[b.id]) || [],
       };
     });
     // Load testimonials for all businesses in one pass
-    loadAllTestimonials();
+    if(!opts.keepTestimonials) loadAllTestimonials();
+    return true;
   }
+  return false;
 }
 
 async function loadAllTestimonials() {
@@ -795,6 +807,7 @@ function enterDirectory(){
   updateNotifUI();
   showScreen('screen-directory');
   switchDirTab('home');
+  state.showAllMore=false;
   renderLocNudge();
   // Load sponsors for banner
   loadSponsors();
@@ -830,20 +843,14 @@ function renderCatChips(){
 function renderFeatured(){
   var featured=state.businesses.filter(b=>b.featured&&b.approved);
   var strip=document.getElementById('feat-strip');
+  state.featuredShown=featured.length>0;
   if(!featured.length){strip.classList.add('hidden');return;}
   strip.classList.remove('hidden');
   document.getElementById('feat-row').innerHTML=featured.map(b=>'<div class="feat-card"><div class="feat-name">'+b.name+'</div><div class="feat-cat">'+b.category+'</div></div>').join('');
 }
 function renderDirectory(){
-  var q=(document.getElementById('dir-search').value||'').toLowerCase();
+  var q=(document.getElementById('dir-search').value||'').toLowerCase().trim();
   var cf=document.getElementById('church-filter').value;
-  var userChurch=state.user?state.user.church:'';
-  var userChurchId=state.user?state.user.church_id:null;
-  var userZip=state.user?state.user.zip||'':'';
-  function sameChurch(b){
-    if(userChurchId&&b.church_id)return String(b.church_id)===String(userChurchId);
-    return !!(userChurch&&b.church&&b.church.toLowerCase()===userChurch.toLowerCase());
-  }
 
   var filtered=state.businesses.filter(function(b){
     if(!b.approved)return false;
@@ -851,46 +858,66 @@ function renderDirectory(){
     var cc=!cf||b.church===cf;
     return mc&&cc&&(!q||b.name.toLowerCase().includes(q)||b.description.toLowerCase().includes(q)||b.category.toLowerCase().includes(q)||b.tags.some(t=>t.toLowerCase().includes(q)));
   });
+  filtered.sort(compareBizRelevance);
 
-  // ── SMART SORT: same church first, then local (same ZIP prefix), then rest
-  if(!q && !cf && state.activeCat==='All' && userChurch){
-    filtered.sort(function(a, b){
-      // Tier 1: Same church as the user
-      var aChurch = sameChurch(a);
-      var bChurch = sameChurch(b);
-      if(aChurch && !bChurch) return -1;
-      if(!aChurch && bChurch) return 1;
+  renderLocBar();
+  var grid=document.getElementById('biz-grid');
+  var browsing=!q&&!cf&&state.activeCat==='All';
+  document.getElementById('feat-strip').classList[browsing?'remove':'add']('hidden');
+  if(browsing&&!state.featuredShown)document.getElementById('feat-strip').classList.add('hidden');
 
-      // Tier 2: Same ZIP prefix (first 3 digits = same general area)
-      var userZipPre = userZip ? userZip.substring(0,3) : '';
-      var aLocal = userZipPre && a.zip && a.zip.substring(0,3)===userZipPre;
-      var bLocal = userZipPre && b.zip && b.zip.substring(0,3)===userZipPre;
-      if(aLocal && !bLocal) return -1;
-      if(!aLocal && bLocal) return 1;
-
-      // Tier 3: Featured businesses
-      if(a.featured && !b.featured) return -1;
-      if(!a.featured && b.featured) return 1;
-
-      // Tier 4: Newest first
-      return new Date(b.joinedDate)-new Date(a.joinedDate);
-    });
+  if(!filtered.length){
+    document.getElementById('result-meta').innerHTML='Showing <strong>0</strong> results'+(q?' for "<strong>'+escHtml(q)+'</strong>"':'');
+    grid.innerHTML='<div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-title">No results found</div><p>Try a different search or filter.</p></div>';
+    return;
   }
 
-  document.getElementById('result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> result'+(filtered.length!==1?'s':'')+(q?' for "<strong>'+q+'</strong>"':'')+(state.activeCat!=='All'?' in <strong>'+state.activeCat+'</strong>':'')+(cf?' · <strong>'+cf+'</strong>':'')+(userChurch&&!q&&!cf&&state.activeCat==='All'?'<span style="font-size:.72rem;color:var(--green);margin-left:6px;">✝ Sorted by your church</span>':'');
-  var grid=document.getElementById('biz-grid');
-  if(!filtered.length){grid.innerHTML='<div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-title">No results found</div><p>Try a different search or filter.</p></div>';return;}
-  grid.innerHTML='';filtered.forEach(function(b){grid.appendChild(makeBizCard(b));});
-  document.getElementById('feat-strip').classList[q||state.activeCat!=='All'||cf?'add':'remove']('hidden');
+  // Searching or filtering: one list, ranked church → your area → nationwide → everything else
+  if(!browsing){
+    document.getElementById('result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> result'+(filtered.length!==1?'s':'')+(q?' for "<strong>'+escHtml(q)+'</strong>"':'')+(state.activeCat!=='All'?' in <strong>'+escHtml(state.activeCat)+'</strong>':'')+(cf?' · <strong>'+escHtml(cf)+'</strong>':'')+(hasDirLocation()||myChurchSet()?'<span style="font-size:.72rem;color:var(--green);margin-left:6px;">✝ Most relevant to you first</span>':'');
+    grid.innerHTML='';filtered.forEach(function(b){grid.appendChild(makeBizCard(b));});
+    return;
+  }
+
+  // Browsing: sections
+  var groups=[[],[],[],[]];
+  filtered.forEach(function(b){groups[bizTier(b)].push(b);});
+  var churchName=(state.user&&state.user.church)||'Your Church';
+  var hasLoc=state.businesses.some(function(b){return b.distance_mi!=null;});
+  var secs=[
+    {i:0,title:'✝ From '+churchName,sub:'Businesses run by members of your church'},
+    {i:1,title:'📍 Serving Your Area',sub:'Businesses that serve '+dirLocLabel()},
+    {i:2,title:'🇺🇸 Nationally Available Services',sub:'Products and services available anywhere in the U.S.'},
+    {i:3,title:(hasLoc||myChurchSet())?'More Businesses':'All Businesses',sub:hasLoc?'Outside your area, closest first':'Newest first'}
+  ];
+  document.getElementById('result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> listing'+(filtered.length!==1?'s':'');
+  grid.innerHTML='';
+  secs.forEach(function(sec){
+    var list=groups[sec.i];
+    if(!list.length){
+      if(sec.i===1&&hasLoc)grid.appendChild(feedHeader(sec,'No businesses serve your area yet. Know one? Invite them to join!'));
+      return;
+    }
+    grid.appendChild(feedHeader(sec));
+    var limit=(sec.i===3&&(hasLoc||myChurchSet())&&!state.showAllMore)?6:list.length;
+    list.slice(0,limit).forEach(function(b){grid.appendChild(makeBizCard(b));});
+    if(list.length>limit){
+      var more=document.createElement('button');more.className='feed-more';
+      more.textContent='Show all '+list.length+' businesses';
+      more.onclick=function(){state.showAllMore=true;renderDirectory();};
+      grid.appendChild(more);
+    }
+  });
 }
 function makeBizCard(b){
   var color=CAT_COLORS[b.category]||'#6b7280',saved=state.savedIds.includes(b.id),ntw=isNewThisWeek(b),hrs=todayHours(b);
   var div=document.createElement('div');div.className='biz-card'+(b.featured?' featured':'')+(ntw?' new-this-week':'');
   var badges='';if(b.verified)badges+='<span class="biz-verified">✓ Verified</span>';if(ntw)badges+='<span class="biz-new">🆕 New This Week</span>';
   var hoursHtml=hrs?'<div class="biz-hours'+(hrs==='Closed'?' closed':'')+'">⏰ Today: '+hrs+'</div>':'';
+  var reachHtml=bizReachHtml(b);
   var metaHtml='<div class="biz-meta"><div class="biz-meta-row">📍 '+b.address+'</div><div class="biz-meta-row">📞 '+b.phone+'</div>'+(b.website?'<div class="biz-meta-row">🌐 <a href="https://'+b.website+'" target="_blank">'+b.website+'</a></div>':'')+(b.facebook?'<div class="biz-meta-row">👥 <a href="https://'+b.facebook+'" target="_blank">'+b.facebook+'</a></div>':'')+(b.linkedin?'<div class="biz-meta-row">💼 <a href="https://'+b.linkedin+'" target="_blank">'+b.linkedin+'</a></div>':'')+'<div class="biz-meta-row">✉️ '+b.email+'</div></div>';
   var tmsHtml=b.testimonials&&b.testimonials.length?'<div class="testimonials">'+b.testimonials.slice(0,2).map(t=>'<div class="testimonial"><div class="testimonial-text">"'+t.text+'"</div><div class="testimonial-author">— '+t.author+'</div></div>').join('')+'</div>':'';
-  div.innerHTML='<div class="biz-topbar" style="background:'+color+'"></div><div class="biz-head"><div class="biz-name">'+b.name+'</div><span class="biz-cat-badge" style="background:'+color+'1a;color:'+color+'">'+b.category+'</span></div>'+(badges?'<div class="biz-badges">'+badges+'</div>':'')+hoursHtml+'<p class="biz-desc">'+b.description+'</p>'+metaHtml+(b.tags&&b.tags.length?'<div class="biz-tags">'+b.tags.map(t=>'<span class="biz-tag">'+t+'</span>').join('')+'</div>':'')+tmsHtml+'<div class="biz-actions"><button class="biz-btn biz-btn-save'+(saved?' saved':'')+'" onclick="toggleSave(\''+b.id+'\')">'+(saved?'♥ Saved':'♡ Save')+'</button><button class="biz-btn biz-btn-ref" onclick="openRefModal(\''+b.id+'\')">🤝 Refer</button><button class="biz-btn biz-btn-testify" onclick="openRevModal(\''+b.id+'\')">✍️ Testify</button><button class="biz-btn biz-btn-msg" onclick="openMsgModal(\''+b.id+'\')">💬 Message</button></div>';
+  div.innerHTML='<div class="biz-topbar" style="background:'+color+'"></div><div class="biz-head"><div class="biz-name">'+b.name+'</div><span class="biz-cat-badge" style="background:'+color+'1a;color:'+color+'">'+b.category+'</span></div>'+(badges?'<div class="biz-badges">'+badges+'</div>':'')+reachHtml+hoursHtml+'<p class="biz-desc">'+b.description+'</p>'+metaHtml+(b.tags&&b.tags.length?'<div class="biz-tags">'+b.tags.map(t=>'<span class="biz-tag">'+t+'</span>').join('')+'</div>':'')+tmsHtml+'<div class="biz-actions"><button class="biz-btn biz-btn-save'+(saved?' saved':'')+'" onclick="toggleSave(\''+b.id+'\')">'+(saved?'♥ Saved':'♡ Save')+'</button><button class="biz-btn biz-btn-ref" onclick="openRefModal(\''+b.id+'\')">🤝 Refer</button><button class="biz-btn biz-btn-testify" onclick="openRevModal(\''+b.id+'\')">✍️ Testify</button><button class="biz-btn biz-btn-msg" onclick="openMsgModal(\''+b.id+'\')">💬 Message</button></div>';
   return div;
 }
 function toggleSave(id){var i=state.savedIds.indexOf(id);if(i>-1)state.savedIds.splice(i,1);else state.savedIds.push(id);renderDirectory();renderSaved();updateSavedCount();}
@@ -900,7 +927,7 @@ function renderSaved(){
   grid.innerHTML=saved.length?'':('<div class="empty-state"><div class="empty-icon">♡</div><div class="empty-title">Nothing saved yet</div><p>Tap ♡ Save on any card.</p></div>');
   saved.forEach(function(b){grid.appendChild(makeBizCard(b));});
 }
-function updateSavedCount(){var cnt=document.getElementById('saved-cnt');if(state.savedIds.length>0){cnt.textContent=state.savedIds.length;cnt.classList.remove('hidden');}else cnt.classList.add('hidden');}
+function updateSavedCount(){var cnt=document.getElementById('saved-cnt');if(!cnt)return;if(state.savedIds.length>0){cnt.textContent=state.savedIds.length;cnt.classList.remove('hidden');}else cnt.classList.add('hidden');}
 function switchDirTab(tab){
   ['home','saved','community','messages','jobs','account'].forEach(function(t){
     var panel=document.getElementById('dir-tab-'+t);
@@ -3012,7 +3039,7 @@ function disbandGuild(){
 // ═══════════════ SIGN OUT
 function doSignOut(){
   state.user=null;state.profileType=null;state.plan=null;state.faithAnswer=null;
-  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;
+  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.geoLoading=false;state.showAllMore=false;
   // Clear saved session
   try {
     localStorage.removeItem('cou_user');
@@ -3114,6 +3141,96 @@ function runAdminLocationCleanup(){
     renderAdminChurches();
   });
 }
+
+// ═══════════════ DIRECTORY RELEVANCE (church → your area → nationwide → rest)
+function myChurchSet(){return !!(state.user&&(state.user.church_id||state.user.church));}
+function isMyChurch(b){
+  if(!state.user)return false;
+  if(state.user.church_id&&b.church_id)return String(b.church_id)===String(state.user.church_id);
+  return !!(state.user.church&&b.church&&b.church.toLowerCase()===state.user.church.toLowerCase());
+}
+function hasDirLocation(){return !!((state.geo&&state.geo.lat!=null)||(state.user&&state.user.zip));}
+function dirLocQuery(){
+  if(state.geo&&state.geo.lat!=null)return '?lat='+state.geo.lat+'&lng='+state.geo.lng;
+  if(state.user&&state.user.zip)return '?zip='+encodeURIComponent(state.user.zip);
+  return '';
+}
+function dirLocLabel(){
+  if(state.geo&&state.geo.lat!=null)return 'your current location';
+  if(state.user&&state.user.zip)return 'ZIP '+state.user.zip;
+  return 'your area';
+}
+// 0 = your church, 1 = serves your area, 2 = nationally available, 3 = everything else
+function bizTier(b){
+  if(isMyChurch(b))return 0;
+  if(b.serves_area)return 1;
+  if(b.service_type==='national')return 2;
+  return 3;
+}
+function compareBizRelevance(a,b){
+  var ta=bizTier(a),t=ta-bizTier(b);if(t)return t;
+  var feat=(a.featured&&!b.featured)?-1:((!a.featured&&b.featured)?1:0);
+  var da=a.distance_mi,db=b.distance_mi;
+  var near=0;
+  if(da!=null&&db!=null&&da!==db)near=da-db;
+  else if(da!=null&&db==null)near=-1;
+  else if(da==null&&db!=null)near=1;
+  // Your area / more businesses: closest first. Your church / nationwide: featured first.
+  if(ta===1||ta===3){if(near)return near;if(feat)return feat;}
+  else{if(feat)return feat;if(near)return near;}
+  return (new Date(b.joinedDate)-new Date(a.joinedDate))||0;
+}
+function bizReachHtml(b){
+  var parts=[];
+  if(isMyChurch(b))parts.push('<span class="mine">✝ Your church</span>');
+  var d=b.distance_mi;
+  if(b.service_type==='national')parts.push('<span class="nat">🇺🇸 Available nationwide</span>');
+  else if(b.serves_area&&b.service_type==='service_area')parts.push('<span class="area">🚐 Serves your area'+(d!=null?' · '+d+' mi':'')+'</span>');
+  else if(d!=null)parts.push('<span'+(b.serves_area?' class="area"':'')+'>📍 '+d+' mi away</span>');
+  return parts.length?'<div class="biz-reach">'+parts.join('')+'</div>':'';
+}
+function feedHeader(sec,emptyNote){
+  var h=document.createElement('div');h.className='feed-sec';
+  h.innerHTML='<div class="feed-sec-title">'+escHtml(sec.title)+'</div><div class="feed-sec-sub">'+escHtml(emptyNote||sec.sub)+'</div>';
+  return h;
+}
+function renderLocBar(){
+  var el=document.getElementById('loc-bar');if(!el)return;
+  if(state.geoLoading){el.innerHTML='<div class="loc-bar">📍 Finding your location…</div>';return;}
+  if(state.geo&&state.geo.lat!=null){
+    el.innerHTML='<div class="loc-bar">📍 Showing businesses near <strong>your current location</strong>'+(state.user&&state.user.zip?' <button onclick="useMyZip()">Use ZIP '+escHtml(state.user.zip)+' instead</button>':'')+'</div>';
+  } else if(state.user&&state.user.zip){
+    el.innerHTML='<div class="loc-bar">📍 Showing businesses near <strong>ZIP '+escHtml(state.user.zip)+'</strong> <button onclick="useMyLocation()">Use my current location</button></div>';
+  } else {
+    el.innerHTML='<div class="loc-bar"><button onclick="useMyLocation()">📍 Use my current location</button></div>';
+  }
+}
+function reloadDirectory(query){
+  state.showAllMore=false;
+  return loadBusinesses({keepTestimonials:true,query:query}).then(function(ok){
+    if(ok){populateChurchFilter();renderDirectory();renderSaved();}
+    return ok;
+  });
+}
+// Uses the phone's location for this visit only — it is never saved
+function useMyLocation(){
+  if(!navigator.geolocation){alert('Location isn\'t available on this device. Add your ZIP code on the Account tab instead.');return;}
+  state.geoLoading=true;renderLocBar();
+  navigator.geolocation.getCurrentPosition(function(pos){
+    if(!state.geoLoading||!state.user)return; // signed out while waiting
+    var geo={lat:Math.round(pos.coords.latitude*1000)/1000,lng:Math.round(pos.coords.longitude*1000)/1000};
+    reloadDirectory('?lat='+geo.lat+'&lng='+geo.lng).then(function(ok){
+      state.geoLoading=false;
+      if(ok){state.geo=geo;renderDirectory();}
+      else{renderLocBar();alert('We couldn\'t load businesses near you. Please try again.');}
+    });
+  },function(err){
+    if(!state.geoLoading)return;
+    state.geoLoading=false;renderLocBar();
+    alert(err&&err.code===1?'Location permission was turned off. You can allow it in your browser settings, or add your ZIP code on the Account tab.':'We couldn\'t get your location. Please try again, or add your ZIP code on the Account tab.');
+  },{timeout:10000,maximumAge:600000});
+}
+function useMyZip(){state.geo=null;state.geoLoading=false;reloadDirectory();}
 
 // ═══════════════ CHURCH PICKER & LOCATION
 function escHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -3236,7 +3353,7 @@ function saveMyLocation(){
     try{localStorage.setItem('cou_user',JSON.stringify(state.user));}catch(e){}
     msg.style.color='var(--green)';msg.textContent='✓ Saved. Your directory now shows your church first.';
     renderLocNudge();
-    renderDirectory();
+    reloadDirectory();
   });
 }
 // Home tab prompt for members who haven't set their church or ZIP yet

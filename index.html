@@ -30,6 +30,19 @@
 .loc-nudge{display:flex;align-items:center;gap:.7rem;background:#eaf4ef;border:1.5px solid #b9dccb;border-radius:11px;padding:.75rem .9rem;margin-bottom:1rem;}
 .loc-nudge-text{flex:1;font-size:.78rem;color:var(--ink);line-height:1.45;}
 .loc-nudge button{background:var(--green);color:#fff;border:none;border-radius:8px;padding:.5rem .8rem;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;}
+/* ── Home feed sections (Phase 2) */
+.feed-sec{grid-column:1/-1;margin:.6rem 0 -.2rem;padding-top:.4rem;}
+.feed-sec:first-child{margin-top:0;padding-top:0;}
+.feed-sec-title{font-family:'Playfair Display',serif;font-size:1.08rem;font-weight:700;color:var(--ink);}
+.feed-sec-sub{font-size:.74rem;color:var(--muted);margin-top:2px;}
+.feed-more{grid-column:1/-1;justify-self:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:.55rem 1.1rem;font-size:.78rem;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;}
+.biz-reach{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.7rem;font-weight:600;color:var(--muted);margin-bottom:.45rem;}
+.biz-reach .mine{color:var(--green);}
+.biz-reach .area{color:#2d6a9f;}
+.biz-reach .nat{color:#8a5a00;}
+.loc-bar{font-size:.76rem;color:var(--muted);margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.loc-bar strong{color:var(--ink);}
+.loc-bar button{background:none;border:1.5px solid var(--border);border-radius:20px;padding:4px 11px;font-size:.72rem;font-weight:600;color:var(--green);cursor:pointer;font-family:inherit;}
 /* Admin bottom bar: scroll sideways on phones now that there are 10 tabs */
 .admin-botnav{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .admin-botnav .admin-btn{flex:1 0 auto;min-width:64px;}
@@ -913,6 +926,7 @@ body.admin-mode{padding-bottom:0;}
         <div class="newsletter-sub">New listings, testimonials, prayer highlights & community events — delivered to your inbox every Monday.</div>
         <button class="newsletter-btn" onclick="openNewsletterModal()">📬 Read This Week's Edition →</button>
       </div>
+      <div id="loc-bar"></div>
       <div id="loc-nudge"></div>
       <div class="church-filter-wrap">
         <span class="church-filter-label">⛪ Filter by Church:</span>
