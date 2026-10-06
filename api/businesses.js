@@ -1,5 +1,5 @@
 const supabase = require('./supabase');
-const { lookupZip, cleanServiceType, cleanRadius } = require('./_lib/geo');
+const { lookupZip, distanceMiles, cleanServiceType, cleanRadius, DEFAULT_STOREFRONT_RADIUS } = require('./_lib/geo');
 const { findOrCreateChurch } = require('./_lib/church-store');
 
 // Resolves church_id: uses the picked church, or finds/creates one from name + church ZIP.
@@ -55,6 +55,22 @@ module.exports = async (req, res) => {
       console.log(`Businesses found: ${data ? data.length : 0}`);
       // Owner ids are only returned when looking up a specific owner's own listings
       const rows = (data || []).map(b => { if (user_id) return b; const { user_id: _omit, ...rest } = b; return rest; });
+
+      // Optional viewer location (?zip=80202 or ?lat=..&lng=..): add distance and whether
+      // the business serves that spot. The viewer's location is not stored.
+      let here = null;
+      const qLat = parseFloat(req.query && req.query.lat), qLng = parseFloat(req.query && req.query.lng);
+      if (!isNaN(qLat) && !isNaN(qLng) && Math.abs(qLat) <= 90 && Math.abs(qLng) <= 180) here = { lat: qLat, lng: qLng };
+      else if (req.query && req.query.zip) here = lookupZip(req.query.zip);
+      if (here) {
+        rows.forEach(b => {
+          const d = distanceMiles(here.lat, here.lng, b.lat, b.lng);
+          b.distance_mi = d === null ? null : Math.round(d * 10) / 10;
+          const type = b.service_type || 'storefront';
+          const radius = b.service_radius || DEFAULT_STOREFRONT_RADIUS;
+          b.serves_area = type !== 'national' && d !== null && d <= radius;
+        });
+      }
       return res.status(200).json({ success: true, businesses: rows });
     } catch (err) {
       console.error('GET businesses error:', err.message);
