@@ -166,6 +166,7 @@ async function saveNewsletterToAPI(email, name) {
 }
 
 // ═══════════════ UTILS
+function escapeHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
 function toggleInfo(btn){
   var isActive=btn.classList.contains('active');
@@ -864,7 +865,7 @@ function makeBizCard(b){
   var badges='';if(b.verified)badges+='<span class="biz-verified">✓ Verified</span>';if(ntw)badges+='<span class="biz-new">🆕 New This Week</span>';
   var hoursHtml=hrs?'<div class="biz-hours'+(hrs==='Closed'?' closed':'')+'">⏰ Today: '+hrs+'</div>':'';
   var metaHtml='<div class="biz-meta"><div class="biz-meta-row">📍 '+b.address+'</div><div class="biz-meta-row">📞 '+b.phone+'</div>'+(b.website?'<div class="biz-meta-row">🌐 <a href="https://'+b.website+'" target="_blank">'+b.website+'</a></div>':'')+(b.facebook?'<div class="biz-meta-row">👥 <a href="https://'+b.facebook+'" target="_blank">'+b.facebook+'</a></div>':'')+(b.linkedin?'<div class="biz-meta-row">💼 <a href="https://'+b.linkedin+'" target="_blank">'+b.linkedin+'</a></div>':'')+'<div class="biz-meta-row">✉️ '+b.email+'</div></div>';
-  var tmsHtml=b.testimonials&&b.testimonials.length?'<div class="testimonials">'+b.testimonials.slice(0,2).map(t=>'<div class="testimonial"><div class="testimonial-text">"'+t.text+'"</div><div class="testimonial-author">— '+t.author+'</div></div>').join('')+'</div>':'';
+  var tmsHtml=b.testimonials&&b.testimonials.length?'<div class="testimonials">'+b.testimonials.slice(0,2).map(t=>'<div class="testimonial"><div class="testimonial-text">"'+escapeHtml(t.text)+'"</div><div class="testimonial-author">— '+escapeHtml(t.author)+'</div></div>').join('')+'</div>':'';
   div.innerHTML='<div class="biz-topbar" style="background:'+color+'"></div><div class="biz-head"><div class="biz-name">'+b.name+'</div><span class="biz-cat-badge" style="background:'+color+'1a;color:'+color+'">'+b.category+'</span></div>'+(badges?'<div class="biz-badges">'+badges+'</div>':'')+hoursHtml+'<p class="biz-desc">'+b.description+'</p>'+metaHtml+(b.tags&&b.tags.length?'<div class="biz-tags">'+b.tags.map(t=>'<span class="biz-tag">'+t+'</span>').join('')+'</div>':'')+tmsHtml+'<div class="biz-actions"><button class="biz-btn biz-btn-save'+(saved?' saved':'')+'" onclick="toggleSave(\''+b.id+'\')">'+(saved?'♥ Saved':'♡ Save')+'</button><button class="biz-btn biz-btn-ref" onclick="openRefModal(\''+b.id+'\')">🤝 Refer</button><button class="biz-btn biz-btn-testify" onclick="openRevModal(\''+b.id+'\')">✍️ Testify</button><button class="biz-btn biz-btn-msg" onclick="openMsgModal(\''+b.id+'\')">💬 Message</button></div>';
   return div;
 }
@@ -1242,7 +1243,7 @@ function renderMessages(role){
 
 // ═══════════════ REF / REVIEW MODALS
 function openRefModal(bizId){
-  var biz=state.businesses.find(b=>b.id===bizId);if(!biz)return;
+  var biz=state.businesses.find(b=>String(b.id)===String(bizId));if(!biz)return;
   document.getElementById('refModalContent').innerHTML='<div class="modal-icon">🤝</div><div class="modal-title">Share a Referral</div><div class="modal-for">Referring someone to <strong>'+biz.name+'</strong></div><div class="form-group"><label class="lbl">Name</label><input class="inp" id="ref-name" placeholder="Referral\'s full name"/></div><div class="form-group"><label class="lbl">Phone #</label><input class="inp" type="tel" id="ref-phone" placeholder="(555) 000-0000"/></div><div class="form-group"><label class="lbl">Email</label><input class="inp" type="email" id="ref-email" placeholder="their@email.com"/></div><div class="form-group"><label class="lbl">Current Need</label><textarea class="inp" id="ref-need" placeholder="What are they looking for?"></textarea></div><div class="form-group"><label class="lbl">Faith Status</label><select class="inp" id="ref-faith"><option value="">Select…</option><option>Believer</option><option>Exploring faith</option><option>Not yet a believer</option><option>Prefer not to say</option></select></div><button class="btn btn-red btn-mt" onclick="submitRef(\''+bizId+'\')">Send Referral →</button>';
   document.getElementById('refModal').classList.add('open');
 }
@@ -1250,8 +1251,8 @@ function submitRef(bizId){
   var name=document.getElementById('ref-name').value.trim(),phone=document.getElementById('ref-phone').value.trim();
   if(!name||!phone){alert('Name and phone are required.');return;}
   var ref={name:name,phone:phone,email:document.getElementById('ref-email').value,need:document.getElementById('ref-need').value,faith:document.getElementById('ref-faith').value,time:'Just now'};
-  var biz=state.businesses.find(b=>b.id===bizId);if(biz)biz.referrals.unshift(ref);
-  if(state.myBiz&&state.myBiz.id===bizId)state.myBiz.referrals.unshift(ref);
+  var biz=state.businesses.find(b=>String(b.id)===String(bizId));if(biz)biz.referrals.unshift(ref);
+  if(state.myBiz&&String(state.myBiz.id)===String(bizId))state.myBiz.referrals.unshift(ref);
   state.myReferralCount++;
   document.getElementById('my-ref-count').textContent=state.myReferralCount;
   var me=state.leaderboard.find(l=>l.name===state.user.name);
@@ -1264,7 +1265,7 @@ function submitRef(bizId){
   setTimeout(function(){closeModal('refModal');},2000);
 }
 function openRevModal(bizId){
-  var biz=state.businesses.find(b=>b.id===bizId);if(!biz)return;
+  var biz=state.businesses.find(b=>String(b.id)===String(bizId));if(!biz)return;
   document.getElementById('revModalContent').innerHTML='<div class="modal-icon">✍️</div><div class="modal-title">Leave a Word</div><div class="modal-for">Share your experience with <strong>'+biz.name+'</strong></div><div class="form-group"><label class="lbl">Your testimonial (1–3 sentences)</label><textarea class="inp" id="rev-text" style="min-height:80px;" placeholder="Share how this business has blessed you…"></textarea></div><button class="btn btn-green btn-mt" onclick="submitRev(\''+bizId+'\')">Share →</button>';
   document.getElementById('revModal').classList.add('open');
 }
@@ -1279,9 +1280,9 @@ function submitRev(bizId){
     if(data.success){
       // Update local state so card re-renders without a full reload
       var tm={author:data.testimonial.author_name,text:data.testimonial.text};
-      var biz=state.businesses.find(b=>b.id===bizId);
+      var biz=state.businesses.find(b=>String(b.id)===String(bizId));
       if(biz){if(!biz.testimonials)biz.testimonials=[];biz.testimonials.unshift(tm);}
-      if(state.myBiz&&state.myBiz.id===bizId){if(!state.myBiz.testimonials)state.myBiz.testimonials=[];state.myBiz.testimonials.unshift(tm);}
+      if(state.myBiz&&String(state.myBiz.id)===String(bizId)){if(!state.myBiz.testimonials)state.myBiz.testimonials=[];state.myBiz.testimonials.unshift(tm);}
       document.getElementById('revModalContent').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.55rem;">✍️</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:.35rem;">Word shared!</div><p style="font-size:.8rem;color:#7a7369;">Thank you! Your testimonial has been added.</p></div>';
       setTimeout(function(){closeModal('revModal');renderDirectory();},2000);
     } else {
@@ -1607,7 +1608,7 @@ function renderDashTestimonials(){
       // Sync back to local state
       state.myBiz.testimonials=tms.map(function(t){return{author:t.author_name,text:t.text};});
     }
-    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Testimonials ('+tms.length+')</div>'+(tms.length?tms.map(t=>'<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+t.text+'"</div><div class="testimonial-author">— '+t.author_name+'</div></div>').join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet. Members can tap ✍️ Testify on your listing to leave one.</p>')+'</div>';
+    panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Testimonials ('+tms.length+')</div>'+(tms.length?tms.map(t=>'<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+escapeHtml(t.text)+'"</div><div class="testimonial-author">— '+escapeHtml(t.author_name)+'</div></div>').join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet. Members can tap ✍️ Testify on your listing to leave one.</p>')+'</div>';
   });
 }
 function renderDashMessages(){
