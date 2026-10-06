@@ -1337,6 +1337,7 @@ function renderDashOverview(){
     apiFetch('/api/referrals?business_id='+biz.id),
     apiFetch('/api/jobs?business_id='+biz.id),
     apiFetch('/api/community?type=messages&business_id='+biz.id),
+    apiFetch('/api/testimonials?business_id='+biz.id),
   ]).then(function(results){
     var refs=results[0].referrals||[];
     var jobs=results[1].jobs||[];
@@ -1346,8 +1347,9 @@ function renderDashOverview(){
     var uniqueSenders=new Set(msgs.filter(function(m){return m.from_role==='user';}).map(function(m){return m.from_user_id||m.from_name;}));
     var msgCount=uniqueSenders.size;
 
-    // Testimonials from local state
-    var tms=biz.testimonials||[];
+    // Testimonials loaded fresh from Supabase
+    var tms=results[3].testimonials||[];
+    if(state.myBiz)state.myBiz.testimonials=tms.map(function(t){return{author:t.author_name,text:t.text};});
 
     // Count contacted referrals
     var contactedRefs=refs.filter(function(r){return r.contacted;}).length;
@@ -1366,6 +1368,7 @@ function renderDashOverview(){
         '<div class="stat-card"><div class="stat-val">'+msgCount+'</div><div class="stat-lbl">Messages</div></div>'+
         '<div class="stat-card"><div class="stat-val">'+jobs.length+'</div><div class="stat-lbl">Active Jobs</div></div>'+
         '<div class="stat-card"><div class="stat-val">'+contactedRefs+'</div><div class="stat-lbl">Contacted</div></div>'+
+        '<div class="stat-card" onclick="switchDashTab(\'testimonials\')" style="cursor:pointer;"><div class="stat-val">'+tms.length+'</div><div class="stat-lbl">Testimonials</div></div>'+
       '</div>'+
 
       // Listing Status
@@ -1420,6 +1423,17 @@ function renderDashOverview(){
             }).join('');
           })()
         :'<p style="font-size:.82rem;color:var(--muted);">No messages yet.</p>')+
+      '</div>'+
+
+      // Recent Testimonials
+      '<div class="dash-card" style="margin-bottom:1rem;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">'+
+          '<div class="dash-card-title" style="margin-bottom:0;">✍️ Recent Testimonials</div>'+
+          (tms.length?'<button onclick="switchDashTab(\'testimonials\')" style="font-size:.72rem;color:var(--green);background:none;border:none;cursor:pointer;font-weight:600;">View all →</button>':'')+
+        '</div>'+
+        (tms.length?tms.slice(0,3).map(function(t){
+          return '<div class="testimonial" style="margin-bottom:.65rem;"><div class="testimonial-text" style="font-size:.82rem;">"'+escapeHtml(t.text)+'"</div><div class="testimonial-author">— '+escapeHtml(t.author_name||'Member')+'</div></div>';
+        }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet.</p>')+
       '</div>'+
 
       // Newsletter card
