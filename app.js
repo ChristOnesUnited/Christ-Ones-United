@@ -1978,38 +1978,13 @@ function submitPostJob(){
 
 // ═══════════════ ADMIN DATA
 state.admin = {
-  reportedContent:[
-    {id:1,type:'Job Posting',title:'Suspicious Marketing Job',content:'This posting asks applicants to send money for training materials upfront.',reportedBy:'Member #42',time:'2 hours ago',resolved:false},
-    {id:2,type:'Prayer Request',title:'Prayer Request by Anonymous',content:'Content appeared to be spam — repeated identical posts.',reportedBy:'Member #17',time:'Yesterday',resolved:false},
-    {id:3,type:'Testimonial',title:'Review on Ironwood Legal',content:'This review contains a competitor\'s advertisement embedded in the text.',reportedBy:'Member #88',time:'3 days ago',resolved:false},
-  ],
-  members:[
-    {id:1,name:'Sarah Mitchell',email:'sarah@example.com',type:'Individual',plan:'Annual',church:'Grace Community Church',joined:'Jan 2024',status:'active',faithAnswer:'yes',referrals:12},
-    {id:2,name:'Marcus Johnson',email:'marcus@example.com',type:'Individual',plan:'Monthly',church:'Harvest Fellowship',joined:'Feb 2024',status:'active',faithAnswer:'yes',referrals:8},
-    {id:3,name:'The Golden Fork',email:'hello@goldenfork.com',type:'Business',plan:'Annual',church:'Grace Community Church',joined:'Jan 2024',status:'active',faithAnswer:'yes',referrals:0},
-    {id:4,name:'Pixel & Co.',email:'studio@pixelco.dev',type:'Business',plan:'Monthly',church:'Harvest Fellowship',joined:'Feb 2024',status:'active',faithAnswer:'yes',referrals:0},
-    {id:5,name:'Linda Patterson',email:'linda@example.com',type:'Individual',plan:'Monthly',church:'Cornerstone Church',joined:'Mar 2024',status:'suspended',faithAnswer:'yes',referrals:2},
-    {id:6,name:'Bloom Wellness Spa',email:'book@bloomwellness.com',type:'Business',plan:'Annual',church:'Mountain Hope Church',joined:'Jan 2024',status:'active',faithAnswer:'yes',referrals:0},
-    {id:7,name:'Kevin Wright',email:'kevin@example.com',type:'Individual',plan:'Annual',church:'',joined:'Apr 2024',status:'active',faithAnswer:'yes',referrals:3},
-    {id:8,name:'Sunrise Bakery',email:'hello@sunrisebakery.com',type:'Business',plan:'Monthly',church:'New Life Church',joined:'Apr 2024',status:'pending',faithAnswer:'yes',referrals:0},
-  ],
-  appeals:[
-    {id:1,name:'Linda Patterson',email:'linda@example.com',reason:'I was suspended unfairly. I believe my account was flagged in error. I have been a faithful member since the beginning.',submitted:'1 day ago',status:'pending'},
-  ],
-  auditLog:[
-    {icon:'✅',text:'Business listing "The Golden Fork" approved by Admin.',time:'Jan 15, 2024'},
-    {icon:'✅',text:'Business listing "Bloom Wellness Spa" approved by Admin.',time:'Jan 15, 2024'},
-    {icon:'🚫',text:'Member "Kevin Test" suspended for inappropriate content.',time:'Feb 3, 2024'},
-    {icon:'✅',text:'Business listing "Pixel & Co." approved by Admin.',time:'Feb 10, 2024'},
-    {icon:'📬',text:'Weekly newsletter sent to 247 subscribers.',time:'Mar 4, 2024'},
-    {icon:'🗑️',text:'Job posting removed — flagged as suspicious.',time:'Mar 12, 2024'},
-    {icon:'✅',text:'Appeal from "James T." reviewed and account reinstated.',time:'Mar 18, 2024'},
-    {icon:'📬',text:'Weekly newsletter sent to 312 subscribers.',time:'Apr 1, 2024'},
-  ],
-  nlSubscribers:312,
-  nlSentCount:8,
-  revenue:{labels:['Nov','Dec','Jan','Feb','Mar','Apr'],values:[1240,1580,2100,2480,2950,3420]},
-  signups:{labels:['Nov','Dec','Jan','Feb','Mar','Apr'],values:[18,24,38,29,45,52]},
+  reportedContent:[],
+  members:[],
+  appeals:[],
+  auditLog:[],
+  nlSubscribers:0,
+  nlSentCount:0,
+  realMembers:null,
 };
 
 // ═══════════════ ADMIN AUTH
@@ -2075,39 +2050,52 @@ function addAuditLog(icon,text){state.admin.auditLog.unshift({icon:icon,text:tex
 // ═══════════════ ADMIN OVERVIEW
 function renderAdminOverview(){
   var el=document.getElementById('adm-tab-overview');
-  var totalMembers=state.admin.members.length;
-  var indCount=state.admin.members.filter(m=>m.type==='Individual').length;
-  var bizCount=state.admin.members.filter(m=>m.type==='Business').length;
-  var activeCount=state.admin.members.filter(m=>m.status==='active').length;
-  var pendingCount=state.pendingBusinesses.filter(b=>!b.approved).length;
-  var reportCount=state.admin.reportedContent.filter(r=>!r.resolved).length;
-  var jobCount=state.jobs.length;
-  var rev=state.admin.revenue;
-  el.innerHTML=
-    '<div class="admin-page-title">Dashboard Overview</div>'+
-    '<div class="admin-page-sub">Welcome back, Admin · Christ One\'s United</div>'+
-    '<div class="admin-stats">'+
-      mkStat(totalMembers,'Total Members','blue')+
-      mkStat(indCount,'Individuals','green')+
-      mkStat(bizCount,'Businesses','gold')+
-      mkStat(activeCount,'Active','green')+
-      mkStat(pendingCount,'Pending Approval','gold')+
-      mkStat(reportCount,'Open Reports','red')+
-      mkStat(jobCount,'Active Jobs','blue')+
-      mkStat('$'+rev.values[rev.values.length-1],'Revenue (Mo)','green')+
-    '</div>'+
-    '<div class="admin-chart">'+
-      '<div class="admin-chart-title">📈 Monthly Revenue</div>'+
-      mkBarChart(rev.labels,rev.values,'#1a6b4a')+
-    '</div>'+
-    '<div class="admin-chart">'+
-      '<div class="admin-chart-title">👥 New Signups</div>'+
-      mkBarChart(state.admin.signups.labels,state.admin.signups.values,'#2d9cdb')+
-    '</div>'+
-    '<div class="admin-card">'+
-      '<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;margin-bottom:.875rem;">🕐 Recent Activity</div>'+
-      state.admin.auditLog.slice(0,5).map(function(a){return '<div class="audit-item"><div class="audit-icon">'+a.icon+'</div><div class="audit-text">'+a.text+'</div><div class="audit-time">'+a.time+'</div></div>';}).join('')+
-    '</div>';
+  el.innerHTML='<div class="admin-page-title">Dashboard Overview</div><div class="admin-page-sub">Loading…</div>';
+  fetch('/api/admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    body:JSON.stringify({action:'get_members'})
+  }).then(function(r){return r.json();}).then(function(data){
+    var members=(data.members||[]).map(function(m){return {
+      id:m.id,name:m.name,email:m.email,
+      type:m.type==='business'?'Business':'Individual',
+      status:m.status||'active',
+    };});
+    var totalMembers=members.length;
+    var indCount=members.filter(m=>m.type==='Individual').length;
+    var bizCount=members.filter(m=>m.type==='Business').length;
+    var activeCount=members.filter(m=>m.status==='active').length;
+    var pendingCount=state.pendingBusinesses.filter(b=>!b.approved).length;
+    var reportCount=state.admin.reportedContent.filter(r=>!r.resolved).length;
+    var jobCount=state.jobs.length;
+    var recentLog=state.admin.auditLog.slice(0,5);
+    el.innerHTML=
+      '<div class="admin-page-title">Dashboard Overview</div>'+
+      '<div class="admin-page-sub">Welcome back, Admin · Christ One\'s United</div>'+
+      '<div class="admin-stats">'+
+        mkStat(totalMembers,'Total Members','blue')+
+        mkStat(indCount,'Individuals','green')+
+        mkStat(bizCount,'Businesses','gold')+
+        mkStat(activeCount,'Active','green')+
+        mkStat(pendingCount,'Pending Approval','gold')+
+        mkStat(reportCount,'Open Reports','red')+
+        mkStat(jobCount,'Active Jobs','blue')+
+      '</div>'+
+      '<div class="admin-card" style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.82rem;">'+
+        '<div style="font-size:1.5rem;margin-bottom:.5rem;">📈</div>'+
+        '<div style="font-weight:600;color:var(--text);margin-bottom:.25rem;">Revenue Reporting</div>'+
+        'Live revenue data will appear here once Stripe is connected.'+
+      '</div>'+
+      '<div class="admin-card">'+
+        '<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;margin-bottom:.875rem;">🕐 Recent Activity</div>'+
+        (recentLog.length?
+          recentLog.map(function(a){return '<div class="audit-item"><div class="audit-icon">'+a.icon+'</div><div class="audit-text">'+a.text+'</div><div class="audit-time">'+a.time+'</div></div>';}).join(''):
+          '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem;">No activity recorded yet.</div>'
+        )+
+      '</div>';
+  }).catch(function(){
+    el.innerHTML='<div class="admin-page-title">Dashboard Overview</div><div class="admin-page-sub" style="color:var(--red);">Could not load data. Please refresh.</div>';
+  });
 }
 function mkStat(val,lbl,color){return '<div class="admin-stat"><div class="admin-stat-val '+color+'">'+val+'</div><div class="admin-stat-lbl">'+lbl+'</div></div>';}
 function mkBarChart(labels,values,color){
@@ -2390,10 +2378,8 @@ function renderAdminNewsletter(){
     '<div class="admin-page-title">Newsletter Management</div>'+
     '<div class="admin-page-sub">Weekly community digest · The Christ One\'s United Weekly</div>'+
     '<div class="admin-stats" style="margin-bottom:1.25rem;">'+
-      mkStat(state.admin.nlSubscribers,'Subscribers','blue')+
-      mkStat(state.admin.nlSentCount,'Editions Sent','green')+
-      mkStat('68%','Avg Open Rate','gold')+
-      mkStat('12%','Avg Click Rate','green')+
+      mkStat(state.admin.nlSubscribers||'—','Subscribers','blue')+
+      mkStat(state.admin.nlSentCount||0,'Editions Sent','green')+
     '</div>'+
     '<div class="nl-compose">'+
       '<div class="nl-compose-title">✍️ Compose This Week\'s Edition</div>'+
@@ -2405,20 +2391,15 @@ function renderAdminNewsletter(){
       '</select></div>'+
       '<div class="form-group"><label class="lbl">Prayer Highlight</label><textarea class="inp" id="nl-prayer" style="min-height:60px;background:#fff;" placeholder="Share a community prayer highlight or spotlight…"></textarea></div>'+
       '<div class="form-group"><label class="lbl">Admin Message (optional)</label><textarea class="inp" id="nl-msg" style="min-height:60px;background:#fff;" placeholder="A personal note from the Christ One\'s United team…"></textarea></div>'+
-      '<button class="btn btn-mt" style="background:#1a1a2e;color:#fff;" onclick="sendNewsletter()">📬 Send to '+state.admin.nlSubscribers+' Subscribers</button>'+
-    '</div>'+
-    '<div class="admin-card">'+
-      '<div class="admin-chart-title">📊 Subscriber Growth</div>'+
-      '<div class="nl-stats"><span class="nl-stat">Last 7 days: <strong>+18 subscribers</strong></span><span class="nl-stat">Last 30 days: <strong>+62 subscribers</strong></span><span class="nl-stat">Unsubscribes this week: <strong>3</strong></span></div>'+
-      mkBarChart(['Nov','Dec','Jan','Feb','Mar','Apr'],[180,210,247,278,295,312],'#c9973a')+
+      '<button class="btn btn-mt" style="background:#1a1a2e;color:#fff;" onclick="sendNewsletter()">📬 Send Newsletter</button>'+
     '</div>';
 }
 function sendNewsletter(){
   var subj=document.getElementById('nl-subject').value.trim();
   if(!subj){alert('Please enter a subject line.');return;}
   state.admin.nlSentCount++;
-  addAuditLog('📬','Weekly newsletter "'+subj+'" sent to '+state.admin.nlSubscribers+' subscribers.');
-  alert('Newsletter sent to '+state.admin.nlSubscribers+' subscribers! 🎉');
+  addAuditLog('📬','Newsletter "'+subj+'" sent.');
+  alert('Newsletter sent! 🎉');
   renderAdminNewsletter();
 }
 
