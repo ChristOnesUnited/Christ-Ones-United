@@ -525,6 +525,71 @@ function submitPasswordReset(){
   });
 }
 
+// ═══════════════ PASSWORD RECOVERY HANDLER
+(function(){
+  var hash = window.location.hash;
+  if(!hash) return;
+  var hashParams = {};
+  hash.replace(/^#/,'').split('&').forEach(function(p){
+    var kv = p.split('='); hashParams[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
+  });
+  if(hashParams['type'] !== 'recovery') return;
+
+  var accessToken  = hashParams['access_token']  || '';
+  var refreshToken = hashParams['refresh_token'] || '';
+  if(!accessToken || !refreshToken) return;
+
+  // Clear the hash so tokens aren't visible in the URL
+  window.history.replaceState({},'',window.location.pathname);
+
+  // Wait for the DOM then show the set-new-password modal
+  function showSetPassword(){
+    var modal = document.getElementById('refModal');
+    if(!modal){ setTimeout(showSetPassword, 150); return; }
+    document.getElementById('refModalContent').innerHTML=
+      '<div class="modal-icon">🔑</div>'+
+      '<div class="modal-title">Set New Password</div>'+
+      '<div style="font-size:.73rem;color:var(--muted);margin-bottom:1.1rem;">Choose a new password for your account.</div>'+
+      '<div class="form-group"><label class="lbl">New Password</label><input class="inp" id="new-pass" type="password" placeholder="At least 8 characters"/></div>'+
+      '<div class="form-group"><label class="lbl">Confirm Password</label><input class="inp" id="new-pass-confirm" type="password" placeholder="Repeat password"/></div>'+
+      '<div id="new-pass-msg" style="display:none;font-size:.76rem;margin-bottom:.5rem;"></div>'+
+      '<button class="btn btn-ink btn-mt" onclick="submitNewPassword()">Update Password →</button>';
+    modal.classList.add('open');
+  }
+
+  window._recoveryTokens = { access_token: accessToken, refresh_token: refreshToken };
+  showSetPassword();
+})();
+
+function submitNewPassword(){
+  var pass    = document.getElementById('new-pass').value;
+  var confirm = document.getElementById('new-pass-confirm').value;
+  var msg     = document.getElementById('new-pass-msg');
+  if(!pass || pass.length < 8){
+    msg.style.color='var(--red)'; msg.textContent='Password must be at least 8 characters.'; msg.style.display='block'; return;
+  }
+  if(pass !== confirm){
+    msg.style.color='var(--red)'; msg.textContent='Passwords do not match.'; msg.style.display='block'; return;
+  }
+  var tokens = window._recoveryTokens || {};
+  msg.style.color='#1a6b4a'; msg.textContent='Updating…'; msg.style.display='block';
+  apiFetch('/api/auth-update-password','POST',{
+    access_token:  tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    password: pass
+  }).then(function(data){
+    if(data.success){
+      msg.style.color='#1a6b4a'; msg.textContent='✓ Password updated! You can now sign in.';
+      window._recoveryTokens = null;
+      setTimeout(function(){ closeModal('refModal'); }, 2500);
+    } else {
+      msg.style.color='var(--red)'; msg.textContent = data.error || 'Something went wrong. Please try again.';
+    }
+  }).catch(function(){
+    msg.style.color='var(--red)'; msg.textContent='Connection error. Please try again.';
+  });
+}
+
 // ═══════════════ STRIPE RETURN HANDLER
 (function(){
   var params = new URLSearchParams(window.location.search);
