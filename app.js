@@ -808,6 +808,7 @@ function enterDirectory(){
   showScreen('screen-directory');
   switchDirTab('home');
   state.showAllMore=false;
+  state.dirFilter={maxMi:0,nationalOnly:false};
   renderLocNudge();
   // Load sponsors for banner
   loadSponsors();
@@ -856,25 +857,28 @@ function renderDirectory(){
     if(!b.approved)return false;
     var mc=state.activeCat==='All'||b.category===state.activeCat;
     var cc=!cf||b.church===cf;
-    return mc&&cc&&(!q||b.name.toLowerCase().includes(q)||b.description.toLowerCase().includes(q)||b.category.toLowerCase().includes(q)||b.tags.some(t=>t.toLowerCase().includes(q)));
+    return mc&&cc&&passesDirFilters(b)&&(!q||b.name.toLowerCase().includes(q)||b.description.toLowerCase().includes(q)||b.category.toLowerCase().includes(q)||b.tags.some(t=>t.toLowerCase().includes(q)));
   });
   filtered.sort(compareBizRelevance);
 
   renderLocBar();
+  syncDirFilterControls();
+  var df=dirFilter();
+  var filterOn=df.nationalOnly||df.maxMi>0;
   var grid=document.getElementById('biz-grid');
-  var browsing=!q&&!cf&&state.activeCat==='All';
+  var browsing=!q&&!cf&&state.activeCat==='All'&&!filterOn;
   document.getElementById('feat-strip').classList[browsing?'remove':'add']('hidden');
   if(browsing&&!state.featuredShown)document.getElementById('feat-strip').classList.add('hidden');
 
   if(!filtered.length){
-    document.getElementById('result-meta').innerHTML='Showing <strong>0</strong> results'+(q?' for "<strong>'+escHtml(q)+'</strong>"':'');
-    grid.innerHTML='<div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-title">No results found</div><p>Try a different search or filter.</p></div>';
+    document.getElementById('result-meta').innerHTML='Showing <strong>0</strong> results'+(q?' for "<strong>'+escHtml(q)+'</strong>"':'')+dirFilterMeta();
+    grid.innerHTML='<div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-title">No results found</div><p>'+(df.maxMi>0?'Try a larger distance, or ':'Try ')+'a different search or filter.</p></div>';
     return;
   }
 
   // Searching or filtering: one list, ranked church → your area → nationwide → everything else
   if(!browsing){
-    document.getElementById('result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> result'+(filtered.length!==1?'s':'')+(q?' for "<strong>'+escHtml(q)+'</strong>"':'')+(state.activeCat!=='All'?' in <strong>'+escHtml(state.activeCat)+'</strong>':'')+(cf?' · <strong>'+escHtml(cf)+'</strong>':'')+(hasDirLocation()||myChurchSet()?'<span style="font-size:.72rem;color:var(--green);margin-left:6px;">✝ Most relevant to you first</span>':'');
+    document.getElementById('result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> result'+(filtered.length!==1?'s':'')+(q?' for "<strong>'+escHtml(q)+'</strong>"':'')+(state.activeCat!=='All'?' in <strong>'+escHtml(state.activeCat)+'</strong>':'')+(cf?' · <strong>'+escHtml(cf)+'</strong>':'')+dirFilterMeta()+(hasDirLocation()||myChurchSet()?'<span style="font-size:.72rem;color:var(--green);margin-left:6px;">✝ Most relevant to you first</span>':'');
     grid.innerHTML='';filtered.forEach(function(b){grid.appendChild(makeBizCard(b));});
     return;
   }
@@ -3039,7 +3043,7 @@ function disbandGuild(){
 // ═══════════════ SIGN OUT
 function doSignOut(){
   state.user=null;state.profileType=null;state.plan=null;state.faithAnswer=null;
-  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.geoLoading=false;state.showAllMore=false;
+  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.geoLoading=false;state.showAllMore=false;state.dirFilter={maxMi:0,nationalOnly:false};
   // Clear saved session
   try {
     localStorage.removeItem('cou_user');
@@ -3231,6 +3235,46 @@ function useMyLocation(){
   },{timeout:10000,maximumAge:600000});
 }
 function useMyZip(){state.geo=null;state.geoLoading=false;reloadDirectory();}
+
+// ═══════════════ SEARCH FILTERS (distance + Nationally Available only)
+function dirFilter(){return state.dirFilter||(state.dirFilter={maxMi:0,nationalOnly:false});}
+function dirHasDistances(){return (state.businesses||[]).some(function(b){return b.distance_mi!=null;});}
+function passesDirFilters(b){
+  var f=dirFilter();
+  if(f.nationalOnly)return b.service_type==='national';
+  if(f.maxMi>0&&dirHasDistances())return b.distance_mi!=null&&b.distance_mi<=f.maxMi;
+  return true;
+}
+function dirFilterMeta(){
+  var f=dirFilter();
+  if(f.nationalOnly)return ' · <strong>Nationally Available</strong>';
+  if(f.maxMi>0&&dirHasDistances())return ' · within <strong>'+f.maxMi+' mi</strong>';
+  return '';
+}
+function setDistFilter(v){
+  var f=dirFilter();
+  f.maxMi=parseInt(v,10)||0;
+  if(f.maxMi>0)f.nationalOnly=false;
+  renderDirectory();
+}
+function toggleNationalOnly(){
+  var f=dirFilter();
+  f.nationalOnly=!f.nationalOnly;
+  if(f.nationalOnly)f.maxMi=0;
+  renderDirectory();
+}
+// Keeps the controls in step with the current filter and location
+function syncDirFilterControls(){
+  var sel=document.getElementById('dist-filter'),btn=document.getElementById('nat-filter');
+  if(!sel||!btn)return;
+  var f=dirFilter(),hasDist=dirHasDistances();
+  if(!hasDist&&f.maxMi>0)f.maxMi=0;
+  sel.disabled=!hasDist;
+  sel.title=hasDist?'':'Add your ZIP code on the Account tab, or tap "Use my current location", to filter by distance.';
+  sel.value=String(f.maxMi);
+  btn.classList[f.nationalOnly?'add':'remove']('on');
+  btn.setAttribute('aria-pressed',f.nationalOnly?'true':'false');
+}
 
 // ═══════════════ CHURCH PICKER & LOCATION
 function escHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}

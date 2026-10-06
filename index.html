@@ -43,6 +43,11 @@
 .loc-bar{font-size:.76rem;color:var(--muted);margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
 .loc-bar strong{color:var(--ink);}
 .loc-bar button{background:none;border:1.5px solid var(--border);border-radius:20px;padding:4px 11px;font-size:.72rem;font-weight:600;color:var(--green);cursor:pointer;font-family:inherit;}
+/* ── Search filters (Phase 3) */
+.dir-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:-.4rem 0 1rem;}
+.dir-filters select:disabled{opacity:.5;cursor:not-allowed;}
+.nat-toggle{padding:5px 11px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-size:.74rem;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;}
+.nat-toggle.on{border-color:#c9973a;background:#fff6e3;color:#8a5a00;}
 /* Admin bottom bar: scroll sideways on phones now that there are 10 tabs */
 .admin-botnav{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .admin-botnav .admin-btn{flex:1 0 auto;min-width:64px;}
@@ -933,6 +938,17 @@ body.admin-mode{padding-bottom:0;}
         <select class="church-filter-sel" id="church-filter" onchange="renderDirectory()">
           <option value="">All Churches</option>
         </select>
+      </div>
+      <div class="dir-filters">
+        <label class="church-filter-label" for="dist-filter">📏 Distance:</label>
+        <select class="church-filter-sel" id="dist-filter" onchange="setDistFilter(this.value)">
+          <option value="0">Any distance</option>
+          <option value="5">Within 5 mi</option>
+          <option value="10">Within 10 mi</option>
+          <option value="25">Within 25 mi</option>
+          <option value="50">Within 50 mi</option>
+        </select>
+        <button type="button" class="nat-toggle" id="nat-filter" onclick="toggleNationalOnly()">🇺🇸 Nationally Available only</button>
       </div>
       <div class="cat-chips" id="cat-chips"></div>
       <div class="result-meta" id="result-meta"></div>
