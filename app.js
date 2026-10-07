@@ -185,7 +185,17 @@ async function saveNewsletterToAPI(email, name) {
 }
 
 // ═══════════════ UTILS
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function showScreen(id){
+  // Close the iPhone keyboard first. If the text box being typed in is hidden while
+  // the keyboard is still up, iOS can leave the view shifted (bottom nav floats mid-screen).
+  var ae=document.activeElement;
+  if(ae&&ae!==document.body&&typeof ae.blur==='function')ae.blur();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  // Scroll to the top again once iOS has finished closing the keyboard
+  setTimeout(function(){window.scrollTo(0,0);},350);
+}
 function toggleInfo(btn){
   var isActive=btn.classList.contains('active');
   document.querySelectorAll('.info-btn.active').forEach(function(b){b.classList.remove('active');});
