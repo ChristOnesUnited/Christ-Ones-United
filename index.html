@@ -462,8 +462,10 @@ textarea.inp{resize:vertical;min-height:72px;}
 .job-new-badge{font-size:.6rem;color:#2a9070;font-weight:700;background:#eaf7f2;padding:2px 7px;border-radius:20px;border:1px solid #3cbf8f;display:inline-block;margin-bottom:.4rem;}
 .job-report-wrap{display:inline-flex;align-items:center;margin-left:4px;}
 .job-report-btn{width:17px;height:17px;border-radius:50%;background:#2d9cdb;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;color:#fff;flex-shrink:0;}
-.job-report-bubble{position:absolute;right:0;top:2rem;background:#1a4a6b;color:#fff;font-size:.73rem;line-height:1.55;padding:.7rem .9rem;border-radius:10px;width:220px;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:50;display:none;text-align:left;}
-.job-report-btn.active~.job-report-bubble{display:block;}
+/* Report popup lives on <body> (see app.js) so job cards below can't cover it */
+.job-report-pop{position:fixed;z-index:1000;background:#1a4a6b;color:#fff;font-size:.78rem;line-height:1.55;padding:.85rem 1rem;border-radius:12px;width:260px;max-width:calc(100vw - 32px);box-shadow:0 8px 28px rgba(0,0,0,.3);display:none;text-align:left;font-family:'DM Sans',sans-serif;}
+.job-report-pop.open{display:block;}
+.job-report-pop button{margin-top:.7rem;padding:7px 12px;background:var(--red);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;width:100%;}
 /* Dash job card */
 .dash-job-item{background:var(--cream);border-radius:10px;padding:.875rem;margin-bottom:.65rem;position:relative;}
 .dash-job-title{font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:.2rem;}

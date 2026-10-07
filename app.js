@@ -193,7 +193,8 @@ function toggleInfo(btn){
 }
 document.addEventListener('click',function(e){
   if(!e.target.classList.contains('info-btn'))document.querySelectorAll('.info-btn.active').forEach(function(b){b.classList.remove('active');});
-  if(!e.target.classList.contains('job-report-btn'))document.querySelectorAll('.job-report-btn.active').forEach(function(b){b.classList.remove('active');});
+  var rp=document.getElementById('job-report-pop');
+  if(rp&&!rp.contains(e.target)&&!e.target.classList.contains('job-report-btn'))closeJobReport();
 });
 function makeDots(step,color,cid){var c=document.getElementById(cid);if(!c)return;c.innerHTML='';for(var i=1;i<=4;i++){var d=document.createElement('div');d.className='step-dot'+(i<step?' done':(i===step?' active-'+color:''));d.textContent=i<step?'✓':i;c.appendChild(d);if(i<4){var l=document.createElement('div');l.className='step-line'+(i<step?' done':'');c.appendChild(l);}}}
 function isNewThisWeek(b){return (Date.now()-new Date(b.joinedDate).getTime())<7*86400000;}
@@ -933,6 +934,7 @@ function renderSaved(){
 }
 function updateSavedCount(){var cnt=document.getElementById('saved-cnt');if(!cnt)return;if(state.savedIds.length>0){cnt.textContent=state.savedIds.length;cnt.classList.remove('hidden');}else cnt.classList.add('hidden');}
 function switchDirTab(tab){
+  closeJobReport();
   ['home','saved','community','messages','jobs','account'].forEach(function(t){
     var panel=document.getElementById('dir-tab-'+t);
     if(panel)panel.classList[t===tab?'remove':'add']('hidden');
@@ -1939,10 +1941,7 @@ function makeJobCard(j){
       '</div>':'')+ 
     '<div class="job-actions" style="margin-top:.75rem;">'+
       '<button class="job-save-btn'+(saved?' saved':'')+'" onclick="toggleJobSave(\''+j.id+'\')" style="margin-right:auto;">'+(saved?'♥ Saved':'♡ Save')+'</button>'+
-      '<span style="position:relative;display:inline-flex;align-items:center;">'+
-        '<button class="job-report-btn" onclick="toggleJobReport(this)" title="Report this posting">?</button>'+
-        '<span class="job-report-bubble">If any inappropriate information or activity is found in or through this job posting, please report for immediate administrative review.<br/><br/><button onclick="submitJobReport(\''+j.id+'\')" style="margin-top:6px;padding:5px 12px;background:var(--red);color:#fff;border:none;border-radius:6px;font-family:DM Sans,sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;width:100%;">Report This Post</button></span>'+
-      '</span>'+
+      '<button class="job-report-btn" type="button" data-job-id="'+j.id+'" onclick="toggleJobReport(this)" title="Report this posting">?</button>'+
     '</div>';
   return div;
 }
@@ -1950,13 +1949,43 @@ function toggleJobSave(id){
   var i=state.savedJobIds.indexOf(id);if(i>-1)state.savedJobIds.splice(i,1);else state.savedJobIds.push(id);
   renderJobs();
 }
-function toggleJobReport(btn){
-  var isActive=btn.classList.contains('active');
-  document.querySelectorAll('.job-report-btn.active').forEach(b=>b.classList.remove('active'));
-  if(!isActive)btn.classList.add('active');
+// Report popup: one shared box attached to <body>, positioned next to the tapped "?"
+var jobReportAnchor=null;
+function getJobReportPop(){
+  var p=document.getElementById('job-report-pop');
+  if(!p){p=document.createElement('div');p.id='job-report-pop';p.className='job-report-pop';document.body.appendChild(p);}
+  return p;
 }
+function closeJobReport(){
+  var p=document.getElementById('job-report-pop');
+  if(p)p.classList.remove('open');
+  jobReportAnchor=null;
+}
+function toggleJobReport(btn){
+  if(jobReportAnchor===btn){closeJobReport();return;}
+  var pop=getJobReportPop();
+  pop.innerHTML='If any inappropriate information or activity is found in or through this job posting, please report for immediate administrative review.'+
+    '<button type="button" onclick="submitJobReport(\''+btn.dataset.jobId+'\')">Report This Post</button>';
+  pop.classList.add('open');
+  jobReportAnchor=btn;
+  var r=btn.getBoundingClientRect(),p=pop.getBoundingClientRect();
+  var gap=8,margin=16;
+  var topNav=document.querySelector('.screen.active .topnav');
+  var botNav=document.querySelector('.screen.active .botnav');
+  var minTop=(topNav?topNav.getBoundingClientRect().bottom:0)+margin;
+  var maxTop=window.innerHeight-(botNav?botNav.offsetHeight:0)-p.height-margin;
+  var top=r.top-p.height-gap;            // open above the "?" first
+  if(top<minTop)top=r.bottom+gap;        // no room above → open below
+  top=Math.max(minTop,Math.min(top,maxTop));
+  var left=r.right-p.width;              // right edge lines up with the "?"
+  left=Math.max(margin,Math.min(left,window.innerWidth-p.width-margin));
+  pop.style.top=top+'px';
+  pop.style.left=left+'px';
+}
+window.addEventListener('scroll',closeJobReport,{passive:true});
+window.addEventListener('resize',closeJobReport);
 function submitJobReport(jobId){
-  document.querySelectorAll('.job-report-btn.active').forEach(b=>b.classList.remove('active'));
+  closeJobReport();
   addNotif('⚠️ Job posting #'+jobId+' has been reported and flagged for administrative review. Thank you.');
 }
 function openApplyModal(jobId){
