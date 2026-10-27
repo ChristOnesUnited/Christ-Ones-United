@@ -83,7 +83,7 @@ module.exports = async (req, res) => {
         .single();
 
       if (fetchErr || !job) return res.status(404).json({ error: 'Job not found.' });
-      if (job.business_id !== business_id) {
+      if (String(job.business_id) !== String(business_id)) {
         return res.status(403).json({ error: 'You do not have permission to close this listing.' });
       }
 
