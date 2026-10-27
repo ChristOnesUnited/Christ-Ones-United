@@ -2005,12 +2005,37 @@ function submitJobReport(jobId){
   }).then(function(r){return r.json();}).then(function(data){
     if(data&&data.success){
       addNotif('⚠️ Thank you. This job posting has been reported and flagged for administrative review.');
+      showReportConfirmation(!!data.duplicate);
     }else{
       alert((data&&data.error)||'Sorry, your report could not be sent. Please try again.');
     }
   }).catch(function(){
     alert('Sorry, your report could not be sent. Please check your connection and try again.');
   });
+}
+// Visible confirmation after a report is saved (uses the app's normal popup style)
+function showReportConfirmation(alreadyReported){
+  var m=document.getElementById('reportDoneModal');
+  if(!m){
+    m=document.createElement('div');
+    m.id='reportDoneModal';
+    m.className='modal-overlay';
+    m.onclick=function(e){if(e.target===m)closeModal('reportDoneModal');};
+    document.body.appendChild(m);
+  }
+  m.innerHTML=
+    '<div class="modal-box" style="text-align:center;">'+
+      '<button class="modal-close-btn" onclick="closeModal(\'reportDoneModal\')">×</button>'+
+      '<div class="modal-icon">✅</div>'+
+      '<div class="modal-title">'+(alreadyReported?'Already reported':'This post has been reported')+'</div>'+
+      '<div class="modal-for" style="margin-bottom:1.25rem;">'+
+        (alreadyReported
+          ?'You have already reported this posting. Our team has it and will review it.'
+          :'Thank you for helping keep our community safe. Our team has been notified and will review this posting.')+
+      '</div>'+
+      '<button class="btn btn-ink" onclick="closeModal(\'reportDoneModal\')">OK</button>'+
+    '</div>';
+  m.classList.add('open');
 }
 function openApplyModal(jobId){
   var j=state.jobs.find(x=>x.id===jobId);if(!j)return;
