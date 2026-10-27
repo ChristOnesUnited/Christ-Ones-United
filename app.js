@@ -2108,15 +2108,19 @@ function renderDashJobs(){
   });
 }
 function closeJob(id){
-  const bizId = state.myBiz && state.myBiz.id;
+  var bizId=state.myBiz&&state.myBiz.id;
   if(!bizId){addNotif('Unable to verify your business. Please refresh.');return;}
-  // Verify ownership client-side before even calling the API
-  const job = state.jobs && state.jobs.find(j=>j.id===id);
-  if(!job){addNotif('Job not found.');return;}
-  if(job.business_id !== bizId){addNotif('You can only close your own listings.');return;}
-  apiFetch('/api/jobs','PUT',{id:id,business_id:bizId}).catch(function(){});
-  state.jobs=state.jobs.filter(j=>j.id!==id);
-  renderDashJobs();addNotif('Your job listing has been closed.');
+  if(!confirm('Close this listing? It will no longer appear on the Job Board.'))return;
+  // The server confirms the listing belongs to this business before closing it
+  apiFetch('/api/jobs','PUT',{id:id,business_id:bizId}).then(function(data){
+    if(data&&data.success){
+      state.jobs=state.jobs.filter(function(j){return String(j.id)!==String(id);});
+      renderDashJobs();
+      addNotif('Your job listing has been closed.');
+    }else{
+      alert((data&&data.error)||'Could not close this listing. Please try again.');
+    }
+  });
 }
 function openPostJobModal(){
   document.getElementById('jobModalContent').innerHTML=
