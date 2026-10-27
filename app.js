@@ -2244,6 +2244,7 @@ function loadAdminReports(done){
     if(!data||!data.success)return;
     state.admin.reportedContent=(data.reports||[]).map(function(r){return {
       id:r.id,
+      jobId:r.content_id,
       title:r.content_title||'(untitled posting)',
       type:'Job Posting',
       reportedBy:r.reporter_name||r.reporter_email||'a member',
@@ -2571,46 +2572,72 @@ function adminRestoreMember(id){
 }
 
 // ═══════════════ ADMIN JOBS
+// A job is "flagged" when it has an open report (matched by job id; older title match as fallback)
+function adminJobFlagged(j){
+  return state.admin.reportedContent.some(function(r){
+    if(r.type!=='Job Posting'||r.resolved)return false;
+    return r.jobId?String(r.jobId)===String(j.id):r.title.includes(j.title);
+  });
+}
 function renderAdminJobs(){
+  drawAdminJobs();
+  // The admin screen doesn't load jobs on its own, so fetch the current list and open reports
+  loadJobs().then(function(){
+    return new Promise(function(res){loadAdminReports(res);});
+  }).then(function(){drawAdminJobs();updateAdminBadges();}).catch(function(){});
+}
+function drawAdminJobs(){
   var el=document.getElementById('adm-tab-jobs');
   el.innerHTML=
     '<div class="admin-page-title">Job Board Moderation</div>'+
-    '<div class="admin-page-sub">'+state.jobs.length+' active listings · '+state.admin.reportedContent.filter(r=>r.type==='Job Posting'&&!r.resolved).length+' flagged</div>'+
+    '<div class="admin-page-sub">'+state.jobs.length+' active listings · '+state.jobs.filter(adminJobFlagged).length+' flagged</div>'+
     (state.jobs.length?state.jobs.map(function(j){
-      var flagged=state.admin.reportedContent.some(r=>r.type==='Job Posting'&&r.title.includes(j.title)&&!r.resolved);
-      var typeClass={Full:'jt-full','Part':'jt-part','Contract':'jt-contract','Volunteer':'jt-volunteer'}[j.type.split('-')[0]]||'jt-full';
+      var flagged=adminJobFlagged(j);
+      var typeClass={Full:'jt-full','Part':'jt-part','Contract':'jt-contract','Volunteer':'jt-volunteer'}[String(j.type||'').split('-')[0]]||'jt-full';
       return '<div class="admin-card'+(flagged?' flagged':'')+'">'+
         '<div class="admin-card-head">'+
-          '<div class="admin-card-title">'+j.title+'</div>'+
+          '<div class="admin-card-title">'+escHtml(j.title)+'</div>'+
           '<div style="display:flex;gap:5px;align-items:center;">'+
             (flagged?'<span class="admin-card-badge ab-red">🚨 Flagged</span>':'')+
-            '<span class="job-type-badge '+typeClass+'">'+j.type+'</span>'+
+            '<span class="job-type-badge '+typeClass+'">'+escHtml(j.type)+'</span>'+
           '</div>'+
         '</div>'+
-        '<div class="admin-card-meta">🏢 '+j.company+' · 📍 '+j.location+' · '+j.applicants.length+' applicants</div>'+
-        '<div class="admin-card-content" style="font-size:.78rem;">'+j.description.substring(0,120)+(j.description.length>120?'…':'')+'</div>'+
+        '<div class="admin-card-meta">🏢 '+escHtml(j.company)+' · 📍 '+escHtml(j.location)+' · '+j.applicants.length+' applicants</div>'+
+        '<div class="admin-card-content" style="font-size:.78rem;">'+escHtml(j.description.substring(0,120))+(j.description.length>120?'…':'')+'</div>'+
         '<div class="admin-actions">'+
-          '<button class="adm-remove" onclick="adminRemoveJob('+j.id+')">🗑 Remove Listing</button>'+
-          (flagged?'<button class="adm-approve" onclick="adminClearJobFlag('+j.id+')" style="background:var(--muted);">Clear Flag</button>':'')+
+          '<button class="adm-remove" onclick="adminRemoveJob(\''+j.id+'\')">🗑 Remove Listing</button>'+
+          (flagged?'<button class="adm-approve" onclick="adminClearJobFlag(\''+j.id+'\')" style="background:var(--muted);">Clear Flag</button>':'')+
         '</div>'+
       '</div>';
     }).join(''):
     '<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No active job listings</div></div>');
 }
 function adminRemoveJob(id){
-  var j=state.jobs.find(x=>x.id===id);
-  state.jobs=state.jobs.filter(x=>x.id!==id);
-  addAuditLog('🗑️','Job listing "'+( j?j.title:id)+'" removed by Admin.');
-  renderAdminJobs();
+  var j=state.jobs.find(x=>String(x.id)===String(id));
+  if(!confirm('Remove the listing "'+(j?j.title:'this job')+'"? It will no longer appear on the Job Board.'))return;
+  fetch('/api/admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    body:JSON.stringify({action:'remove_job',job_id:id})
+  }).then(function(r){return r.json();}).then(function(data){
+    if(!data||!data.success){alert((data&&data.error)||'Could not remove that listing. Please try again.');return;}
+    state.jobs=state.jobs.filter(x=>String(x.id)!==String(id));
+    addAuditLog('🗑️','Job listing "'+(j?j.title:id)+'" removed by Admin.');
+    // Close out any open reports on this job, since it has now been removed
+    var open=state.admin.reportedContent.filter(function(r){return !r.resolved&&r.jobId&&String(r.jobId)===String(id);});
+    return Promise.all(open.map(function(r){
+      return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify({action:'resolve_report',report_id:r.id,resolution:'removed'})}).then(function(x){return x.json();}).then(function(d){if(d&&d.success){r.resolved=true;r.resolution='removed';}});
+    })).then(function(){updateAdminBadges();drawAdminJobs();});
+  }).catch(function(){alert('Could not remove that listing. Please check your connection and try again.');});
 }
 function adminClearJobFlag(id){
-  var j=state.jobs.find(x=>x.id===id);
-  var open=state.admin.reportedContent.filter(function(r){return r.type==='Job Posting'&&!r.resolved&&j&&r.title.includes(j.title);});
+  var j=state.jobs.find(x=>String(x.id)===String(id));
+  var open=state.admin.reportedContent.filter(function(r){return r.type==='Job Posting'&&!r.resolved&&j&&(r.jobId?String(r.jobId)===String(j.id):r.title.includes(j.title));});
   Promise.all(open.map(function(r){
     return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify({action:'resolve_report',report_id:r.id,resolution:'dismissed'})}).then(function(x){return x.json();}).then(function(d){if(d&&d.success)r.resolved=true;});
   })).then(function(){
     addAuditLog('✓','Job listing flag cleared by Admin.');
-    updateAdminBadges();renderAdminJobs();
+    updateAdminBadges();drawAdminJobs();
   });
 }
 
