@@ -105,6 +105,49 @@ module.exports = async (req, res) => {
       return res.status(200).json({ success: true });
     }
 
+    // ── REPORTS ──────────────────────────────────────────────
+    // List reported content (newest first)
+    if (action === 'get_reports') {
+      const { data, error } = await supabase
+        .from('reports').select('*').order('created_at', { ascending: false }).limit(200);
+      if (error) throw error;
+      return res.status(200).json({ success: true, reports: data || [] });
+    }
+
+    // Close out a report: dismissed | warned | removed (hides the job) | suspended (suspends the poster)
+    if (action === 'resolve_report') {
+      const { report_id, resolution } = req.body;
+      if (!['dismissed', 'warned', 'removed', 'suspended'].includes(resolution)) {
+        return res.status(400).json({ error: 'Unknown resolution.' });
+      }
+      const { data: report, error: rErr } = await supabase
+        .from('reports').select('*').eq('id', report_id).single();
+      if (rErr || !report) return res.status(404).json({ error: 'Report not found.' });
+
+      if (resolution === 'removed' && report.content_type === 'job') {
+        const { error } = await supabase.from('jobs').update({ active: false }).eq('id', report.content_id);
+        if (error) throw error;
+      }
+      if (resolution === 'suspended' && report.content_type === 'job') {
+        const { data: job } = await supabase.from('jobs').select('business_id').eq('id', report.content_id).single();
+        const { data: biz } = job && job.business_id
+          ? await supabase.from('businesses').select('user_id').eq('id', job.business_id).single()
+          : { data: null };
+        if (!biz || !biz.user_id) {
+          return res.status(404).json({ error: 'Could not find the member who posted this job.' });
+        }
+        const { error } = await supabase.from('users').update({ status: 'suspended' }).eq('id', biz.user_id);
+        if (error) throw error;
+      }
+
+      const { error: uErr } = await supabase
+        .from('reports')
+        .update({ status: 'resolved', resolution, resolved_at: new Date().toISOString() })
+        .eq('id', report_id);
+      if (uErr) throw uErr;
+      return res.status(200).json({ success: true });
+    }
+
     // ── CHURCHES ─────────────────────────────────────────────
     // List churches with how many members and businesses are linked to each
     if (action === 'get_churches') {
