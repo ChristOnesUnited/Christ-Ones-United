@@ -1995,8 +1995,22 @@ function toggleJobReport(btn){
 window.addEventListener('scroll',closeJobReport,{passive:true});
 window.addEventListener('resize',closeJobReport);
 function submitJobReport(jobId){
+  var uid=state.user&&state.user.id;
   closeJobReport();
-  addNotif('⚠️ Job posting #'+jobId+' has been reported and flagged for administrative review. Thank you.');
+  if(!uid){alert('Please sign in to report a posting.');return;}
+  fetch('/api/reports',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({job_id:jobId,reporter_id:uid})
+  }).then(function(r){return r.json();}).then(function(data){
+    if(data&&data.success){
+      addNotif('⚠️ Thank you. This job posting has been reported and flagged for administrative review.');
+    }else{
+      alert((data&&data.error)||'Sorry, your report could not be sent. Please try again.');
+    }
+  }).catch(function(){
+    alert('Sorry, your report could not be sent. Please check your connection and try again.');
+  });
 }
 function openApplyModal(jobId){
   var j=state.jobs.find(x=>x.id===jobId);if(!j)return;
@@ -2193,6 +2207,27 @@ function enterAdmin(){
   showScreen('screen-admin');
   switchAdminTab('overview');
   updateAdminBadges();
+  loadAdminReports(function(){updateAdminBadges();});
+}
+// Pull saved reports from the server into the shape the admin screens already use
+function loadAdminReports(done){
+  fetch('/api/admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    body:JSON.stringify({action:'get_reports'})
+  }).then(function(r){return r.json();}).then(function(data){
+    if(!data||!data.success)return;
+    state.admin.reportedContent=(data.reports||[]).map(function(r){return {
+      id:r.id,
+      title:r.content_title||'(untitled posting)',
+      type:'Job Posting',
+      reportedBy:r.reporter_name||r.reporter_email||'a member',
+      time:r.created_at?new Date(r.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'',
+      content:(r.content_company?r.content_company+' · ':'')+(r.content_snippet||''),
+      resolved:r.status==='resolved',
+      resolution:r.resolution||''
+    };});
+  }).catch(function(){}).then(function(){if(done)done();});
 }
 function updateAdminBadges(){
   var reports=state.admin.reportedContent.filter(r=>!r.resolved).length;
@@ -2385,6 +2420,10 @@ function adminRejectBiz(id){
 
 // ═══════════════ ADMIN REPORTS
 function renderAdminReports(){
+  drawAdminReports();
+  loadAdminReports(function(){drawAdminReports();updateAdminBadges();});
+}
+function drawAdminReports(){
   var el=document.getElementById('adm-tab-reports');
   var open=state.admin.reportedContent.filter(r=>!r.resolved);
   var resolved=state.admin.reportedContent.filter(r=>r.resolved);
@@ -2393,9 +2432,9 @@ function renderAdminReports(){
     '<div class="admin-page-sub">'+open.length+' open · '+resolved.length+' resolved</div>'+
     (open.length?open.map(function(r){
       return '<div class="admin-card flagged">'+
-        '<div class="admin-card-head"><div class="admin-card-title">'+r.title+'</div><span class="admin-card-badge ab-red">🚨 '+r.type+'</span></div>'+
-        '<div class="admin-card-meta">Reported by '+r.reportedBy+' · '+r.time+'</div>'+
-        '<div class="admin-card-content">'+r.content+'</div>'+
+        '<div class="admin-card-head"><div class="admin-card-title">'+escHtml(r.title)+'</div><span class="admin-card-badge ab-red">🚨 '+escHtml(r.type)+'</span></div>'+
+        '<div class="admin-card-meta">Reported by '+escHtml(r.reportedBy)+' · '+escHtml(r.time)+'</div>'+
+        '<div class="admin-card-content">'+escHtml(r.content)+'</div>'+
         '<div class="admin-actions">'+
           '<button class="adm-remove" onclick="adminRemoveContent('+r.id+')">🗑 Remove Content</button>'+
           '<button class="adm-warn" onclick="adminWarnUser('+r.id+')">⚠️ Warn User</button>'+
@@ -2405,28 +2444,27 @@ function renderAdminReports(){
       '</div>';
     }).join(''):'<div class="empty-state"><div class="empty-icon">🚨</div><div class="empty-title">No open reports</div><p>All reported content has been reviewed.</p></div>')+
     (resolved.length?'<div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin:1rem 0 .5rem;">Resolved</div>'+
-      resolved.map(function(r){return '<div class="admin-card" style="opacity:.6;"><div class="admin-card-head"><div class="admin-card-title">'+r.title+'</div><span class="admin-card-badge ab-green">✓ Resolved</span></div><div class="admin-card-meta">'+r.type+' · '+r.time+'</div></div>';}).join(''):'');
+      resolved.map(function(r){return '<div class="admin-card" style="opacity:.6;"><div class="admin-card-head"><div class="admin-card-title">'+escHtml(r.title)+'</div><span class="admin-card-badge ab-green">✓ Resolved'+(r.resolution?' · '+escHtml(r.resolution):'')+'</span></div><div class="admin-card-meta">'+escHtml(r.type)+' · '+escHtml(r.time)+'</div></div>';}).join(''):'');
 }
-function adminRemoveContent(id){
-  var r=state.admin.reportedContent.find(x=>x.id===id);if(r)r.resolved=true;
-  addAuditLog('🗑️','Reported content "'+( r?r.title:'')+'" removed.');
-  updateAdminBadges();renderAdminReports();
+// Save the admin's decision on a report to the server, then refresh the list
+function adminReportAction(id,resolution,icon,auditText,done){
+  var r=state.admin.reportedContent.find(x=>x.id===id);
+  fetch('/api/admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    body:JSON.stringify({action:'resolve_report',report_id:id,resolution:resolution})
+  }).then(function(res){return res.json();}).then(function(data){
+    if(!data||!data.success){alert((data&&data.error)||'Could not save that action. Please try again.');return;}
+    if(r){r.resolved=true;r.resolution=resolution;}
+    addAuditLog(icon,auditText+' "'+(r?r.title:'')+'".');
+    updateAdminBadges();renderAdminReports();
+    if(done)done();
+  }).catch(function(){alert('Could not save that action. Please check your connection and try again.');});
 }
-function adminWarnUser(id){
-  var r=state.admin.reportedContent.find(x=>x.id===id);if(r)r.resolved=true;
-  addAuditLog('⚠️','Warning issued for content: "'+( r?r.title:'')+'".');
-  updateAdminBadges();renderAdminReports();
-}
-function adminSuspendFromReport(id){
-  var r=state.admin.reportedContent.find(x=>x.id===id);if(r)r.resolved=true;
-  addAuditLog('🚫','User suspended following report: "'+( r?r.title:'')+'".');
-  updateAdminBadges();renderAdminReports();
-}
-function adminDismissReport(id){
-  var r=state.admin.reportedContent.find(x=>x.id===id);if(r)r.resolved=true;
-  addAuditLog('✓','Report dismissed: "'+( r?r.title:'')+'".');
-  updateAdminBadges();renderAdminReports();
-}
+function adminRemoveContent(id){adminReportAction(id,'removed','🗑️','Reported content removed:');}
+function adminWarnUser(id){adminReportAction(id,'warned','⚠️','Warning issued for content:');}
+function adminSuspendFromReport(id){adminReportAction(id,'suspended','🚫','User suspended following report:');}
+function adminDismissReport(id){adminReportAction(id,'dismissed','✓','Report dismissed:');}
 
 // ═══════════════ ADMIN MEMBERS
 function renderAdminMembers(){
@@ -2541,9 +2579,14 @@ function adminRemoveJob(id){
   renderAdminJobs();
 }
 function adminClearJobFlag(id){
-  state.admin.reportedContent.forEach(function(r){if(r.type==='Job Posting')r.resolved=true;});
-  addAuditLog('✓','Job listing flag cleared by Admin.');
-  updateAdminBadges();renderAdminJobs();
+  var j=state.jobs.find(x=>x.id===id);
+  var open=state.admin.reportedContent.filter(function(r){return r.type==='Job Posting'&&!r.resolved&&j&&r.title.includes(j.title);});
+  Promise.all(open.map(function(r){
+    return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify({action:'resolve_report',report_id:r.id,resolution:'dismissed'})}).then(function(x){return x.json();}).then(function(d){if(d&&d.success)r.resolved=true;});
+  })).then(function(){
+    addAuditLog('✓','Job listing flag cleared by Admin.');
+    updateAdminBadges();renderAdminJobs();
+  });
 }
 
 // ═══════════════ ADMIN NEWSLETTER
