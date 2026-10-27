@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { siteUrl } = require('./_lib/site');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -17,7 +18,7 @@ module.exports = async (req, res) => {
 
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://christonesunited.org/?reset=true',
+      redirectTo: siteUrl(req) + '/?reset=true',
     });
 
     if (error) {

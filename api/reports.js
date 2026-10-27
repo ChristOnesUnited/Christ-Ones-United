@@ -1,5 +1,6 @@
 const supabase = require('./supabase');
 const { sendEmail, esc } = require('./_lib/email');
+const { siteUrl } = require('./_lib/site');
 
 // Members report a job posting. Saved to the "reports" table (shows up in the admin
 // Reports tab) and an alert email is sent to ADMIN_ALERT_EMAIL.
@@ -46,7 +47,7 @@ module.exports = async (req, res) => {
     if (error) throw error;
 
     // Alert email (best effort: the report is already saved either way)
-    const site = process.env.SITE_URL || 'https://christonesunited.org';
+    const site = siteUrl(req);
     await sendEmail({
       to: process.env.ADMIN_ALERT_EMAIL,
       subject: 'Job posting reported: ' + (job.title || 'Untitled'),

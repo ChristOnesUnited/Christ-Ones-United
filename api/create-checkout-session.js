@@ -1,4 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { siteUrl } = require('./_lib/site');
 
 // Price ID map — TEST MODE
 const PRICE_IDS = {
@@ -20,6 +21,8 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Invalid plan selected.' });
   }
 
+  const site = siteUrl(req);
+
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -27,8 +30,8 @@ module.exports = async (req, res) => {
       customer_email: email,
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: { name, profileType, planKey },
-      success_url: `https://www.christonesunited.org/success.html?session_id={CHECKOUT_SESSION_ID}&plan=${planKey}&type=${profileType}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`,
-      cancel_url: `https://www.christonesunited.org/?cancelled=true`,
+      success_url: `${site}/success.html?session_id={CHECKOUT_SESSION_ID}&plan=${planKey}&type=${profileType}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`,
+      cancel_url: `${site}/?cancelled=true`,
     });
 
     res.status(200).json({ url: session.url });
