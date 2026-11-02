@@ -1,26 +1,27 @@
 const supabase = require('./supabase');
 const { lookupZip, cleanZip, normalizeChurchName } = require('./_lib/geo');
 const { findOrCreateChurch } = require('./_lib/church-store');
+const { requireAdmin } = require('./_lib/adminAuth');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Simple admin key check
-  const adminKey = req.headers['x-admin-key'];
-  if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-    return res.status(401).json({ error: 'Unauthorized.' });
-  }
+  // Must be a signed-in, two-step-verified admin account
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
 
   const { action } = req.body || req.query;
+  console.log('[admin] ' + auth.admin.email + ' -> ' + action);
 
   try {
 
-    // Verify admin key (used for login check)
+    // Session check
     if (action === 'verify') {
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, email: auth.admin.email });
     }
 
     // Get all pending businesses

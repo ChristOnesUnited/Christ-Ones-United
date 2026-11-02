@@ -1,9 +1,10 @@
 const supabase = require('./supabase');
+const { requireAdmin } = require('./_lib/adminAuth');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -29,11 +30,9 @@ module.exports = async (req, res) => {
     }
   }
 
-  // Admin-only routes below — require admin key
-  const adminKey = req.headers['x-admin-key'];
-  if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-    return res.status(401).json({ error: 'Unauthorized.' });
-  }
+  // Admin-only routes below — must be a signed-in, two-step-verified admin account
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
 
   // POST — create new sponsor
   if (req.method === 'POST') {
