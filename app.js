@@ -2206,31 +2206,146 @@ state.admin = {
 };
 
 // ═══════════════ ADMIN AUTH
+// Admin sign-in lives on its own address (admin.christonesunited.com). It uses a personal admin
+// account (email + password) plus a 6-digit authenticator-app code. The member site never shows it.
+var ADMIN_HOST=/^admin\./i.test(location.hostname)||location.hostname==='localhost'||location.hostname==='127.0.0.1';
+state.adminToken='';state.adminRefresh='';state.adminFactor='';
+var adminRefreshTimer=null;
+
+function adminAuthCall(body){
+  return fetch('/api/admin-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(function(r){return r.json().then(function(d){d=d||{};d.__status=r.status;return d;});})
+    .catch(function(){return {error:'Could not reach the server. Please try again.',__status:0};});
+}
+function adminErr(msg){
+  var el=document.getElementById('adm-err');if(!el)return;
+  if(msg){el.textContent=msg;el.style.display='block';}else{el.style.display='none';}
+}
+function adminShowStep(step){
+  ['login','code','enroll'].forEach(function(s){
+    var el=document.getElementById('adm-step-'+s);if(el)el.style.display=(s===step)?'block':'none';
+  });
+  adminErr('');
+}
+function adminBusy(id,on,label){
+  var b=document.getElementById(id);if(!b)return;
+  if(on){b.setAttribute('data-label',b.textContent);b.disabled=true;b.textContent=label||'Please wait…';}
+  else{b.disabled=false;if(b.getAttribute('data-label'))b.textContent=b.getAttribute('data-label');}
+}
+function adminOpenLogin(){
+  ['adm-email','adm-pass','adm-code','adm-enroll-code'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  adminShowStep('login');
+  var m=document.getElementById('adminSignInModal');if(m)m.classList.add('open');
+}
+function adminClearSession(){
+  state.adminToken='';state.adminRefresh='';state.adminFactor='';
+  if(adminRefreshTimer){clearInterval(adminRefreshTimer);adminRefreshTimer=null;}
+}
+// Step 1: email + password
 function doAdminLogin(){
   var email=document.getElementById('adm-email').value.trim();
   var pass=document.getElementById('adm-pass').value;
-  var errEl=document.getElementById('adm-err');
-  errEl.style.display='none';
-  if(!email||!pass){errEl.style.display='block';return;}
-  // Send credentials to server for verification
-  fetch('/api/admin',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-admin-key':pass},
-    body:JSON.stringify({action:'verify'})
-  }).then(function(res){
-    if(res.status===401){errEl.style.display='block';return;}
-    return res.json();
-  }).then(function(data){
-    if(!data)return;
-    // Any non-401 response means the key is valid
-    state.adminKey=pass;
-    closeModal('adminSignInModal');
-    enterAdmin();
-  }).catch(function(){
-    errEl.style.display='block';
+  adminErr('');
+  if(!email||!pass){adminErr('Enter your admin email and password.');return;}
+  adminBusy('adm-login-btn',true,'Signing in…');
+  adminAuthCall({action:'login',email:email,password:pass}).then(function(d){
+    adminBusy('adm-login-btn',false);
+    if(!d.success){adminErr(d.error||'Invalid credentials. Please try again.');return;}
+    document.getElementById('adm-pass').value='';
+    state.adminToken=d.access_token;state.adminRefresh=d.refresh_token;
+    if(d.step==='verify'){
+      state.adminFactor=d.factor_id;
+      adminShowStep('code');
+      var c=document.getElementById('adm-code');if(c)c.focus();
+    }else if(d.step==='enroll'){
+      adminStartEnroll();
+    }else{
+      adminFinishLogin();
+    }
   });
 }
-function doAdminSignOut(){document.body.classList.remove('admin-mode');showScreen('screen-landing');}
+// The QR code arrives as an SVG inside a data: address. Raw SVG text can contain characters (like #)
+// that break an image address, so re-encode it safely before showing it.
+function adminQrSrc(q){
+  var m=/^data:image\/svg\+xml;(?:charset=)?utf-8,([\s\S]*)$/i.exec(q||'');
+  if(m&&/^\s*</.test(m[1]))return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(m[1]);
+  return q;
+}
+// First-time setup: show a QR code to scan with the authenticator app
+function adminStartEnroll(){
+  adminShowStep('enroll');
+  document.getElementById('adm-qr').removeAttribute('src');
+  document.getElementById('adm-secret').textContent='Loading…';
+  adminAuthCall({action:'enroll',access_token:state.adminToken,refresh_token:state.adminRefresh}).then(function(d){
+    if(!d.success){adminErr(d.error||'Could not start two-step setup. Please sign in again.');document.getElementById('adm-secret').textContent='';return;}
+    state.adminFactor=d.factor_id;
+    if(d.access_token){state.adminToken=d.access_token;state.adminRefresh=d.refresh_token;}
+    document.getElementById('adm-qr').src=adminQrSrc(d.qr_code);
+    document.getElementById('adm-secret').textContent=d.secret;
+  });
+}
+// Step 2: the 6-digit code (used for both normal sign-in and first-time setup)
+function doAdminVerify(fromEnroll){
+  var input=document.getElementById(fromEnroll?'adm-enroll-code':'adm-code');
+  var code=(input.value||'').replace(/\s+/g,'');
+  adminErr('');
+  if(!/^\d{6}$/.test(code)){adminErr('Enter the 6-digit code from your authenticator app.');return;}
+  var btn=fromEnroll?'adm-enroll-btn':'adm-code-btn';
+  adminBusy(btn,true,'Checking…');
+  adminAuthCall({action:'verify',access_token:state.adminToken,refresh_token:state.adminRefresh,factor_id:state.adminFactor,code:code}).then(function(d){
+    adminBusy(btn,false);
+    if(!d.success){adminErr(d.error||'That code did not work. Use the newest code from your app.');input.value='';return;}
+    state.adminToken=d.access_token;state.adminRefresh=d.refresh_token;
+    adminFinishLogin();
+  });
+}
+function adminFinishLogin(){
+  ['adm-email','adm-pass','adm-code','adm-enroll-code'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  closeModal('adminSignInModal');
+  enterAdmin();
+  // Keep the session alive while the admin page stays open
+  if(adminRefreshTimer)clearInterval(adminRefreshTimer);
+  adminRefreshTimer=setInterval(function(){
+    adminAuthCall({action:'refresh',access_token:state.adminToken,refresh_token:state.adminRefresh}).then(function(d){
+      if(d.success){state.adminToken=d.access_token;state.adminRefresh=d.refresh_token;}
+    });
+  },40*60*1000);
+}
+function adminBackToLogin(){
+  adminClearSession();
+  adminOpenLogin();
+}
+function doAdminSignOut(){
+  if(state.adminToken)adminAuthCall({action:'logout',access_token:state.adminToken});
+  adminClearSession();
+  document.body.classList.remove('admin-mode');
+  showScreen('screen-landing');
+  if(ADMIN_HOST)adminOpenLogin();
+}
+// If the server says the admin session is no longer valid, go back to the sign-in box
+function adminSessionExpired(){
+  adminClearSession();
+  document.body.classList.remove('admin-mode');
+  showScreen('screen-landing');
+  adminOpenLogin();
+  adminErr('Your admin session ended. Please sign in again.');
+}
+(function(){
+  var realFetch=window.fetch;
+  window.fetch=function(u){
+    return realFetch.apply(this,arguments).then(function(res){
+      try{
+        var url=typeof u==='string'?u:((u&&u.url)||'');
+        if(res.status===401&&state.adminToken&&/\/api\/(admin|sponsors)(\?|$)/.test(url))adminSessionExpired();
+      }catch(e){}
+      return res;
+    });
+  };
+})();
+// On the admin address, open the admin sign-in straight away and hide everything else
+document.addEventListener('DOMContentLoaded',function(){
+  if(ADMIN_HOST){document.body.classList.add('admin-host');adminOpenLogin();}
+});
 function enterAdmin(){
   document.body.classList.add('admin-mode');
   showScreen('screen-admin');
@@ -2242,7 +2357,7 @@ function enterAdmin(){
 function loadAdminReports(done){
   fetch('/api/admin',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
     body:JSON.stringify({action:'get_reports'})
   }).then(function(r){return r.json();}).then(function(data){
     if(!data||!data.success)return;
@@ -2293,7 +2408,7 @@ function renderAdminOverview(){
   el.innerHTML='<div class="admin-page-title">Dashboard Overview</div><div class="admin-page-sub">Loading…</div>';
   fetch('/api/admin',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
     body:JSON.stringify({action:'get_members'})
   }).then(function(r){return r.json();}).then(function(data){
     var members=(data.members||[]).map(function(m){return {
@@ -2409,7 +2524,7 @@ function adminApproveBiz(id){
   // Update in Supabase via admin API
   fetch('/api/admin',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
     body:JSON.stringify({action:'approve_business',business_id:id})
   }).then(function(res){return res.json();}).then(function(data){
     if(data.success){
@@ -2435,7 +2550,7 @@ function adminApproveBiz(id){
 function adminRejectBiz(id){
   fetch('/api/admin',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
     body:JSON.stringify({action:'reject_business',business_id:id})
   }).then(function(res){return res.json();}).then(function(data){
     state.pendingBusinesses=state.pendingBusinesses.filter(x=>x.id!==id);
@@ -2481,7 +2596,7 @@ function adminReportAction(id,resolution,icon,auditText,done){
   var r=state.admin.reportedContent.find(x=>x.id===id);
   fetch('/api/admin',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
     body:JSON.stringify({action:'resolve_report',report_id:id,resolution:resolution})
   }).then(function(res){return res.json();}).then(function(data){
     if(!data||!data.success){alert((data&&data.error)||'Could not save that action. Please try again.');return;}
@@ -2502,7 +2617,7 @@ function renderAdminMembers(){
   el.innerHTML='<div class="admin-page-title">Member Management</div><div class="admin-page-sub">Loading members…</div>';
   fetch('/api/admin',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
     body:JSON.stringify({action:'get_members'})
   }).then(function(r){return r.json();}).then(function(data){
     var members=data.members||[];
@@ -2553,7 +2668,7 @@ function buildMemberTable(members){
     }).join('')+'</tbody></table></div>';
 }
 function adminSuspendMember(id){
-  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify({action:'suspend_member',user_id:id})})
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify({action:'suspend_member',user_id:id})})
   .then(function(r){return r.json();}).then(function(){
     addAuditLog('🚫','Member suspended by Admin.');
     renderAdminMembers();
@@ -2564,7 +2679,7 @@ function adminSuspendMember(id){
   });
 }
 function adminRestoreMember(id){
-  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify({action:'restore_member',user_id:id})})
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify({action:'restore_member',user_id:id})})
   .then(function(r){return r.json();}).then(function(){
     addAuditLog('✅','Member restored by Admin.');
     renderAdminMembers();
@@ -2621,7 +2736,7 @@ function adminRemoveJob(id){
   if(!confirm('Remove the listing "'+(j?j.title:'this job')+'"? It will no longer appear on the Job Board.'))return;
   fetch('/api/admin',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
     body:JSON.stringify({action:'remove_job',job_id:id})
   }).then(function(r){return r.json();}).then(function(data){
     if(!data||!data.success){alert((data&&data.error)||'Could not remove that listing. Please try again.');return;}
@@ -2630,7 +2745,7 @@ function adminRemoveJob(id){
     // Close out any open reports on this job, since it has now been removed
     var open=state.admin.reportedContent.filter(function(r){return !r.resolved&&r.jobId&&String(r.jobId)===String(id);});
     return Promise.all(open.map(function(r){
-      return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify({action:'resolve_report',report_id:r.id,resolution:'removed'})}).then(function(x){return x.json();}).then(function(d){if(d&&d.success){r.resolved=true;r.resolution='removed';}});
+      return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify({action:'resolve_report',report_id:r.id,resolution:'removed'})}).then(function(x){return x.json();}).then(function(d){if(d&&d.success){r.resolved=true;r.resolution='removed';}});
     })).then(function(){updateAdminBadges();drawAdminJobs();});
   }).catch(function(){alert('Could not remove that listing. Please check your connection and try again.');});
 }
@@ -2638,7 +2753,7 @@ function adminClearJobFlag(id){
   var j=state.jobs.find(x=>String(x.id)===String(id));
   var open=state.admin.reportedContent.filter(function(r){return r.type==='Job Posting'&&!r.resolved&&j&&(r.jobId?String(r.jobId)===String(j.id):r.title.includes(j.title));});
   Promise.all(open.map(function(r){
-    return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify({action:'resolve_report',report_id:r.id,resolution:'dismissed'})}).then(function(x){return x.json();}).then(function(d){if(d&&d.success)r.resolved=true;});
+    return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify({action:'resolve_report',report_id:r.id,resolution:'dismissed'})}).then(function(x){return x.json();}).then(function(d){if(d&&d.success)r.resolved=true;});
   })).then(function(){
     addAuditLog('✓','Job listing flag cleared by Admin.');
     updateAdminBadges();drawAdminJobs();
@@ -2832,7 +2947,7 @@ state.adminSponsors = [];
 async function loadAdminSponsors(){
   try {
     var res = await fetch('/api/sponsors?all=true', {
-      headers:{'x-admin-key': state.adminKey||''}
+      headers:{'Authorization':'Bearer '+(state.adminToken||'')}
     });
     var data = await res.json();
     if(data.success) state.adminSponsors = data.sponsors||[];
@@ -2916,7 +3031,7 @@ async function submitAddSponsor(){
   try {
     var res = await fetch('/api/sponsors', {
       method:'POST',
-      headers:{'Content-Type':'application/json','x-admin-key': state.adminKey||''},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
       body: JSON.stringify({
         name,
         tagline,
@@ -2945,7 +3060,7 @@ async function toggleSponsorActive(id, active){
   try {
     var res = await fetch('/api/sponsors', {
       method:'PUT',
-      headers:{'Content-Type':'application/json','x-admin-key': state.adminKey||''},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
       body: JSON.stringify({id, active})
     });
     var data = await res.json();
@@ -2962,7 +3077,7 @@ async function deleteSponsor(id){
   try {
     var res = await fetch('/api/sponsors', {
       method:'DELETE',
-      headers:{'Content-Type':'application/json','x-admin-key': state.adminKey||''},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
       body: JSON.stringify({id})
     });
     var data = await res.json();
@@ -3194,7 +3309,7 @@ function doSignOut(){
 
 // ═══════════════ ADMIN CHURCHES
 function adminPost(body){
-  return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':state.adminKey||''},body:JSON.stringify(body)})
+  return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify(body)})
     .then(function(r){return r.json();}).catch(function(e){return {error:e.message};});
 }
 function renderAdminChurches(){
