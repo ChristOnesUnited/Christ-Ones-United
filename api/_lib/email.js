@@ -2,7 +2,7 @@
 // Never throws: a failed email must not break the action that triggered it.
 const FROM = process.env.RESEND_FROM || "Christ One's United <noreply@send.christonesunited.com>";
 
-async function sendEmail({ to, subject, html }) {
+async function sendEmail({ to, subject, html, replyTo }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn('sendEmail skipped: RESEND_API_KEY is not set.'); return { ok: false, skipped: true }; }
   if (!to)  { console.warn('sendEmail skipped: no recipient.'); return { ok: false, skipped: true }; }
@@ -10,7 +10,10 @@ async function sendEmail({ to, subject, html }) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM, to: Array.isArray(to) ? to : [to], subject, html }),
+      body: JSON.stringify(Object.assign(
+        { from: FROM, to: Array.isArray(to) ? to : [to], subject, html },
+        replyTo ? { reply_to: replyTo } : {}
+      )),
     });
     if (!r.ok) {
       console.error('Resend error', r.status, await r.text());
