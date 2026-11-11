@@ -2428,13 +2428,13 @@ function renderAdminOverview(){
       '<div class="admin-page-title">Dashboard Overview</div>'+
       '<div class="admin-page-sub">Welcome back, Admin · Christ One\'s United</div>'+
       '<div class="admin-stats">'+
-        mkStat(totalMembers,'Total Members','blue')+
-        mkStat(indCount,'Individuals','green')+
-        mkStat(bizCount,'Businesses','gold')+
-        mkStat(activeCount,'Active','green')+
-        mkStat(pendingCount,'Pending Approval','gold')+
-        mkStat(reportCount,'Open Reports','red')+
-        mkStat(jobCount,'Active Jobs','blue')+
+        mkStat(totalMembers,'Total Members','blue','members')+
+        mkStat(indCount,'Individuals','green','members')+
+        mkStat(bizCount,'Businesses','gold','members')+
+        mkStat(activeCount,'Active','green','members')+
+        mkStat(pendingCount,'Pending Approval','gold','approvals')+
+        mkStat(reportCount,'Open Reports','red','reports')+
+        mkStat(jobCount,'Active Jobs','blue','jobs')+
       '</div>'+
       '<div class="admin-card" style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.82rem;">'+
         '<div style="font-size:1.5rem;margin-bottom:.5rem;">📈</div>'+
@@ -2452,7 +2452,10 @@ function renderAdminOverview(){
     el.innerHTML='<div class="admin-page-title">Dashboard Overview</div><div class="admin-page-sub" style="color:var(--red);">Could not load data. Please refresh.</div>';
   });
 }
-function mkStat(val,lbl,color){return '<div class="admin-stat"><div class="admin-stat-val '+color+'">'+val+'</div><div class="admin-stat-lbl">'+lbl+'</div></div>';}
+function mkStat(val,lbl,color,tab){
+  var nav=tab?' role="button" tabindex="0" style="cursor:pointer;" onclick="switchAdminTab(\''+tab+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();switchAdminTab(\''+tab+'\');}"':'';
+  return '<div class="admin-stat"'+nav+'><div class="admin-stat-val '+color+'">'+val+'</div><div class="admin-stat-lbl">'+lbl+'</div></div>';
+}
 function mkBarChart(labels,values,color){
   var max=Math.max(...values)||1;
   return '<div class="chart-bars">'+labels.map(function(l,i){
@@ -2603,6 +2606,11 @@ function adminReportAction(id,resolution,icon,auditText,done){
     if(r){r.resolved=true;r.resolution=resolution;}
     addAuditLog(icon,auditText+' "'+(r?r.title:'')+'".');
     updateAdminBadges();renderAdminReports();
+    if(resolution==='warned'){
+      alert(data.emailed
+        ?'Warning emailed'+(data.warned_name?' to '+data.warned_name:'')+'.'
+        :'Report marked as warned, but the email could not be sent (no email on file or email service unavailable). Please contact the member directly.');
+    }
     if(done)done();
   }).catch(function(){alert('Could not save that action. Please check your connection and try again.');});
 }
