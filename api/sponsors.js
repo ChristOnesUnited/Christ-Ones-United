@@ -9,6 +9,25 @@ module.exports = async (req, res) => {
   res.setHeader('Pragma', 'no-cache');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  // GET ALL — admin fetch of every sponsor regardless of date/active status
+  if (req.method === 'GET' && req.query && req.query.all === 'true') {
+    const auth = await requireAdmin(req, res);
+    if (!auth) return;
+    try {
+      const { data, error } = await supabase
+        .from('sponsors')
+        .select('*')
+        .order('order_position', { ascending: true });
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, sponsors: data || [] });
+
+    } catch (err) {
+      console.error('Get all sponsors error:', err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   // GET — fetch all active sponsors within date range (public)
   if (req.method === 'GET') {
     try {
@@ -97,22 +116,6 @@ module.exports = async (req, res) => {
 
       if (error) throw error;
       return res.status(200).json({ success: true });
-
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
-    }
-  }
-
-  // GET ALL — admin fetch all sponsors regardless of date/active status
-  if (req.method === 'GET' && req.query.all === 'true') {
-    try {
-      const { data, error } = await supabase
-        .from('sponsors')
-        .select('*')
-        .order('order_position', { ascending: true });
-
-      if (error) throw error;
-      return res.status(200).json({ success: true, sponsors: data || [] });
 
     } catch (err) {
       return res.status(500).json({ error: err.message });

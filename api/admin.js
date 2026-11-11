@@ -2,6 +2,7 @@ const supabase = require('./supabase');
 const { lookupZip, cleanZip, normalizeChurchName } = require('./_lib/geo');
 const { findOrCreateChurch } = require('./_lib/church-store');
 const { requireAdmin } = require('./_lib/adminAuth');
+const { sendEmail, esc } = require('./_lib/email');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -141,12 +142,41 @@ module.exports = async (req, res) => {
         if (error) throw error;
       }
 
+      // Warning: politely email the member who posted the job (never reveals the reporter)
+      let emailed = false;
+      let warnedName = '';
+      if (resolution === 'warned' && report.content_type === 'job') {
+        const { data: job } = await supabase.from('jobs').select('title, business_id').eq('id', report.content_id).single();
+        const { data: biz } = job && job.business_id
+          ? await supabase.from('businesses').select('user_id').eq('id', job.business_id).single()
+          : { data: null };
+        const { data: poster } = biz && biz.user_id
+          ? await supabase.from('users').select('name, email').eq('id', biz.user_id).single()
+          : { data: null };
+        if (poster && poster.email) {
+          warnedName = poster.name || '';
+          const title = (job && job.title) || report.content_title || 'your job posting';
+          const result = await sendEmail({
+            to: poster.email,
+            replyTo: 'support@christonesunited.com',
+            subject: 'A notice about your job posting on Christ One\'s United',
+            html:
+              '<p>Hello ' + esc(poster.name || 'friend') + ',</p>' +
+              '<p>A member of our community raised a concern about your job posting <strong>' + esc(title) + '</strong>, and our team has reviewed it.</p>' +
+              '<p>This is a friendly warning. Please review the posting and make sure it follows our community guidelines: accurate, respectful, and in keeping with the spirit of this community. Postings that continue to raise concerns may be removed, and repeated issues may affect your membership.</p>' +
+              '<p>If you have questions or believe this was a mistake, just reply to this email and we will be glad to help.</p>' +
+              '<p>Blessings,<br/>The Christ One\'s United Team</p>',
+          });
+          emailed = !!(result && result.ok);
+        }
+      }
+
       const { error: uErr } = await supabase
         .from('reports')
         .update({ status: 'resolved', resolution, resolved_at: new Date().toISOString() })
         .eq('id', report_id);
       if (uErr) throw uErr;
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, emailed, warned_name: warnedName });
     }
 
     // ── CHURCHES ─────────────────────────────────────────────
