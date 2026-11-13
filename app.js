@@ -3727,3 +3727,39 @@ function renderLocNudge(){
 
   setTimeout(showInstallModal, 2500);
 })();
+// ═══════════════ SHOW / HIDE PASSWORD
+// Adds a small Show/Hide button inside every password box (including ones drawn later).
+(function(){
+  var st=document.createElement('style');
+  st.textContent=
+    '.pw-wrap{position:relative;display:block;}'+
+    '.pw-wrap>input{padding-right:62px !important;}'+
+    '.pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;'+
+    'color:#8a8070;font-family:inherit;font-size:.74rem;font-weight:600;padding:8px 8px;cursor:pointer;line-height:1;}'+
+    '.pw-toggle:hover{color:#1a1a2e;}';
+  document.head.appendChild(st);
+  function addToggle(inp){
+    if(inp.dataset.pwToggle)return;
+    inp.dataset.pwToggle='1';
+    var wrap=document.createElement('span');
+    wrap.className='pw-wrap';
+    inp.parentNode.insertBefore(wrap,inp);
+    wrap.appendChild(inp);
+    var b=document.createElement('button');
+    b.type='button';b.className='pw-toggle';b.textContent='Show';
+    b.setAttribute('aria-label','Show password');
+    b.addEventListener('click',function(){
+      var show=inp.type==='password';
+      inp.type=show?'text':'password';
+      b.textContent=show?'Hide':'Show';
+      b.setAttribute('aria-label',show?'Hide password':'Show password');
+    });
+    wrap.appendChild(b);
+  }
+  function scan(){document.querySelectorAll('input[type="password"]').forEach(addToggle);}
+  function start(){
+    scan();
+    new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
