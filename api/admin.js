@@ -2,7 +2,7 @@ const supabase = require('./supabase');
 const { lookupZip, cleanZip, normalizeChurchName } = require('./_lib/geo');
 const { findOrCreateChurch } = require('./_lib/church-store');
 const { requireAdmin } = require('./_lib/adminAuth');
-const { sendEmail, esc } = require('./_lib/email');
+const { sendEmail, esc, brandedEmail } = require('./_lib/email');
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 module.exports = async (req, res) => {
@@ -256,12 +256,14 @@ module.exports = async (req, res) => {
             to: poster.email,
             replyTo: 'support@christonesunited.com',
             subject: 'A notice about your job posting on Christ One\'s United',
-            html:
-              '<p>Hello ' + esc(poster.name || 'friend') + ',</p>' +
-              '<p>A member of our community raised a concern about your job posting <strong>' + esc(title) + '</strong>, and our team has reviewed it.</p>' +
-              '<p>This is a friendly warning. Please review the posting and make sure it follows our community guidelines: accurate, respectful, and in keeping with the spirit of this community. Postings that continue to raise concerns may be removed, and repeated issues may affect your membership.</p>' +
-              '<p>If you have questions or believe this was a mistake, just reply to this email and we will be glad to help.</p>' +
-              '<p>Blessings,<br/>The Christ One\'s United Team</p>',
+            html: brandedEmail({
+              title: 'A notice about your job posting',
+              bodyHtml:
+                '<p style="margin:0 0 14px 0;">Hello ' + esc(poster.name || 'friend') + ',</p>' +
+                '<p style="margin:0 0 14px 0;">A member of our community raised a concern about your job posting <strong>' + esc(title) + '</strong>, and our team has reviewed it.</p>' +
+                '<p style="margin:0 0 14px 0;">This is a friendly warning. Please review the posting and make sure it follows our community guidelines: accurate, respectful, and in keeping with the spirit of this community. Postings that continue to raise concerns may be removed, and repeated issues may affect your membership.</p>' +
+                '<p style="margin:0;color:#5a564e;font-size:14px;">If you have questions or believe this was a mistake, just reply to this email and we will be glad to help.</p>',
+            }),
           });
           emailed = !!(result && result.ok);
         }
