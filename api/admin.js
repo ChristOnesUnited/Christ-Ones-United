@@ -107,6 +107,15 @@ module.exports = async (req, res) => {
       return res.status(200).json({ success: true });
     }
 
+    // ── CANCELLATIONS ────────────────────────────────────────
+    // Members who cancelled (with the reason they gave), newest first
+    if (action === 'get_cancellations') {
+      const { data, error } = await supabase
+        .from('cancellations').select('*').order('created_at', { ascending: false }).limit(200);
+      if (error) throw error;
+      return res.status(200).json({ success: true, cancellations: data || [] });
+    }
+
     // ── REPORTS ──────────────────────────────────────────────
     // List reported content (newest first)
     if (action === 'get_reports') {
