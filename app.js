@@ -246,6 +246,15 @@ function doSignIn(){
   e.style.color='#1a6b4a';e.textContent='Signing in…';e.classList.remove('hidden');
   apiFetch('/api/auth-signin','POST',{email:email,password:pass}).then(function(data){
     e.style.color='';
+    if(data.awaiting_payment&&data.user){
+      // Signed up but never finished paying: send them back to checkout
+      e.classList.add('hidden');
+      state.user={id:data.user.id,name:data.user.name,email:data.user.email};
+      state.profileType=data.user.type||'individual';
+      state.resumePayment=true;
+      goToPayment();
+      return;
+    }
     if(data.error){
       e.textContent=data.error;
       e.style.color='var(--red)';
@@ -400,7 +409,8 @@ function doFaith(){
 function goToPayment(){
   var isBiz=state.profileType==='business';var plans=isBiz?BIZ_PLANS:IND_PLANS;
   selectedPlan=plans.find(p=>p.id==='annual')||plans[0];
-  document.getElementById('pay-subtitle').textContent=isBiz?'Business Membership':'Individual Membership';
+  document.getElementById('pay-subtitle').textContent=(state.resumePayment?'Finish your membership \u2014 ':'')+(isBiz?'Business Membership':'Individual Membership');
+  state.resumePayment=false;
   document.getElementById('pay-chip').className='ob-chip '+(isBiz?'g':'r');
   document.getElementById('pay-chip').textContent=isBiz?'🏢 Business Owner':'🔍 Individual Member';
   makeDots(3,isBiz?'g':'r','pay-stepdots');
@@ -2769,7 +2779,7 @@ function buildMemberTable(members){
     members.map(function(m){
       var statusClass={active:'ms-active',suspended:'ms-suspended',pending:'ms-pending'}[m.status]||'ms-pending';
       return '<tr><td><strong>'+m.name+'</strong><br/><span style="font-size:.68rem;color:var(--muted);">'+m.email+'</span></td><td>'+m.type+'</td><td style="font-size:.73rem;">'+( m.church||'—')+'</td><td>'+m.plan+'</td><td>'+m.joined+'</td>'+
-        '<td><span class="member-status '+statusClass+'">'+m.status+'</span></td>'+
+        '<td><span class="member-status '+statusClass+'">'+String(m.status).replace(/_/g,' ')+'</span></td>'+
         '<td style="text-align:center;">'+(m.faithAnswer==='yes'?'✅':'❌')+'</td>'+
         '<td><div style="display:flex;gap:4px;flex-wrap:wrap;">'+(m.status==='suspended'?
           '<button class="adm-restore" style="padding:4px 8px;font-size:.68rem;" onclick="adminRestoreMember('+m.id+')">Restore</button>':
