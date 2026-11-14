@@ -174,7 +174,7 @@ async function saveBusinessToAPI(biz) {
 
 // Save referral to Supabase
 async function saveReferralToAPI(bizId, ref) {
-  await apiFetch('/api/referrals', 'POST', {
+  return await apiFetch('/api/referrals', 'POST', {
     from_user_id: state.user ? state.user.id : null,
     business_id: bizId,
     name: ref.name,
@@ -1295,6 +1295,8 @@ function sendModalMsg(bizId){
     biz_name:biz?biz.name:'',
     text:text,
     from_role:'user'
+  }).then(function(d){
+    if(d&&d.error&&d.code!=='session_expired')alert('Your message could not be sent: '+d.error+' Please try again.');
   }).catch(function(){});
   // Update local state
   var thread=state.messages.find(m=>String(m.bizId)===String(bizId));
@@ -1347,7 +1349,9 @@ function submitRef(bizId){
   if(me){me.count++;}else{state.leaderboard.push({name:state.user.name,count:1,badge:''});}
   state.leaderboard.sort((a,b)=>b.count-a.count);
   // Save to Supabase
-  saveReferralToAPI(bizId, ref);
+  saveReferralToAPI(bizId, ref).then(function(d){
+    if(d&&d.error&&d.code!=='session_expired')alert('Your referral could not be saved: '+d.error+' Please try again.');
+  });
   addNotif('Your referral to '+(biz?biz.name:'the business')+' was received!');
   document.getElementById('refModalContent').innerHTML='<div style="text-align:center;padding:.5rem 0;"><div style="font-size:2rem;margin-bottom:.55rem;">🙏</div><div style="font-family:\'Playfair Display\',serif;font-size:1.1rem;margin-bottom:.35rem;">Referral Sent!</div><p style="font-size:.8rem;color:#7a7369;">Your referral has been shared with <strong>'+(biz?biz.name:'the business')+'</strong>.</p></div>';
   setTimeout(function(){closeModal('refModal');},2000);
@@ -2021,8 +2025,8 @@ function submitJobReport(jobId){
   if(!uid){alert('Please sign in to report a posting.');return;}
   fetch('/api/reports',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({job_id:jobId,reporter_id:uid})
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.authToken||'')},
+    body:JSON.stringify({job_id:jobId})
   }).then(function(r){return r.json();}).then(function(data){
     if(data&&data.success){
       addNotif('⚠️ Thank you. This job posting has been reported and flagged for administrative review.');
