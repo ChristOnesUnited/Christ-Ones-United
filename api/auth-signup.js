@@ -20,13 +20,41 @@ module.exports = async (req, res) => {
 
   try {
     // Step 1 — Check if email already exists in users table
+    const cleanEmail = email.toLowerCase().trim();
     const { data: existingUser } = await supabaseService
       .from('users')
-      .select('id, email')
-      .eq('email', email.toLowerCase().trim())
+      .select('id, email, status')
+      .eq('email', cleanEmail)
       .single();
 
     if (existingUser) {
+      // An earlier signup that never finished paying: let the person start over with the same email.
+      // (Paid, suspended or cancelled accounts are never touched here.)
+      if (existingUser.status === 'awaiting_payment') {
+        const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+          password,
+          user_metadata: { name, type: type || 'individual', plan: plan || 'monthly' }
+        });
+        if (updErr) return res.status(400).json({ error: updErr.message });
+        const { error: resumeErr } = await supabaseService.from('users').upsert([{
+          id: existingUser.id,
+          name,
+          email: cleanEmail,
+          type: type || 'individual',
+          plan: plan || 'monthly',
+          church: church || '',
+          faith_answer: faith_answer || 'yes',
+          status: 'awaiting_payment',
+          terms_agreed_at: terms_agreed_at || new Date().toISOString(),
+          terms_version: 'August 2026',
+        }], { onConflict: 'id' });
+        if (resumeErr) console.error('User resume upsert error:', resumeErr.message);
+        return res.status(200).json({
+          success: true,
+          resumed: true,
+          user: { id: existingUser.id, email, name, type: type || 'individual', plan: plan || 'monthly' }
+        });
+      }
       console.log(`Duplicate signup attempt: ${email}`);
       return res.status(400).json({ error: 'An account with this email already exists. Please sign in instead.' });
     }
@@ -72,7 +100,7 @@ module.exports = async (req, res) => {
         plan: plan || 'monthly',
         church: church || '',
         faith_answer: faith_answer || 'yes',
-        status: 'active',
+        status: 'awaiting_payment', // becomes 'active' only when Stripe confirms the payment
         terms_agreed_at: terms_agreed_at || new Date().toISOString(),
         terms_version: 'August 2026',
       }], { onConflict: 'id' });

@@ -93,7 +93,7 @@ module.exports = async (req, res) => {
         // Check if user already exists (created by auth-signup during faith verification)
         const { data: existing } = await supabase
           .from('users')
-          .select('id, type, plan')
+          .select('id, type, plan, status')
           .eq('email', email)
           .single();
 
@@ -103,7 +103,7 @@ module.exports = async (req, res) => {
           const { error } = await supabase.from('users').update({
             stripe_customer_id: session.customer || '',
             stripe_subscription_id: session.subscription || '',
-            status: 'active',
+            status: existing.status === 'suspended' ? 'suspended' : 'active',
             plan: plan,
             // Only update type if it was defaulted to individual
             ...(existing.type === 'individual' && type === 'business' ? { type } : {}),
