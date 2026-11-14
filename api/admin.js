@@ -3,6 +3,7 @@ const { lookupZip, cleanZip, normalizeChurchName } = require('./_lib/geo');
 const { findOrCreateChurch } = require('./_lib/church-store');
 const { requireAdmin } = require('./_lib/adminAuth');
 const { sendEmail, esc } = require('./_lib/email');
+const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -94,6 +95,92 @@ module.exports = async (req, res) => {
         .single();
       if (error) throw error;
       return res.status(200).json({ success: true, user: data });
+    }
+
+    // Permanently delete a member and their data (account-deletion requests).
+    // Stripe: the customer is deleted (cancels billing, removes the card); Stripe keeps its own
+    // payment records. Supabase: their listing, jobs, messages, posts and sign-in are removed.
+    if (action === 'delete_member') {
+      const { user_id, confirm_email } = req.body || {};
+      if (!user_id || !confirm_email) return res.status(400).json({ error: 'user_id and confirm_email are required.' });
+
+      const { data: member } = await supabase.from('users')
+        .select('id, email, stripe_customer_id').eq('id', user_id).maybeSingle();
+      if (!member) return res.status(404).json({ error: 'Member not found.' });
+      if (String(member.email || '').toLowerCase() !== String(confirm_email).toLowerCase().trim()) {
+        return res.status(400).json({ error: 'The confirmation email does not match this member. Nothing was deleted.' });
+      }
+
+      // Never delete an admin account
+      const { data: adminRow } = await supabase.from('admins').select('user_id').eq('user_id', member.id).maybeSingle();
+      if (adminRow || String(member.email).toLowerCase() === String(auth.admin.email).toLowerCase()) {
+        return res.status(400).json({ error: 'Admin accounts cannot be deleted here.' });
+      }
+
+      // 1) Stripe first. If this fails we stop, so a member is never left billed with no account.
+      let stripeDone = 'no Stripe customer';
+      if (member.stripe_customer_id) {
+        if (!stripe) return res.status(500).json({ error: 'Stripe is not configured. Nothing was deleted.' });
+        try {
+          await stripe.customers.del(member.stripe_customer_id);
+          stripeDone = 'Stripe customer deleted';
+        } catch (e) {
+          if (e && (e.code === 'resource_missing' || /No such customer/i.test(e.message || ''))) {
+            stripeDone = 'Stripe customer already gone';
+          } else {
+            console.error('delete_member stripe error:', e && e.message);
+            return res.status(502).json({ error: 'Could not delete the Stripe customer, so nothing was deleted. Please try again.' });
+          }
+        }
+      }
+
+      // 2) Supabase data. Each step is independent; anything that fails is reported back.
+      const failed = [];
+      const step = async (label, fn) => {
+        try { const r = await fn(); if (r && r.error) failed.push(label + ': ' + r.error.message); }
+        catch (e) { failed.push(label + ': ' + (e && e.message)); }
+      };
+      const { data: bizRows } = await supabase.from('businesses').select('id').eq('user_id', member.id);
+      const bizIds = (bizRows || []).map(b => b.id);
+
+      for (const bid of bizIds) {
+        await step('jobs', () => supabase.from('jobs').delete().eq('business_id', bid));
+        await step('referrals', () => supabase.from('referrals').delete().eq('business_id', bid));
+        await step('messages', () => supabase.from('messages').delete().eq('business_id', bid));
+        const { data: gm } = await supabase.from('guild_members').select('guild_id').eq('business_id', bid);
+        await step('guild_members', () => supabase.from('guild_members').delete().eq('business_id', bid));
+        for (const g of (gm || [])) {
+          const { data: left } = await supabase.from('guild_members').select('guild_id').eq('guild_id', g.guild_id).limit(1);
+          if (!left || !left.length) {
+            await step('guild_codes', () => supabase.from('guild_codes').delete().eq('guild_id', g.guild_id));
+            await step('guilds', () => supabase.from('guilds').delete().eq('id', g.guild_id));
+          }
+        }
+      }
+      await step('businesses', () => supabase.from('businesses').delete().eq('user_id', member.id));
+      await step('referrals sent', () => supabase.from('referrals').delete().eq('from_user_id', member.id));
+      await step('messages sent', () => supabase.from('messages').delete().eq('from_user_id', member.id));
+      await step('messages received', () => supabase.from('messages').delete().eq('member_user_id', member.id));
+      await step('prayer_requests', () => supabase.from('prayer_requests').delete().eq('user_id', member.id));
+      await step('events', () => supabase.from('events').delete().eq('user_id', member.id));
+      await step('reports filed', () => supabase.from('reports').delete().eq('reporter_user_id', String(member.id)));
+      await step('cancellations', () => supabase.from('cancellations').delete().eq('user_id', String(member.id)));
+      if (member.email) {
+        await step('cancellations by email', () => supabase.from('cancellations').delete().eq('email', member.email));
+        await step('newsletter', () => supabase.from('newsletter_subscribers').delete().eq('email', member.email));
+      }
+
+      // 3) The profile row, then the sign-in account
+      const { error: userErr } = await supabase.from('users').delete().eq('id', member.id);
+      if (userErr) {
+        console.error('delete_member users error:', userErr.message);
+        return res.status(500).json({ error: 'Stripe was handled but the member profile could not be deleted: ' + userErr.message, stripe: stripeDone, failed });
+      }
+      const { error: authErr } = await supabase.auth.admin.deleteUser(member.id);
+      if (authErr && !/not found/i.test(authErr.message || '')) failed.push('sign-in account: ' + authErr.message);
+
+      console.log('[admin] ' + auth.admin.email + ' deleted member id ' + member.id + (failed.length ? ' with issues: ' + failed.join('; ') : ''));
+      return res.status(200).json({ success: true, stripe: stripeDone, failed });
     }
 
     // Remove a job listing
