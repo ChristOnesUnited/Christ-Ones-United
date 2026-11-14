@@ -29,6 +29,7 @@ module.exports = async (req, res) => {
       mode: 'subscription',
       customer_email: email,
       line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
       metadata: { name, profileType, planKey },
       success_url: `${site}/success.html?session_id={CHECKOUT_SESSION_ID}&plan=${planKey}&type=${profileType}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`,
       cancel_url: `${site}/?cancelled=true`,
