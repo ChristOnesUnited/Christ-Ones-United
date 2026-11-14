@@ -351,6 +351,10 @@ textarea.inp{resize:vertical;min-height:72px;}
 .dash-body{max-width:720px;margin:0 auto;padding:1.75rem 1.25rem 2.5rem;}
 .dash-header-eyebrow{font-size:.67rem;text-transform:uppercase;letter-spacing:.14em;color:var(--green);font-weight:600;margin-bottom:.25rem;}
 .dash-header-title{font-family:'Playfair Display',serif;font-size:1.6rem;margin-bottom:.2rem;}
+.manage-sub-btn{display:block;width:100%;margin:.25rem 0 1rem;padding:11px;background:#fff;color:#1a1a2e;border:1.5px solid #d8d2c4;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.84rem;font-weight:600;cursor:pointer;}
+.manage-sub-btn:hover{border-color:#1a1a2e;}
+.manage-sub-btn[disabled]{opacity:.6;cursor:default;}
+.manage-sub-inline{display:inline-block;width:auto;margin:0 0 1.1rem .5rem;padding:3px 12px;font-size:.7rem;border-radius:20px;vertical-align:top;}
 .dash-plan-chip{display:inline-flex;align-items:center;gap:4px;background:#e0f0ea;color:var(--green);font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid #a8d9c4;margin-bottom:1.1rem;}
 .dash-tabs{display:flex;gap:3px;background:var(--warm);border-radius:9px;padding:3px;margin-bottom:1.5rem;overflow-x:auto;}
 .dash-tab{flex:1;padding:7px 5px;text-align:center;border:none;background:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.7rem;font-weight:600;cursor:pointer;color:var(--muted);white-space:nowrap;}
@@ -1052,6 +1056,7 @@ body.admin-mode{padding-bottom:0;}
       <div class="page-sub">Individual Member</div>
       <div class="info-card"><div class="info-label">Profile</div><div class="info-val" id="acc-name"></div><div class="info-sub" id="acc-email"></div></div>
       <div class="info-card" style="background:#f0e4e0;border-color:#e8b4aa;"><div class="info-label" style="color:var(--red);">Membership</div><div class="info-sub" id="acc-plan"></div></div>
+      <button class="manage-sub-btn" onclick="openManageSubscription(this)">Manage subscription</button>
       <div class="info-card" id="acc-location"></div>
       <div class="reward-bar"><div class="reward-icon">🤝</div><div><div class="reward-label">My Referrals</div><div class="reward-sub">Keep referring to earn your badge!</div></div><div class="reward-count" id="my-ref-count">0</div></div>
       <button class="btn btn-ink btn-mt" onclick="doSignOut()">Sign Out</button>
@@ -1088,6 +1093,7 @@ body.admin-mode{padding-bottom:0;}
     <div class="dash-header-eyebrow">Business Owner Portal</div>
     <div class="dash-header-title" id="dash-biz-name">Your Business</div>
     <div class="dash-plan-chip" id="dash-plan-chip">✓ Business Member</div>
+    <button class="manage-sub-btn manage-sub-inline" onclick="openManageSubscription(this)">Manage subscription</button>
     <div id="dash-pending-banner" class="hidden" style="background:#fdf3e3;border:1.5px solid var(--gold);border-radius:10px;padding:.875rem;margin-bottom:1rem;font-size:.82rem;color:#7a5c00;">⏳ <strong>Pending Review</strong> — Your listing is awaiting admin approval. You'll be notified once it goes live.</div>
     <div class="dash-tabs">
       <button class="dash-tab active" id="dash-tab-overview" onclick="switchDashTab('overview')">Overview</button>

@@ -2402,6 +2402,24 @@ function switchAdminTab(tab){
 }
 function addAuditLog(icon,text){state.admin.auditLog.unshift({icon:icon,text:text,time:'Just now'});}
 
+// ═══════════════ MANAGE SUBSCRIPTION (Stripe customer portal)
+function openManageSubscription(btn){
+  if(!state.authToken){alert('Please sign out and sign in again to manage your subscription.');return;}
+  var label=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='Opening…';}
+  function reset(){if(btn){btn.disabled=false;btn.textContent=label;}}
+  fetch('/api/manage-subscription',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.authToken},
+    body:'{}'
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d&&d.url){window.location.href=d.url;return;}
+    reset();alert((d&&d.error)||'Could not open subscription management. Please try again.');
+  }).catch(function(){
+    reset();alert('Could not connect. Please check your connection and try again.');
+  });
+}
+
 // ═══════════════ ADMIN OVERVIEW
 function renderAdminOverview(){
   var el=document.getElementById('adm-tab-overview');
@@ -2441,6 +2459,7 @@ function renderAdminOverview(){
         '<div style="font-weight:600;color:var(--text);margin-bottom:.25rem;">Revenue Reporting</div>'+
         'Live revenue data will appear here once Stripe is connected.'+
       '</div>'+
+      '<div class="admin-card" id="adm-cancellations"><div style="font-family:\'Playfair Display\',serif;font-size:.95rem;margin-bottom:.875rem;">🚪 Cancellations</div><div style="color:var(--muted);font-size:.8rem;">Loading…</div></div>'+
       '<div class="admin-card">'+
         '<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;margin-bottom:.875rem;">🕐 Recent Activity</div>'+
         (recentLog.length?
@@ -2448,8 +2467,43 @@ function renderAdminOverview(){
           '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem;">No activity recorded yet.</div>'
         )+
       '</div>';
+    loadAdminCancellations();
   }).catch(function(){
     el.innerHTML='<div class="admin-page-title">Dashboard Overview</div><div class="admin-page-sub" style="color:var(--red);">Could not load data. Please refresh.</div>';
+  });
+}
+var CANCEL_REASONS={too_expensive:'Too expensive',missing_features:'Missing features',switched_service:'Switched to another service',unused:'Not using it enough',customer_service:'Customer service',low_quality:'Low quality',too_complex:'Too complex',other:'Other'};
+function loadAdminCancellations(){
+  var box=document.getElementById('adm-cancellations');
+  if(!box)return;
+  var title='<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;margin-bottom:.875rem;">🚪 Cancellations</div>';
+  fetch('/api/admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
+    body:JSON.stringify({action:'get_cancellations'})
+  }).then(function(r){return r.json();}).then(function(d){
+    var list=(d&&d.cancellations)||[];
+    if(!d||!d.success){box.innerHTML=title+'<div style="color:var(--muted);font-size:.8rem;">Cancellations are not available yet.</div>';return;}
+    if(!list.length){box.innerHTML=title+'<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem;">No cancellations yet.</div>';return;}
+    box.innerHTML=title+list.map(function(c){
+      var biz=c.type==='business';
+      var ends=c.ends_at?new Date(c.ends_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+      var status=c.status==='reversed'?'<span style="color:#1a6b4a;">Kept their membership</span>':
+                 c.status==='ended'?'Membership ended':
+                 'Access ends '+escHtml(ends);
+      return '<div style="padding:.75rem 0;border-top:1px solid var(--warm);'+(biz?'border-left:3px solid #c9973a;padding-left:.6rem;':'')+'">'+
+        '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">'+
+          '<strong style="font-size:.86rem;">'+escHtml(c.name||c.email||'Member')+'</strong>'+
+          '<span style="font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;'+(biz?'background:#fdf3e3;color:#8a6a1f;':'background:#eef0f6;color:#44485c;')+'">'+(biz?'BUSINESS':'INDIVIDUAL')+'</span>'+
+        '</div>'+
+        '<div style="font-size:.75rem;color:var(--muted);margin:2px 0;">'+(c.email?'<a href="mailto:'+escHtml(c.email)+'" style="color:inherit;">'+escHtml(c.email)+'</a> · ':'')+escHtml(c.plan||'')+'</div>'+
+        '<div style="font-size:.8rem;"><strong>Reason:</strong> '+escHtml(CANCEL_REASONS[c.reason]||c.reason||'Not given')+'</div>'+
+        (c.comment?'<div style="font-size:.8rem;font-style:italic;margin-top:2px;">“'+escHtml(c.comment)+'”</div>':'')+
+        '<div style="font-size:.72rem;color:var(--muted);margin-top:3px;">'+status+'</div>'+
+      '</div>';
+    }).join('');
+  }).catch(function(){
+    box.innerHTML=title+'<div style="color:var(--muted);font-size:.8rem;">Could not load cancellations.</div>';
   });
 }
 function mkStat(val,lbl,color,tab){
