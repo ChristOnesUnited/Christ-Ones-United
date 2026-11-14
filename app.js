@@ -2473,6 +2473,63 @@ function renderAdminOverview(){
   });
 }
 var CANCEL_REASONS={too_expensive:'Too expensive',missing_features:'Missing features',switched_service:'Switched to another service',unused:'Not using it enough',customer_service:'Customer service',low_quality:'Low quality',too_complex:'Too complex',other:'Other'};
+var CANCEL_ARCHIVE_DAYS=7;
+var _cancelAll=[],_cancelShowArchived=false;
+function cancelCard(c){
+  var biz=c.type==='business';
+  var ends=c.ends_at?new Date(c.ends_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+  var when=c.created_at?new Date(c.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+  var status=c.status==='reversed'?'<span style="color:#1a6b4a;">Kept their membership</span>':
+             c.status==='ended'?'Membership ended':
+             'Access ends '+escHtml(ends);
+  return '<div style="padding:.75rem 0;border-top:1px solid var(--warm);'+(biz?'border-left:3px solid #c9973a;padding-left:.6rem;':'')+'">'+
+    '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">'+
+      '<strong style="font-size:.86rem;">'+escHtml(c.name||c.email||'Member')+'</strong>'+
+      '<span style="font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;'+(biz?'background:#fdf3e3;color:#8a6a1f;':'background:#eef0f6;color:#44485c;')+'">'+(biz?'BUSINESS':'INDIVIDUAL')+'</span>'+
+    '</div>'+
+    '<div style="font-size:.75rem;color:var(--muted);margin:2px 0;">'+(c.email?'<a href="mailto:'+escHtml(c.email)+'" style="color:inherit;">'+escHtml(c.email)+'</a> · ':'')+escHtml(c.plan||'')+'</div>'+
+    '<div style="font-size:.8rem;"><strong>Reason:</strong> '+escHtml(CANCEL_REASONS[c.reason]||c.reason||'Not given')+'</div>'+
+    (c.comment?'<div style="font-size:.8rem;font-style:italic;margin-top:2px;">“'+escHtml(c.comment)+'”</div>':'')+
+    '<div style="font-size:.72rem;color:var(--muted);margin-top:3px;">'+status+(when?' · Cancelled '+escHtml(when):'')+'</div>'+
+  '</div>';
+}
+function renderCancellations(){
+  var box=document.getElementById('adm-cancellations');
+  if(!box)return;
+  var title='<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;margin-bottom:.875rem;">🚪 Cancellations</div>';
+  var cutoff=Date.now()-CANCEL_ARCHIVE_DAYS*86400000;
+  var isOld=function(c){return c.created_at&&new Date(c.created_at).getTime()<cutoff;};
+  var recent=_cancelAll.filter(function(c){return !isOld(c);});
+  var archived=_cancelAll.filter(isOld);
+  var html=title;
+  if(_cancelShowArchived){
+    html+='<div style="font-size:.74rem;color:var(--muted);margin-bottom:.4rem;">Archived (cancelled more than '+CANCEL_ARCHIVE_DAYS+' days ago)</div>'+
+      (archived.length?archived.map(cancelCard).join(''):'<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem;">Nothing archived yet.</div>');
+  }else{
+    html+=recent.length?recent.map(cancelCard).join(''):'<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem;">No recent cancellations.</div>';
+  }
+  html+='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:.75rem;padding-top:.6rem;border-top:1px solid var(--warm);font-size:.76rem;">'+
+    '<a href="#" onclick="toggleArchivedCancellations();return false;" style="color:var(--blue,#2a4a8a);">'+(_cancelShowArchived?'← Back to recent':'Show archived ('+archived.length+')')+'</a>'+
+    '<a href="#" onclick="downloadCancellationsCsv();return false;" style="color:var(--blue,#2a4a8a);">Download all as CSV ('+_cancelAll.length+')</a>'+
+  '</div>';
+  box.innerHTML=html;
+}
+function toggleArchivedCancellations(){_cancelShowArchived=!_cancelShowArchived;renderCancellations();}
+function downloadCancellationsCsv(){
+  var cols=['created_at','name','email','type','plan','reason','comment','status','ends_at'];
+  var cell=function(v){
+    var s=v==null?'':String(v);
+    if(/^[=+\-@\t\r]/.test(s))s="'"+s; // stop spreadsheet formulas
+    return '"'+s.replace(/"/g,'""')+'"';
+  };
+  var rows=[cols.join(',')].concat(_cancelAll.map(function(c){return cols.map(function(k){return cell(c[k]);}).join(',');}));
+  var blob=new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='cancellations-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+}
 function loadAdminCancellations(){
   var box=document.getElementById('adm-cancellations');
   if(!box)return;
@@ -2482,26 +2539,11 @@ function loadAdminCancellations(){
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},
     body:JSON.stringify({action:'get_cancellations'})
   }).then(function(r){return r.json();}).then(function(d){
-    var list=(d&&d.cancellations)||[];
     if(!d||!d.success){box.innerHTML=title+'<div style="color:var(--muted);font-size:.8rem;">Cancellations are not available yet.</div>';return;}
-    if(!list.length){box.innerHTML=title+'<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem;">No cancellations yet.</div>';return;}
-    box.innerHTML=title+list.map(function(c){
-      var biz=c.type==='business';
-      var ends=c.ends_at?new Date(c.ends_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-      var status=c.status==='reversed'?'<span style="color:#1a6b4a;">Kept their membership</span>':
-                 c.status==='ended'?'Membership ended':
-                 'Access ends '+escHtml(ends);
-      return '<div style="padding:.75rem 0;border-top:1px solid var(--warm);'+(biz?'border-left:3px solid #c9973a;padding-left:.6rem;':'')+'">'+
-        '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">'+
-          '<strong style="font-size:.86rem;">'+escHtml(c.name||c.email||'Member')+'</strong>'+
-          '<span style="font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;'+(biz?'background:#fdf3e3;color:#8a6a1f;':'background:#eef0f6;color:#44485c;')+'">'+(biz?'BUSINESS':'INDIVIDUAL')+'</span>'+
-        '</div>'+
-        '<div style="font-size:.75rem;color:var(--muted);margin:2px 0;">'+(c.email?'<a href="mailto:'+escHtml(c.email)+'" style="color:inherit;">'+escHtml(c.email)+'</a> · ':'')+escHtml(c.plan||'')+'</div>'+
-        '<div style="font-size:.8rem;"><strong>Reason:</strong> '+escHtml(CANCEL_REASONS[c.reason]||c.reason||'Not given')+'</div>'+
-        (c.comment?'<div style="font-size:.8rem;font-style:italic;margin-top:2px;">“'+escHtml(c.comment)+'”</div>':'')+
-        '<div style="font-size:.72rem;color:var(--muted);margin-top:3px;">'+status+'</div>'+
-      '</div>';
-    }).join('');
+    _cancelAll=d.cancellations||[];
+    _cancelShowArchived=false;
+    if(!_cancelAll.length){box.innerHTML=title+'<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem;">No cancellations yet.</div>';return;}
+    renderCancellations();
   }).catch(function(){
     box.innerHTML=title+'<div style="color:var(--muted);font-size:.8rem;">Could not load cancellations.</div>';
   });
