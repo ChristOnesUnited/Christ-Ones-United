@@ -989,7 +989,7 @@ function renderPrayerBoard(){
   apiFetch('/api/community?type=prayer').then(function(data){
     var prayers=data.prayers||[];
     state.prayerRequests=prayers.map(function(p){return {
-      id:p.id,author:p.author||'Anonymous',
+      id:p.id,author:p.author||'Anonymous',userId:p.user_id||null,
       text:p.text,
       time:p.created_at?new Date(p.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'',
       prayedBy:p.prayed_by||[],
@@ -997,7 +997,7 @@ function renderPrayerBoard(){
     };});
     if(!prayers.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🙏</div><div class="empty-title">No prayer requests yet</div><p>Be the first to share a prayer request with the community.</p></div>';return;}
     el.innerHTML=state.prayerRequests.map(function(p,i){
-      var isOwner=state.user&&(p.userId===state.user.id||p.author===state.user.name);
+      var isOwner=!!(state.user&&p.userId&&String(p.userId)===String(state.user.id));
       return '<div class="prayer-card" id="prayer-card-'+p.id+'">'+
         '<div class="prayer-header">'+
           '<div class="prayer-author">🙏 '+p.author+'</div>'+
@@ -1078,7 +1078,7 @@ function renderEvents(){
     if(!events.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events yet</div><p>Be the first to post a community event.</p></div>';return;}
     el.innerHTML=events.map(function(e){
       var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
-      var isOwner=state.user&&(e.user_id===state.user.id||e.host===state.user.name);
+      var isOwner=!!(state.user&&e.user_id&&String(e.user_id)===String(state.user.id));
       return '<div class="event-card" id="event-card-'+e.id+'">'+
         '<div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div>'+
         '<div class="event-body">'+
@@ -1631,7 +1631,7 @@ function renderBizCommunity(){
         '</div>'+
         (prayers.length?prayers.slice(0,5).map(function(p){
           var alreadyPrayed=p.prayed_by&&p.prayed_by.includes(state.user?state.user.name:'');
-          var isOwner=state.user&&(p.user_id===state.user.id||p.author===state.user.name);
+          var isOwner=!!(state.user&&p.user_id&&String(p.user_id)===String(state.user.id));
           return '<div class="prayer-card" id="prayer-card-'+p.id+'" style="margin-bottom:.65rem;">'+
             '<div class="prayer-header">'+
               '<div class="prayer-author">🙏 '+(p.author||'Anonymous')+'</div>'+
@@ -1657,7 +1657,7 @@ function renderBizCommunity(){
         '</div>'+
         (events.length?events.slice(0,5).map(function(e){
           var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
-          var isOwner=state.user&&(e.user_id===state.user.id||e.host===state.user.name);
+          var isOwner=!!(state.user&&e.user_id&&String(e.user_id)===String(state.user.id));
           return '<div class="event-card" id="event-card-'+e.id+'" style="margin-bottom:.65rem;">'+
             '<div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div>'+
             '<div class="event-body">'+
