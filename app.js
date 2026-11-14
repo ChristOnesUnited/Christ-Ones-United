@@ -1429,6 +1429,7 @@ function renderDashOverview(){
     apiFetch('/api/referrals?business_id='+biz.id),
     apiFetch('/api/jobs?business_id='+biz.id),
     apiFetch('/api/community?type=messages&business_id='+biz.id),
+    apiFetch('/api/testimonials?business_id='+biz.id),
   ]).then(function(results){
     var refs=results[0].referrals||[];
     var jobs=results[1].jobs||[];
@@ -1439,7 +1440,9 @@ function renderDashOverview(){
     var msgCount=uniqueSenders.size;
 
     // Testimonials from local state
-    var tms=biz.testimonials||[];
+    var tms=(results[3]&&results[3].testimonials)||[];
+    var tmEsc=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+    if(state.myBiz&&results[3]&&results[3].success)state.myBiz.testimonials=tms.map(function(t){return{author:t.author_name,text:t.text};});
 
     // Count contacted referrals
     var contactedRefs=refs.filter(function(r){return r.contacted;}).length;
@@ -1512,6 +1515,14 @@ function renderDashOverview(){
             }).join('');
           })()
         :'<p style="font-size:.82rem;color:var(--muted);">No messages yet.</p>')+
+      '</div>'+
+
+      // Testimonials
+      '<div class="dash-card" style="margin-bottom:1rem;">'+
+        '<div class="dash-card-title">✍️ Testimonials ('+tms.length+')</div>'+
+        (tms.length?tms.slice(0,3).map(function(t){
+          return '<div class="testimonial" style="margin-bottom:.5rem;"><div class="testimonial-text" style="font-size:.8rem;">"'+tmEsc(t.text)+'"</div><div class="testimonial-author">— '+tmEsc(t.author_name)+'</div></div>';
+        }).join('')+(tms.length>3?'<div style="font-size:.72rem;color:var(--muted);">Showing the 3 most recent of '+tms.length+'.</div>':''):'<p style="font-size:.82rem;color:var(--muted);">No testimonials yet. Members can tap ✍️ Testify on your listing to leave one.</p>')+
       '</div>'+
 
       // Newsletter card
