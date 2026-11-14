@@ -56,12 +56,12 @@
 <link rel="manifest" href="/manifest.json"/>
 <meta name="theme-color" content="#1a2a5e"/>
 <link rel="apple-touch-icon" href="/icon-192.png"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Christ One's United</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',sans-serif;background:#f7f4ef;color:#0f0e0c;padding-bottom:70px;}
+body{font-family:'DM Sans',sans-serif;background:#f7f4ef;color:#0f0e0c;padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px));}
 :root{--red:#c8452d;--green:#1a6b4a;--ink:#0f0e0c;--cream:#f7f4ef;--warm:#ede8df;--muted:#7a7369;--border:#ddd8ce;--gold:#c9973a;}
 .hidden{display:none!important;}
 .screen{display:none;} .screen.active{display:block;}
@@ -84,7 +84,7 @@ body{font-family:'DM Sans',sans-serif;background:#f7f4ef;color:#0f0e0c;padding-b
 .bell-dot{position:absolute;top:2px;right:2px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--ink);}
 .signout-btn{font-size:.72rem;background:none;border:1px solid #444;border-radius:6px;padding:4px 10px;cursor:pointer;color:#bbb;}
 .signout-btn:hover{border-color:var(--red);color:var(--red);}
-.botnav{position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--ink);display:flex;border-top:1px solid #1a1a1a;z-index:100;}
+.botnav{position:fixed;bottom:0;left:0;right:0;height:calc(62px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px);box-sizing:border-box;background:var(--ink);display:flex;border-top:1px solid #1a1a1a;z-index:100;}
 .botnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;color:#484543;font-family:'DM Sans',sans-serif;position:relative;}
 .botnav-tab.active-ind{color:var(--red);}
 .botnav-tab.active-biz{color:#4dbb8a;}
@@ -527,7 +527,7 @@ body.admin-host #adminSignInModal .modal-close-btn{display:none;}
 .guild-action-label{font-weight:600;font-size:.88rem;color:var(--ink);}
 .guild-action-sub{font-size:.73rem;color:var(--muted);margin-top:2px;}
 /* ── ADMIN PANEL ─────────────────────────────── */
-.admin-screen{min-height:100vh;background:#f0f2f5;padding-bottom:70px;}
+.admin-screen{min-height:100vh;background:#f0f2f5;padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px));}
 #screen-admin{padding-bottom:0;}
 #screen-admin .admin-screen{display:block;}
 /* hide global bottom nav when admin screen is active */
@@ -537,7 +537,7 @@ body.admin-mode{padding-bottom:0;}
 .admin-logo{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff;letter-spacing:-.01em;}
 .admin-logo span{color:#f59e0b;}
 .admin-badge{font-size:.65rem;background:#f59e0b;color:#1a1a2e;padding:2px 8px;border-radius:20px;font-weight:700;letter-spacing:.04em;}
-.admin-botnav{position:fixed;bottom:0;left:0;right:0;height:62px;background:#1a1a2e;display:flex;border-top:1px solid #2a2a40;z-index:100;}
+.admin-botnav{position:fixed;bottom:0;left:0;right:0;height:calc(62px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px);box-sizing:border-box;background:#1a1a2e;display:flex;border-top:1px solid #2a2a40;z-index:100;}
 .admin-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;color:#555577;font-family:'DM Sans',sans-serif;position:relative;transition:color .2s;}
 .admin-btn.on{color:#f59e0b;}
 .admin-btn-icon{font-size:1.1rem;}
