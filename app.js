@@ -2516,13 +2516,19 @@ function renderCancellations(){
 }
 function toggleArchivedCancellations(){_cancelShowArchived=!_cancelShowArchived;renderCancellations();}
 function downloadCancellationsCsv(){
-  var cols=['created_at','name','email','type','plan','reason','comment','status','ends_at'];
+  var cols=['date_cancelled','account_type','reason'];
   var cell=function(v){
     var s=v==null?'':String(v);
     if(/^[=+\-@\t\r]/.test(s))s="'"+s; // stop spreadsheet formulas
     return '"'+s.replace(/"/g,'""')+'"';
   };
-  var rows=[cols.join(',')].concat(_cancelAll.map(function(c){return cols.map(function(k){return cell(c[k]);}).join(',');}));
+  var rows=[cols.join(',')].concat(_cancelAll.map(function(c){
+    return [
+      cell(c.created_at?String(c.created_at).slice(0,10):''),
+      cell(c.type==='business'?'Business':'Individual'),
+      cell(CANCEL_REASONS[c.reason]||c.reason||'Not given')
+    ].join(',');
+  }));
   var blob=new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -2768,6 +2774,7 @@ function buildMemberTable(members){
         '<td><div style="display:flex;gap:4px;flex-wrap:wrap;">'+(m.status==='suspended'?
           '<button class="adm-restore" style="padding:4px 8px;font-size:.68rem;" onclick="adminRestoreMember('+m.id+')">Restore</button>':
           '<button class="adm-suspend" style="padding:4px 8px;font-size:.68rem;" onclick="adminSuspendMember('+m.id+')">Suspend</button>')+
+          '<button class="adm-suspend" style="padding:4px 8px;font-size:.68rem;background:#fbeaea;border-color:#c0392b;color:#a32a1e;" data-id="'+escHtml(m.id)+'" onclick="adminDeleteMember(this.dataset.id)">Delete</button>'+
         '</div></td></tr>';
     }).join('')+'</tbody></table></div>';
 }
@@ -2781,6 +2788,23 @@ function adminSuspendMember(id){
     addAuditLog('🚫','Member suspended by Admin.');
     renderAdminMembers();
   });
+}
+function adminDeleteMember(id){
+  var list=state.admin.realMembers||[];
+  var m=list.find(function(x){return String(x.id)===String(id);});
+  if(!m){alert('Please refresh the Members list and try again.');return;}
+  var typed=prompt('PERMANENTLY DELETE '+m.name+' ('+m.email+')?\n\nThis cancels their Stripe billing and removes their account, listing, jobs, messages and posts. It cannot be undone.\n\nType DELETE to confirm:');
+  if(typed===null)return;
+  if(typed.trim()!=='DELETE'){alert('Not deleted. You must type DELETE exactly.');return;}
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify({action:'delete_member',user_id:id,confirm_email:m.email})})
+  .then(function(r){return r.json();}).then(function(d){
+    if(!d||!d.success){alert((d&&d.error)||'Could not delete this member.');return;}
+    var msg='Member deleted ('+d.stripe+').';
+    if(d.failed&&d.failed.length)msg+='\n\nThese parts could not be cleared and need a look:\n- '+d.failed.join('\n- ');
+    alert(msg);
+    addAuditLog('🗑️','Member deleted by Admin.');
+    renderAdminMembers();
+  }).catch(function(){alert('Could not reach the server. Nothing was changed.');});
 }
 function adminRestoreMember(id){
   fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify({action:'restore_member',user_id:id})})
