@@ -25,12 +25,23 @@ var state = {
 var selectedPlan = null;
 
 // ═══════════════ API HELPERS
+var _sessionExpiredShown=false;
 async function apiFetch(path, method, body) {
   try {
     var opts = { method: method||'GET', headers:{'Content-Type':'application/json'} };
+    // Prove who we are: every call to our own server carries the member's sign-in token
+    if(state && state.authToken && String(path).indexOf('/api/')===0) opts.headers['Authorization'] = 'Bearer ' + state.authToken;
     if(body) opts.body = JSON.stringify(body);
     var res = await fetch(API_BASE + path, opts);
-    return await res.json();
+    var data = await res.json();
+    // Token missing or expired while signed in: ask the member to sign in again
+    if(res.status===401 && data && data.code==='session_expired' && state && state.user && !_sessionExpiredShown){
+      _sessionExpiredShown=true;
+      alert('Your session has expired. Please sign in again.');
+      _sessionExpiredShown=false;
+      if(typeof doSignOut==='function') doSignOut();
+    }
+    return data;
   } catch(err) {
     console.error('API error:', path, err.message);
     return { error: err.message };
@@ -3433,6 +3444,7 @@ function disbandGuild(){
 
 // ═══════════════ SIGN OUT
 function doSignOut(){
+  state.authToken=null;
   state.user=null;state.profileType=null;state.plan=null;state.faithAnswer=null;
   state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.geoLoading=false;state.showAllMore=false;state.dirFilter={maxMi:0,nationalOnly:false};
   // Clear saved session
