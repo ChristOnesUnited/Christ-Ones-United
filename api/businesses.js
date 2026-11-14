@@ -1,4 +1,5 @@
 const supabase = require('./supabase');
+const { requireMember, ownsBusiness } = require('./_lib/memberAuth');
 const { lookupZip, distanceMiles, cleanServiceType, cleanRadius, DEFAULT_STOREFRONT_RADIUS } = require('./_lib/geo');
 const { findOrCreateChurch } = require('./_lib/church-store');
 
@@ -21,7 +22,7 @@ const EDITABLE_FIELDS = ['name', 'category', 'description', 'address', 'zip', 'p
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -31,6 +32,11 @@ module.exports = async (req, res) => {
     try {
       const user_id = req.query && req.query.user_id;
       const approved = req.query && req.query.approved;
+      if (user_id) {
+        // A member's own listings (including unapproved ones) are for that member only
+        const auth = await requireMember(req, res); if (!auth) return;
+        if (String(auth.user.id) !== String(user_id)) return res.status(403).json({ error: 'You can only view your own listings.' });
+      }
 
       console.log(`GET businesses - user_id: ${user_id}, approved: ${approved}`);
 
@@ -80,7 +86,9 @@ module.exports = async (req, res) => {
 
   // POST — create listing
   if (req.method === 'POST') {
-    const { user_id, name, category, description, church, church_address, church_id, address, zip, phone, email, website, facebook, linkedin, hours, tags, featured } = req.body;
+    const auth = await requireMember(req, res); if (!auth) return;
+    const user_id = auth.user.id;
+    const { name, category, description, church, church_address, church_id, address, zip, phone, email, website, facebook, linkedin, hours, tags, featured } = req.body;
     if (!name || !category || !description || !church || !address || !phone || !email) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
@@ -102,13 +110,14 @@ module.exports = async (req, res) => {
 
   // PUT — owner updates their own listing (approval/featured flags can only be changed by admin)
   if (req.method === 'PUT') {
-    const { id, user_id } = req.body;
+    const auth = await requireMember(req, res); if (!auth) return;
+    const { id } = req.body;
     if (!id) return res.status(400).json({ error: 'Business ID required.' });
     try {
       const { data: current, error: curErr } = await supabase
         .from('businesses').select('id, user_id, service_type, church, church_address').eq('id', id).single();
       if (curErr || !current) return res.status(404).json({ error: 'Listing not found.' });
-      if (current.user_id && current.user_id !== user_id) {
+      if (String(current.user_id) !== String(auth.user.id)) {
         return res.status(403).json({ error: 'You can only edit your own listing.' });
       }
 

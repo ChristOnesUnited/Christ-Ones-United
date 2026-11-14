@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { requireMember, ownsBusiness } = require('./_lib/memberAuth');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -8,7 +9,7 @@ const supabase = createClient(
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // GET /api/testimonials?business_id=xxx
@@ -28,7 +29,9 @@ module.exports = async (req, res) => {
 
   // POST /api/testimonials  { business_id, author_name, text }
   if (req.method === 'POST') {
-    const { business_id, author_name, text } = req.body;
+    const auth = await requireMember(req, res); if (!auth) return;
+    const { business_id, text } = req.body;
+    const author_name = auth.user.name || 'Member';
     if (!business_id || !text) return res.status(400).json({ error: 'business_id and text are required.' });
     if (text.trim().length < 5) return res.status(400).json({ error: 'Testimonial is too short.' });
 

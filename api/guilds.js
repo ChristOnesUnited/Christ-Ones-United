@@ -1,4 +1,5 @@
 const supabase = require('./supabase');
+const { requireMember, ownsBusiness } = require('./_lib/memberAuth');
 
 function genCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -11,15 +12,17 @@ function genCode() {
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // GET — load my guild by business_id
   if (req.method === 'GET') {
+    const auth = await requireMember(req, res); if (!auth) return;
     const { business_id } = req.query;
     if (!business_id) return res.status(400).json({ error: 'business_id required' });
+    if (!(await ownsBusiness(auth.user.id, business_id))) return res.status(403).json({ error: 'You can only view your own business guild.' });
 
     try {
       const { data: membership, error: memberErr } = await supabase
@@ -65,8 +68,11 @@ module.exports = async (req, res) => {
 
   // POST — action-based
   if (req.method === 'POST') {
-    const { action, business_id, user_name } = req.body;
+    const auth = await requireMember(req, res); if (!auth) return;
+    const { action, business_id } = req.body;
     if (!action || !business_id) return res.status(400).json({ error: 'action and business_id required' });
+    if (!(await ownsBusiness(auth.user.id, business_id))) return res.status(403).json({ error: 'You can only manage guilds for your own business.' });
+    const user_name = auth.user.name || 'Member';
 
     // CREATE GUILD
     if (action === 'create_guild') {

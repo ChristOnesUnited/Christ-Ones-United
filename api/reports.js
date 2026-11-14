@@ -1,4 +1,5 @@
 const supabase = require('./supabase');
+const { requireMember, ownsBusiness } = require('./_lib/memberAuth');
 const { sendEmail, esc } = require('./_lib/email');
 const { siteUrl } = require('./_lib/site');
 
@@ -7,14 +8,15 @@ const { siteUrl } = require('./_lib/site');
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { job_id, reporter_id } = req.body || {};
+  const auth = await requireMember(req, res); if (!auth) return;
+  const { job_id } = req.body || {};
+  const reporter_id = auth.user.id;
   if (!job_id)      return res.status(400).json({ error: 'Job ID required.' });
-  if (!reporter_id) return res.status(400).json({ error: 'Please sign in to report a posting.' });
 
   try {
     // Reporter must be a real member

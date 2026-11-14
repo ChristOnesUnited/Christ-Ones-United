@@ -1,9 +1,10 @@
 const supabase = require('./supabase');
+const { requireMember, ownsBusiness } = require('./_lib/memberAuth');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -28,6 +29,7 @@ module.exports = async (req, res) => {
 
   // POST — create a new job posting
   if (req.method === 'POST') {
+    const auth = await requireMember(req, res); if (!auth) return;
     const {
       business_id, title, type, category, location,
       zip, pay, description, faith_note, company,
@@ -36,6 +38,11 @@ module.exports = async (req, res) => {
 
     if (!title || !type || !location || !description) {
       return res.status(400).json({ error: 'Missing required fields.' });
+    }
+
+    // Only the owner of the business can post jobs for it
+    if (!(await ownsBusiness(auth.user.id, business_id))) {
+      return res.status(403).json({ error: 'You can only post jobs for your own business.' });
     }
 
     try {
@@ -70,9 +77,9 @@ module.exports = async (req, res) => {
 
   // PUT — close a job listing (owner only)
   if (req.method === 'PUT') {
-    const { id, business_id } = req.body;
+    const auth = await requireMember(req, res); if (!auth) return;
+    const { id } = req.body;
     if (!id) return res.status(400).json({ error: 'Job ID required.' });
-    if (!business_id) return res.status(400).json({ error: 'Business ID required.' });
 
     try {
       // Verify this job belongs to the requesting business before closing it
@@ -83,7 +90,7 @@ module.exports = async (req, res) => {
         .single();
 
       if (fetchErr || !job) return res.status(404).json({ error: 'Job not found.' });
-      if (String(job.business_id) !== String(business_id)) {
+      if (!(await ownsBusiness(auth.user.id, job.business_id))) {
         return res.status(403).json({ error: 'You do not have permission to close this listing.' });
       }
 
@@ -91,7 +98,7 @@ module.exports = async (req, res) => {
         .from('jobs')
         .update({ active: false })
         .eq('id', id)
-        .eq('business_id', business_id)   // double-lock: matches both id AND owner
+        .eq('business_id', job.business_id)   // double-lock: matches both id AND owner
         .select()
         .single();
 
