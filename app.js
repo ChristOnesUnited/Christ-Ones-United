@@ -1103,9 +1103,16 @@ function submitPrayer(){
 
 // ═══════════════ EVENTS
 function evZipNow(){return state.evZip||(state.user&&state.user.zip)||'';}
+function evTargets(){
+  var out=[];
+  [['ev-loc-bar','events-list'],['dash-ev-loc-bar','dash-events-list']].forEach(function(p){
+    var l=document.getElementById(p[1]);if(l)out.push({bar:document.getElementById(p[0]),list:l});
+  });
+  return out;
+}
 function renderEventsBar(){
-  var el=document.getElementById('ev-loc-bar');if(!el)return;
-  if(state.evGeoLoading){el.innerHTML='<div class="loc-bar">📍 Finding your location…</div>';return;}
+  var els=evTargets().map(function(t){return t.bar;}).filter(Boolean);if(!els.length)return;
+  if(state.evGeoLoading){els.forEach(function(el){el.innerHTML='<div class="loc-bar">📍 Finding your location…</div>';});return;}
   var mine=(state.user&&state.user.zip)||'',cur=evZipNow();
   var usingGeo=!!(state.evGeo&&state.evGeo.lat!=null);
   var extra='';
@@ -1115,7 +1122,8 @@ function renderEventsBar(){
     extra+='<select onchange="setEvDist(this.value)" aria-label="Distance">'+[[0,'Any distance'],[10,'Within 10 mi'],[25,'Within 25 mi'],[50,'Within 50 mi'],[100,'Within 100 mi']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]===m?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>';
   }
   if((usingGeo||(state.evZip&&state.evZip!==mine))&&mine)extra+='<button type="button" onclick="resetEvZip()">Back to my ZIP '+escHtml(mine)+'</button>';
-  el.innerHTML=zipBarHtml(usingGeo?'Events near <strong>your current location</strong>':'Events near',usingGeo?'':cur,'setEvZip',extra);
+  var barHtml=zipBarHtml(usingGeo?'Events near <strong>your current location</strong>':'Events near',usingGeo?'':cur,'setEvZip',extra);
+  els.forEach(function(el){el.innerHTML=barHtml;});
 }
 function setEvZip(v){
   var z=String(v||'').trim();
@@ -1143,9 +1151,11 @@ function useEvLocation(){
 }
 function setEvDist(v){state.evMaxMi=parseInt(v,10)||0;renderEvents();}
 function renderEvents(){
-  var el=document.getElementById('events-list');
-  if(!el)return;
-  el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Loading events…</p>';
+  var targets=evTargets();
+  if(!targets.length)return;
+  var loadingHtml='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Loading events…</p>';
+  targets.forEach(function(t){t.list.innerHTML=loadingHtml;});
+  var show=function(html){targets.forEach(function(t){t.list.innerHTML=html;});};
   renderEventsBar();
   var evZ=evZipNow();
   var evGeo=state.evGeo&&state.evGeo.lat!=null;
@@ -1156,8 +1166,8 @@ function renderEvents(){
     var maxMi=state.evMaxMi||0;
     if(maxMi>0&&(evZ||evGeo)&&data.located!==false)events=events.filter(function(e){return e.distance_mi!=null&&e.distance_mi<=maxMi;});
     if(!events.length){
-      el.innerHTML=(maxMi>0&&state.events.length)?'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events within '+maxMi+' miles</div><p>Try a larger distance or a different ZIP.</p></div>':'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events yet</div><p>Be the first to post a community event.</p></div>';return;}
-    el.innerHTML=events.map(function(e){
+      show((maxMi>0&&state.events.length)?'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events within '+maxMi+' miles</div><p>Try a larger distance or a different ZIP.</p></div>':'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events yet</div><p>Be the first to post a community event.</p></div>');return;}
+    show(events.map(function(e){
       var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
       var isOwner=!!(state.user&&e.user_id&&String(e.user_id)===String(state.user.id));
       return '<div class="event-card" id="event-card-'+e.id+'">'+
@@ -1171,9 +1181,9 @@ function renderEvents(){
           '<div class="event-host">Hosted by '+(e.host||'Community')+'</div>'+
         '</div>'+
       '</div>';
-    }).join('');
+    }).join(''));
   }).catch(function(){
-    el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Could not load events. Please refresh.</p>';
+    show('<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Could not load events. Please refresh.</p>');
   });
 }
 function openEventModal(){
@@ -1226,8 +1236,7 @@ function submitEvent(){
 
 function deleteEvent(id){
   if(!confirm('Delete this event? This cannot be undone.'))return;
-  var card=document.getElementById('event-card-'+id);
-  if(card)card.remove();
+  document.querySelectorAll('[id="event-card-'+id+'"]').forEach(function(c){c.remove();});
   apiFetch('/api/community?type=events','DELETE',{id:id,type:'events'}).catch(function(){});
   addNotif('Event deleted.');
 }
@@ -1827,11 +1836,9 @@ function renderBizCommunity(){
 
   // Load prayer requests and events in parallel
   Promise.all([
-    apiFetch('/api/community?type=prayer'),
-    apiFetch('/api/community?type=events')
+    apiFetch('/api/community?type=prayer')
   ]).then(function(results){
     var prayers=results[0].prayers||[];
-    var events=results[1].events||[];
 
     panel.innerHTML=
       // Prayer Board Section
@@ -1866,22 +1873,9 @@ function renderBizCommunity(){
           '<div class="dash-card-title" style="margin-bottom:0;">📅 Events Board</div>'+
           '<button onclick="openEventModal()" style="padding:5px 12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.72rem;font-weight:600;cursor:pointer;">+ Post Event</button>'+
         '</div>'+
-        (events.length?events.slice(0,5).map(function(e){
-          var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
-          var isOwner=!!(state.user&&e.user_id&&String(e.user_id)===String(state.user.id));
-          return '<div class="event-card" id="event-card-'+e.id+'" style="margin-bottom:.65rem;">'+
-            '<div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div>'+
-            '<div class="event-body">'+
-              '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
-                '<div class="event-title">'+e.title+'</div>'+
-                (isOwner?'<button onclick="deleteEvent(\''+e.id+'\')" style="background:none;border:none;color:#ccc;font-size:.9rem;cursor:pointer;padding:0 0 0 8px;flex-shrink:0;" title="Delete event">🗑</button>':'')+
-              '</div>'+
-              '<div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+'</div>'+
-              '<div class="event-host">Hosted by '+(e.host||'Community')+'</div>'+
-            '</div>'+
-          '</div>';
-        }).join(''):'<p style="font-size:.82rem;color:var(--muted);">No events yet.</p>')+
+        '<div id="dash-ev-loc-bar"></div><div id="dash-events-list"></div>'+
       '</div>';
+    renderEvents();
 
     // Sync prayer state so prayFor works correctly from dashboard too
     state.prayerRequests=prayers.map(function(p){return {
