@@ -4283,3 +4283,38 @@ function renderLocNudge(){
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
+
+// ═══════════════ "NEW VERSION AVAILABLE" NOTICE
+// Remembers which version loaded, checks now and then, and offers a refresh when a newer one is live.
+// It never reloads on its own, so nobody loses what they are typing.
+(function(){
+  var current=null,shown=false,timer=null;
+  function check(){
+    if(shown)return;
+    fetch('/api/version?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(d){
+      if(!d||!d.version)return;
+      if(current===null){current=d.version;return;}
+      if(d.version!==current)showBanner();
+    }).catch(function(){});
+  }
+  function showBanner(){
+    if(shown)return;shown=true;
+    var b=document.createElement('div');
+    b.id='newVersionBanner';
+    b.setAttribute('role','status');
+    b.style.cssText='position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:max-content;z-index:100000;background:#1a1a2e;color:#fff;border:1.5px solid #c9973a;border-radius:12px;padding:.7rem .9rem;display:flex;gap:.75rem;align-items:center;box-shadow:0 8px 28px rgba(0,0,0,.35);max-width:calc(100vw - 24px);font-family:\'DM Sans\',sans-serif;font-size:.84rem;line-height:1.4;';
+    b.innerHTML='<span>A new version of Christ One\'s United is ready.</span>'+
+      '<button type="button" id="nvRefresh" style="background:#c9973a;color:#1a1a2e;border:none;border-radius:8px;padding:.45rem .8rem;font-weight:700;font-family:inherit;font-size:.82rem;cursor:pointer;white-space:nowrap;">Refresh</button>'+
+      '<button type="button" id="nvClose" aria-label="Dismiss" style="background:none;border:none;color:#bbb;font-size:1.2rem;line-height:1;cursor:pointer;padding:0 .2rem;">×</button>';
+    document.body.appendChild(b);
+    document.getElementById('nvRefresh').onclick=function(){location.reload();};
+    document.getElementById('nvClose').onclick=function(){b.remove();shown=false;current=null;check();}; // dismissed until the next update
+  }
+  function start(){
+    check();
+    timer=setInterval(check,5*60*1000);
+    document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')check();});
+    window.addEventListener('online',check);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
