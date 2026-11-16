@@ -1144,20 +1144,35 @@ function renderEvents(){
   });
 }
 function openEventModal(){
-  document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">Post an Event</div><div class="form-group"><label class="lbl">Event Title</label><input class="inp" id="ev-title" placeholder="e.g. Community Prayer Breakfast"/></div><div class="form-group"><label class="lbl">Date</label><input class="inp" type="date" id="ev-date"/></div><div class="form-group"><label class="lbl">Time</label><input class="inp" id="ev-time" placeholder="e.g. 10:00 AM – 12:00 PM"/></div><div class="form-group"><label class="lbl">Location</label><input class="inp" id="ev-loc" placeholder="Venue name and address"/></div><div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="ev-zip" inputmode="numeric" maxlength="5" placeholder="Event ZIP (so nearby members can find it)"/></div><div class="form-group"><label class="lbl">Hosted By</label><input class="inp" id="ev-host" placeholder="Your name or organization"/></div><div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="ev-desc" placeholder="Tell people what to expect…"></textarea></div><button class="btn btn-green btn-mt" onclick="submitEvent()">Post Event</button>';
+  document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">Post an Event</div>'+
+    '<div class="form-group"><label class="lbl">Event Title</label><input class="inp" id="ev-title" placeholder="e.g. Community Prayer Breakfast"/></div>'+
+    '<div class="form-group"><label class="lbl">Date</label><input class="inp" type="date" id="ev-date"/></div>'+
+    '<div class="form-group"><label class="lbl">Time</label><input class="inp" id="ev-time" placeholder="e.g. 10:00 AM – 12:00 PM"/></div>'+
+    '<div class="form-group"><label class="lbl">Venue Name</label><input class="inp" id="ev-venue" placeholder="e.g. Grace Community Church"/></div>'+
+    '<div class="form-group"><label class="lbl">Street Address</label><input class="inp" id="ev-street" placeholder="e.g. 123 Main St"/></div>'+
+    '<div class="form-group"><label class="lbl">City</label><input class="inp" id="ev-city" placeholder="City"/></div>'+
+    '<div class="form-group"><label class="lbl">State</label><select class="inp" id="ev-state"><option value="">Select state…</option><option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option><option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option><option value="DC">DC</option><option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option><option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option><option value="KS">KS</option><option value="KY">KY</option><option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option><option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option><option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option><option value="NV">NV</option><option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option><option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option><option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option><option value="SD">SD</option><option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option><option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option><option value="WI">WI</option><option value="WY">WY</option></select></div>'+
+    '<div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="ev-zip" inputmode="numeric" maxlength="5" placeholder="ZIP code"/></div>'+
+    '<div class="form-group"><label class="lbl">Hosted By</label><input class="inp" id="ev-host" placeholder="Your name or organization"/></div>'+
+    '<div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="ev-desc" placeholder="Tell people what to expect…"></textarea></div>'+
+    '<button class="btn btn-green btn-mt" onclick="submitEvent()">Post Event</button>';
   document.getElementById('eventModal').classList.add('open');
 }
 function submitEvent(){
   var title=document.getElementById('ev-title').value.trim();
   var date=document.getElementById('ev-date').value;
   if(!title||!date)return;
-  var evZip=(document.getElementById('ev-zip').value||'').trim();
+  var venue=document.getElementById('ev-venue').value.trim(),street=document.getElementById('ev-street').value.trim(),
+      city=document.getElementById('ev-city').value.trim(),st=document.getElementById('ev-state').value,
+      evZip=(document.getElementById('ev-zip').value||'').trim();
+  if(!venue||!street||!city||!st){alert('Please fill in the venue name, street address, city and state.');return;}
   if(!/^\d{5}$/.test(evZip)){alert('Please enter the 5-digit ZIP code where the event takes place.');return;}
+  var locationText=venue+' · '+street+', '+city+', '+st+' '+evZip;
   apiFetch('/api/community?type=events','POST',{
     zip:evZip,
     title:title,date:date,
     time:document.getElementById('ev-time').value||'TBD',
-    location:document.getElementById('ev-loc').value||'TBD',
+    location:locationText,
     host:document.getElementById('ev-host').value||(state.user?state.user.name:'Community'),
     description:document.getElementById('ev-desc').value,
     user_id:state.user?state.user.id:null
@@ -1208,6 +1223,34 @@ function autoSubscribeNewsletter(email, name){
 
 // ═══════════════ NEWSLETTER MODAL — THIS WEEK'S EDITION
 function openNewsletterModal(){
+  document.getElementById('newsletterModalContent').innerHTML='<p style="font-size:.84rem;color:var(--muted);text-align:center;padding:2rem 0;">Loading this week\'s edition…</p>';
+  document.getElementById('newsletterModal').classList.add('open');
+  apiFetch('/api/newsletter').then(function(d){
+    if(d&&d.edition)renderNewsletterEdition(d.edition);else renderLiveNewsletter();
+  }).catch(function(){renderLiveNewsletter();});
+}
+// The edition the admin actually sent (same content as the email)
+function renderNewsletterEdition(ed){
+  var c=ed.content||{};
+  var sentOn=ed.sent_at?new Date(ed.sent_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
+  var box=function(bg,border,label,color,inner){return '<div style="background:'+bg+';border-radius:10px;padding:1rem;margin-bottom:1.25rem;'+(border?'border-left:3px solid '+border+';':'')+'"><div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:'+color+';font-weight:700;margin-bottom:.35rem;">'+label+'</div>'+inner+'</div>';};
+  var f=c.featured;
+  document.getElementById('newsletterModalContent').innerHTML=
+    '<div style="background:linear-gradient(135deg,#1a1a2e,#0f1923);margin:-1.6rem -1.6rem 1.25rem;padding:1.5rem 1.6rem;border-radius:14px 14px 0 0;">'+
+      '<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.15em;color:#c9973a;font-weight:700;margin-bottom:.35rem;">The Christ One\'s United Weekly</div>'+
+      '<div style="font-family:\'Playfair Display\',serif;font-size:1.25rem;color:#fff;margin-bottom:.2rem;">'+escHtml(c.headline||ed.subject)+'</div>'+
+      '<div style="font-size:.72rem;color:#8a8278;">'+escHtml(sentOn)+'</div>'+
+    '</div>'+
+    (c.message?'<p style="font-size:.86rem;color:var(--ink);line-height:1.65;margin-bottom:1.25rem;white-space:pre-line;">'+escHtml(c.message)+'</p>':'')+
+    (f?box('linear-gradient(135deg,#fdf9f0,#fdf3e3)','','⭐ Featured Business','#c9973a','<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;color:var(--ink);margin-bottom:.2rem;">'+escHtml(f.name)+'</div><div style="font-size:.78rem;color:var(--muted);">'+escHtml(f.category)+(f.address?' · '+escHtml(f.address):'')+'</div>'+(f.blurb?'<p style="font-size:.78rem;color:var(--ink);margin-top:.4rem;line-height:1.5;">'+escHtml(f.blurb)+'</p>':'')):'')+
+    (c.prayer?box('#f8f4ff','#7c3aed','🙏 Prayer Highlight','#7c3aed','<p style="font-size:.82rem;color:var(--ink);font-style:italic;line-height:1.6;white-space:pre-line;">'+escHtml(c.prayer)+'</p>'):'')+
+    ((c.events&&c.events.length)?box('#e0f0ea','','📅 Upcoming Events','var(--green)',c.events.map(function(e){return '<div style="margin-bottom:.5rem;"><div style="font-family:\'Playfair Display\',serif;font-size:.9rem;color:var(--ink);">'+escHtml(e.title)+'</div><div style="font-size:.76rem;color:var(--muted);">'+escHtml(new Date(e.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}))+(e.time?' · '+escHtml(e.time):'')+'</div>'+(e.location?'<div style="font-size:.74rem;color:var(--green);">📍 '+escHtml(e.location)+'</div>':'')+'</div>';}).join('')):'')+
+    '<p style="font-size:.84rem;color:var(--ink);line-height:1.6;margin-bottom:1.25rem;">'+(c.newBizCount>0?'<strong>'+c.newBizCount+' new business'+(c.newBizCount!==1?'es':'')+' joined</strong> the directory this week.':'The directory is full of great Christian-owned businesses. Browse and connect with someone new!')+'</p>'+
+    '<div style="text-align:center;padding-top:.75rem;border-top:1px solid var(--border);">'+
+      '<p style="font-size:.72rem;color:var(--muted);line-height:1.6;font-style:italic;">"For where two or three gather in my name, there am I with them." — Matthew 18:20</p>'+
+    '</div>';
+}
+function renderLiveNewsletter(){
   var today = new Date();
   var weekOf = today.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   var newBizCount = state.businesses.filter(function(b){
@@ -1265,6 +1308,26 @@ function openNewsletterModal(){
     '</div>';
 
   document.getElementById('newsletterModal').classList.add('open');
+}
+
+// ═══════════════ HELP & SUPPORT
+var SUPPORT_EMAIL='support@christonesunited.com';
+function openHelp(){
+  var u=state.user||{};
+  var body='Hi Christ One\'s United team,\n\n(Please tell us how we can help)\n\n---\nName: '+(u.name||'')+'\nAccount email: '+(u.email||'')+'\nAccount type: '+(state.profileType||'');
+  var mailto='mailto:'+SUPPORT_EMAIL+'?subject='+encodeURIComponent('Support request')+'&body='+encodeURIComponent(body);
+  var faq=function(q,a){return '<div style="margin-bottom:.8rem;"><div style="font-weight:600;font-size:.84rem;color:var(--ink);">'+q+'</div><div style="font-size:.8rem;color:var(--muted);line-height:1.55;">'+a+'</div></div>';};
+  document.getElementById('helpModalContent').innerHTML=
+    '<div class="modal-icon">🙋</div><div class="modal-title">Help &amp; Support</div>'+
+    '<p style="font-size:.84rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">Have a question or something not working? Email us and we will get back to you.</p>'+
+    '<a href="'+mailto+'" class="btn btn-green" style="display:block;text-align:center;text-decoration:none;margin-bottom:.5rem;">✉️ Email Support</a>'+
+    '<div style="text-align:center;font-size:.78rem;color:var(--muted);margin-bottom:1.25rem;">'+SUPPORT_EMAIL+'</div>'+
+    '<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:.6rem;">Quick answers</div>'+
+    faq('How do I cancel or change my membership?','Open your <strong>Account</strong> (or Dashboard) and tap <strong>Manage subscription</strong>.')+
+    faq('I forgot my password.','On the sign-in screen, tap <strong>Forgot password</strong> and we will email you a reset link.')+
+    faq('How do I report a problem with a job posting?','Tap the <strong>?</strong> button on the posting and choose Report.')+
+    faq('How do I delete my account?','Email us from the address on your account and we will take care of it.');
+  document.getElementById('helpModal').classList.add('open');
 }
 
 // ═══════════════ LEADERBOARD
@@ -2977,13 +3040,18 @@ function adminClearJobFlag(id){
 }
 
 // ═══════════════ ADMIN NEWSLETTER
+function adminPost(payload){
+  return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify(payload)}).then(function(r){return r.json();});
+}
 function renderAdminNewsletter(){
   var el=document.getElementById('adm-tab-newsletter');
+  var keep={};['nl-subject','nl-headline','nl-biz','nl-prayer','nl-msg'].forEach(function(id){var x=document.getElementById(id);if(x)keep[id]=x.value;});
   el.innerHTML=
     '<div class="admin-page-title">Newsletter Management</div>'+
     '<div class="admin-page-sub">Weekly community digest · The Christ One\'s United Weekly</div>'+
+    '<div id="nl-setup-warn" class="hidden" style="background:#fdf3e3;border:1.5px solid var(--gold);border-radius:10px;padding:.875rem;margin-bottom:1rem;font-size:.82rem;color:#7a5c00;">⚠️ The newsletter database setup has not been run yet. Run <strong>newsletter-setup.sql</strong> in Supabase first.</div>'+
     '<div class="admin-stats" style="margin-bottom:1.25rem;">'+
-      mkStat(state.admin.nlSubscribers||'—','Subscribers','blue')+
+      mkStat(state.admin.nlSubscribers==null?'—':state.admin.nlSubscribers,'Subscribers','blue')+
       mkStat(state.admin.nlSentCount||0,'Editions Sent','green')+
     '</div>'+
     '<div class="nl-compose">'+
@@ -2992,20 +3060,75 @@ function renderAdminNewsletter(){
       '<div class="form-group"><label class="lbl">Headline</label><input class="inp" id="nl-headline" placeholder="e.g. 3 New Businesses, 2 Events & This Week\'s Prayer Highlight" style="background:#fff;"/></div>'+
       '<div class="form-group"><label class="lbl">Featured Business</label><select class="inp" id="nl-biz" style="background:#fff;">'+
         '<option value="">Select a business to feature…</option>'+
-        state.businesses.filter(b=>b.approved).map(b=>'<option value="'+b.id+'">'+b.name+'</option>').join('')+
+        state.businesses.filter(function(b){return b.approved;}).map(function(b){return '<option value="'+escHtml(b.id)+'">'+escHtml(b.name)+'</option>';}).join('')+
       '</select></div>'+
       '<div class="form-group"><label class="lbl">Prayer Highlight</label><textarea class="inp" id="nl-prayer" style="min-height:60px;background:#fff;" placeholder="Share a community prayer highlight or spotlight…"></textarea></div>'+
       '<div class="form-group"><label class="lbl">Admin Message (optional)</label><textarea class="inp" id="nl-msg" style="min-height:60px;background:#fff;" placeholder="A personal note from the Christ One\'s United team…"></textarea></div>'+
-      '<button class="btn btn-mt" style="background:#1a1a2e;color:#fff;" onclick="sendNewsletter()">📬 Send Newsletter</button>'+
-    '</div>';
+      '<p style="font-size:.74rem;color:var(--muted);margin:.25rem 0 .75rem;">Upcoming events and the new-business count are added automatically when you send.</p>'+
+      '<div style="display:flex;gap:.5rem;flex-wrap:wrap;">'+
+        '<button class="btn btn-mt" id="nl-btn-preview" style="background:#fff;color:#1a1a2e;border:1.5px solid #1a1a2e;" onclick="previewNewsletter()">👁 Preview</button>'+
+        '<button class="btn btn-mt" id="nl-btn-test" style="background:#fff;color:#1a1a2e;border:1.5px solid #1a1a2e;" onclick="sendNewsletterTest()">✉️ Send test to me</button>'+
+        '<button class="btn btn-mt" id="nl-btn-send" style="background:#1a1a2e;color:#fff;" onclick="sendNewsletter()">📬 Send to all subscribers</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="nl-compose" style="margin-top:1rem;"><div class="nl-compose-title">📚 Editions sent</div><div id="nl-history" style="font-size:.8rem;color:var(--muted);">Loading…</div></div>';
+  Object.keys(keep).forEach(function(id){var x=document.getElementById(id);if(x)x.value=keep[id];});
+  adminPost({action:'newsletter_overview'}).then(function(d){
+    if(!d||!d.success)return;
+    state.admin.nlSubscribers=d.subscribers;state.admin.nlSentCount=(d.editions||[]).length;
+    var w=document.getElementById('nl-setup-warn');if(w&&d.setup_needed)w.classList.remove('hidden');
+    var hist=document.getElementById('nl-history');
+    if(hist)hist.innerHTML=(d.editions&&d.editions.length)?d.editions.map(function(e){return '<div style="display:flex;justify-content:space-between;gap:.5rem;padding:.4rem 0;border-bottom:1px solid #f0ece6;"><span style="color:var(--ink);">'+escHtml(e.subject)+'</span><span style="flex-shrink:0;">'+escHtml(new Date(e.sent_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+' · '+(e.recipient_count||0)+' sent</span></div>';}).join(''):'No editions sent yet.';
+    // refresh the two counters without wiping what was typed
+    var stats=el.querySelectorAll('.admin-stat-val');
+    if(stats.length>=2){stats[0].textContent=d.subscribers;stats[1].textContent=(d.editions||[]).length;}
+  });
+}
+function nlPayload(){
+  return {
+    subject:document.getElementById('nl-subject').value.trim(),
+    headline:document.getElementById('nl-headline').value.trim(),
+    business_id:document.getElementById('nl-biz').value,
+    prayer:document.getElementById('nl-prayer').value.trim(),
+    message:document.getElementById('nl-msg').value.trim()
+  };
+}
+function nlBusy(id,on,label){var b=document.getElementById(id);if(!b)return;if(on){b.dataset.l=b.textContent;b.disabled=true;b.textContent=label;}else{b.disabled=false;if(b.dataset.l)b.textContent=b.dataset.l;}}
+function previewNewsletter(){
+  var p=nlPayload();p.action='newsletter_preview';
+  nlBusy('nl-btn-preview',true,'Loading…');
+  adminPost(p).then(function(d){
+    nlBusy('nl-btn-preview',false);
+    if(!d||!d.success){alert((d&&d.error)||'Could not build the preview.');return;}
+    document.getElementById('nlPreviewFrame').srcdoc=d.html;
+    document.getElementById('nlPreviewModal').classList.add('open');
+  }).catch(function(){nlBusy('nl-btn-preview',false);alert('Could not build the preview.');});
+}
+function sendNewsletterTest(){
+  var p=nlPayload();
+  if(!p.subject){alert('Please enter a subject line.');return;}
+  p.action='send_newsletter';p.test=true;
+  nlBusy('nl-btn-test',true,'Sending…');
+  adminPost(p).then(function(d){
+    nlBusy('nl-btn-test',false);
+    alert(d&&d.success?'Test sent to '+d.to+'. Check your inbox (and spam folder).':((d&&d.error)||'The test email could not be sent.'));
+  }).catch(function(){nlBusy('nl-btn-test',false);alert('The test email could not be sent.');});
 }
 function sendNewsletter(){
-  var subj=document.getElementById('nl-subject').value.trim();
-  if(!subj){alert('Please enter a subject line.');return;}
-  state.admin.nlSentCount++;
-  addAuditLog('📬','Newsletter "'+subj+'" sent.');
-  alert('Newsletter sent! 🎉');
-  renderAdminNewsletter();
+  var p=nlPayload();
+  if(!p.subject){alert('Please enter a subject line.');return;}
+  var n=state.admin.nlSubscribers;
+  if(!confirm('Send "'+p.subject+'" to '+(n==null?'all':n)+' subscriber'+(n===1?'':'s')+' now?\n\nThis cannot be undone. Tip: use "Send test to me" first.'))return;
+  p.action='send_newsletter';p.confirm=true;
+  nlBusy('nl-btn-send',true,'Sending…');
+  adminPost(p).then(function(d){
+    nlBusy('nl-btn-send',false);
+    if(!d||!d.success){alert((d&&d.error)||'The newsletter could not be sent.');return;}
+    addAuditLog('📬','Newsletter "'+p.subject+'" sent to '+d.sent+' subscribers.');
+    alert('Newsletter sent to '+d.sent+' subscriber'+(d.sent===1?'':'s')+'! 🎉'+(d.failed?'\n('+d.failed+' could not be delivered.)':''));
+    ['nl-subject','nl-headline','nl-biz','nl-prayer','nl-msg'].forEach(function(id){var x=document.getElementById(id);if(x)x.value='';});
+    renderAdminNewsletter();
+  }).catch(function(){nlBusy('nl-btn-send',false);alert('The newsletter could not be sent. Please check the history before trying again.');});
 }
 
 // ═══════════════ ADMIN APPEALS
