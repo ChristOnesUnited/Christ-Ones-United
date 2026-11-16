@@ -1,5 +1,22 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const supabase = require('./supabase');
+const { sendEmail } = require('./_lib/email');
+const { renderWelcome, SUBJECT: WELCOME_SUBJECT } = require('./_lib/welcome-email');
+
+// Sends the welcome email once per member (the welcome_sent_at column stops repeats when Stripe retries).
+// Best effort: a problem here must never affect payment handling.
+async function sendWelcomeOnce(email) {
+  try {
+    const { data: claimed, error } = await supabase.from('users')
+      .update({ welcome_sent_at: new Date().toISOString() })
+      .eq('email', email).is('welcome_sent_at', null).select('id, name, type');
+    if (error) { console.error('Welcome skipped (run welcome-setup.sql?):', error.message); return; }
+    const u = claimed && claimed[0];
+    if (!u) return; // already sent
+    const r = await sendEmail({ to: email, replyTo: 'support@christonesunited.com', subject: WELCOME_SUBJECT, html: renderWelcome({ name: u.name, type: u.type }) });
+    if (!r.ok) await supabase.from('users').update({ welcome_sent_at: null }).eq('id', u.id); // let a retry try again
+  } catch (e) { console.error('Welcome email error:', e.message); }
+}
 
 
 // Saves a cancellation (and the reason the member gave) for the admin Cancellations list,
@@ -109,7 +126,7 @@ module.exports = async (req, res) => {
             ...(existing.type === 'individual' && type === 'business' ? { type } : {}),
           }).eq('email', email);
           if (error) console.error('Update error:', error.message);
-          else console.log(`Updated existing user: ${email}`);
+          else { console.log(`Updated existing user: ${email}`); if (existing.status !== 'suspended') await sendWelcomeOnce(email); }
         } else {
           // No existing user — create one (fallback if auth-signup failed)
           const { error } = await supabase.from('users').insert([{
@@ -123,7 +140,7 @@ module.exports = async (req, res) => {
             faith_answer: 'yes',
           }]);
           if (error) console.error('Insert error:', error.message);
-          else console.log(`New user saved: ${email}`);
+          else { console.log(`New user saved: ${email}`); await sendWelcomeOnce(email); }
         }
         break;
       }

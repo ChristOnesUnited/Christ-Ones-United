@@ -5,6 +5,7 @@ const { requireAdmin } = require('./_lib/adminAuth');
 const { sendEmail, sendBatch, esc, brandedEmail } = require('./_lib/email');
 const newsletter = require('./_lib/newsletter-email');
 const { removeImage } = require('./_lib/media');
+const { renderWelcome, SUBJECT: WELCOME_SUBJECT } = require('./_lib/welcome-email');
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 module.exports = async (req, res) => {
@@ -215,6 +216,17 @@ module.exports = async (req, res) => {
         return res.status(200).json({ success: true, setup_needed: true, detail: String(err.message || err.code || 'unknown error'), subscribers: 0, editions: [] });
       }
       return res.status(200).json({ success: true, subscribers: activeCount, editions: eds.data || [] });
+    }
+
+    // Welcome email (sent automatically to new members): preview it, or send one sample to the admin only
+    if (action === 'welcome_preview' || action === 'welcome_test') {
+      const type = req.body.type === 'business' ? 'business' : 'individual';
+      const html = renderWelcome({ name: 'Michael Example', type });
+      if (action === 'welcome_preview') return res.status(200).json({ success: true, html });
+      const to = auth.admin.email;
+      const r = await sendEmail({ to, replyTo: 'support@christonesunited.com', subject: '[TEST] ' + WELCOME_SUBJECT, html });
+      if (!r.ok) return res.status(502).json({ error: 'The test email could not be sent. Check the Resend settings.' });
+      return res.status(200).json({ success: true, to });
     }
 
     // Shows exactly what the email will look like, without sending anything
