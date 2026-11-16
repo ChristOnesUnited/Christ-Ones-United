@@ -90,9 +90,11 @@ module.exports = async (req, res) => {
   if (type === 'events') {
     if (req.method === 'GET') {
       try {
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Denver' }); // YYYY-MM-DD
         const { data, error } = await supabase
           .from('events')
           .select('*')
+          .gte('date', today) // upcoming only (today counts); past events stay in the database
           .order('date', { ascending: true })
           .limit(50);
         if (error) throw error;
