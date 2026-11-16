@@ -1461,6 +1461,7 @@ function renderDashOverview(){
         '<div class="stat-card"><div class="stat-val">'+msgCount+'</div><div class="stat-lbl">Messages</div></div>'+
         '<div class="stat-card"><div class="stat-val">'+jobs.length+'</div><div class="stat-lbl">Active Jobs</div></div>'+
         '<div class="stat-card"><div class="stat-val">'+contactedRefs+'</div><div class="stat-lbl">Contacted</div></div>'+
+        '<div class="stat-card" style="cursor:pointer;" onclick="switchDashTab(\'testimonials\')"><div class="stat-val">'+tms.length+'</div><div class="stat-lbl">Testimonials</div></div>'+
       '</div>'+
 
       // Listing Status
