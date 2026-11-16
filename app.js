@@ -3106,6 +3106,15 @@ function renderAdminNewsletter(){
     '</div>'+
     '<div class="nl-compose" style="margin-top:1rem;"><div class="nl-compose-title">📚 Editions sent</div><div id="nl-history" style="font-size:.8rem;color:var(--muted);">Loading…</div></div>';
   Object.keys(keep).forEach(function(id){var x=document.getElementById(id);if(x)x.value=keep[id];});
+  // The admin page does not load the public directory, so fetch the approved businesses for the picker
+  var fillBiz=function(list){
+    var sel=document.getElementById('nl-biz');if(!sel)return;
+    var cur=sel.value;
+    sel.innerHTML='<option value="">Select a business to feature…</option>'+(list||[]).filter(function(b){return b.approved!==false;}).map(function(b){return '<option value="'+escHtml(b.id)+'">'+escHtml(b.name)+'</option>';}).join('');
+    sel.value=cur||keep['nl-biz']||'';
+  };
+  if(state.businesses&&state.businesses.length)fillBiz(state.businesses);
+  else apiFetch('/api/businesses').then(function(d){if(d&&d.businesses)fillBiz(d.businesses);});
   adminPost({action:'newsletter_overview'}).then(function(d){
     if(!d||!d.success)return;
     state.admin.nlSubscribers=d.subscribers;state.admin.nlSentCount=(d.editions||[]).length;
