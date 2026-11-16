@@ -85,6 +85,7 @@ function renderEmail(subject, content, email) {
   body += '<p style="margin:0;font-size:13px;font-style:italic;color:#6b6558;text-align:center;">&ldquo;For where two or three gather in my name, there am I with them.&rdquo; &mdash; Matthew 18:20</p>';
 
   const footer = '<div style="margin-top:12px;font-size:11px;color:#9a9080;">You receive this because you are a Christ One&#8217;s United member.<br/>' +
+    'Not seeing our emails? Check your spam or junk folder and mark us as not spam.<br/>' +
     (email ? '<a href="' + esc(unsubscribeUrl(email)) + '" style="color:#8a6a1f;">Unsubscribe</a>' : '<span style="color:#8a6a1f;">Unsubscribe</span>') +
     '<br/>Christ One&#8217;s United LLC &middot; PO Box 90, Pine, CO 80470</div>';
   return brandedEmail({ title: content.headline || subject, bodyHtml: body, footerHtml: footer });
