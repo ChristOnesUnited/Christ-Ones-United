@@ -2,6 +2,25 @@ const supabase = require('./supabase');
 const { lookupZip, distanceMiles } = require('./_lib/geo');
 const { requireMember, ownsBusiness } = require('./_lib/memberAuth');
 
+// Conversations a member has deleted "from their view" (the other person keeps their copy).
+// A message is hidden only if it is at or before the moment they cleared that conversation.
+function threadMember(m) {
+  return String(m.member_user_id || (m.from_role === 'user' ? m.from_user_id : '') || '');
+}
+async function applyThreadClears(me, rows) {
+  try {
+    const { data: clears, error } = await supabase
+      .from('thread_clears').select('business_id, member_user_id, cleared_at').eq('user_id', String(me));
+    if (error || !clears || !clears.length) return rows;
+    const map = {};
+    clears.forEach(c => { map[String(c.business_id) + '|' + String(c.member_user_id)] = new Date(c.cleared_at).getTime(); });
+    return rows.filter(m => {
+      const t = map[String(m.business_id) + '|' + threadMember(m)];
+      return !(t && new Date(m.created_at).getTime() <= t);
+    });
+  } catch (e) { return rows; } // never stop messages from loading
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -160,7 +179,7 @@ module.exports = async (req, res) => {
         }
 
         if (error) throw error;
-        return res.status(200).json({ success: true, messages: data || [] });
+        return res.status(200).json({ success: true, messages: await applyThreadClears(me, data || []) });
       } catch (err) {
         return res.status(500).json({ error: err.message });
       }
@@ -195,6 +214,35 @@ module.exports = async (req, res) => {
   if (req.method === 'DELETE') {
     const auth = await requireMember(req, res); if (!auth) return;
     const { id, type: delType } = req.body || {};
+
+    // Delete a whole conversation from the signed-in member's own view
+    if (delType === 'thread') {
+      const { business_id, member_user_id } = req.body || {};
+      const me = String(auth.user.id);
+      if (!business_id || !member_user_id) return res.status(400).json({ error: 'Conversation required.' });
+      // Allowed for the member in the conversation, or the owner of the business
+      const isMember = String(member_user_id) === me;
+      if (!isMember && !(await ownsBusiness(auth.user.id, business_id))) {
+        return res.status(403).json({ error: 'You can only delete your own conversations.' });
+      }
+      try {
+        const { data: rows, error: readErr } = await supabase
+          .from('messages').select('created_at, member_user_id, from_user_id, from_role').eq('business_id', business_id).limit(1000);
+        if (readErr) throw readErr;
+        const mine = (rows || []).filter(m => threadMember(m) === String(member_user_id));
+        if (!mine.length) return res.status(200).json({ success: true });
+        const latest = mine.reduce((a, m) => (new Date(m.created_at) > new Date(a) ? m.created_at : a), mine[0].created_at);
+        const { error } = await supabase.from('thread_clears')
+          .upsert([{ user_id: me, business_id: String(business_id), member_user_id: String(member_user_id), cleared_at: new Date(latest).toISOString() }],
+                  { onConflict: 'user_id,business_id,member_user_id' });
+        if (error) throw error;
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        console.error('delete thread error:', err.message);
+        return res.status(500).json({ error: 'The conversation could not be deleted. Please try again.' });
+      }
+    }
+
     if (!id) return res.status(400).json({ error: 'ID required.' });
     try {
       const table = delType === 'prayer' ? 'prayer_requests' : 'events';

@@ -168,6 +168,8 @@ module.exports = async (req, res) => {
       await step('events', () => supabase.from('events').delete().eq('user_id', member.id));
       await step('reports filed', () => supabase.from('reports').delete().eq('reporter_user_id', String(member.id)));
       await step('favorites', () => supabase.from('favorites').delete().eq('user_id', String(member.id)));
+      await step('conversation deletes', () => supabase.from('thread_clears').delete().eq('user_id', String(member.id)));
+      await step('conversation deletes about member', () => supabase.from('thread_clears').delete().eq('member_user_id', String(member.id)));
       await step('cancellations', () => supabase.from('cancellations').delete().eq('user_id', String(member.id)));
       if (member.email) {
         await step('cancellations by email', () => supabase.from('cancellations').delete().eq('email', member.email));
