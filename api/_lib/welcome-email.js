@@ -6,7 +6,7 @@ const MISSION = 'Christ Ones United connects followers of Christ through busines
 const SUBJECT = "Welcome to Christ One's United";
 
 const MEMBER_STEPS = [
-  ['Find businesses', 'Browse the directory, or type a ZIP code or tap "Use my current location" to see Christian-owned businesses near you, or near where you are traveling.'],
+  ['Find businesses', 'Browse the directory, type a ZIP code or tap "Use my current location" to see Christian-owned businesses near you, or near where you are traveling.'],
   ['Save your favorites', 'Tap the heart on any listing to save it, so the businesses you trust are easy to find again.'],
   ['Refer and testify', 'Tap Refer to send a friend to a business, and Testify to share how a business served you. Your word is the best introduction.'],
   ['Message a business', 'Tap Message to ask a question or request a service directly from the business owner.'],
@@ -15,7 +15,7 @@ const MEMBER_STEPS = [
 const BUSINESS_STEPS = [
   ['Complete your listing', 'Go to Listing to add your description, ZIP code, service area and church, and upload your logo. New listings are reviewed before they appear in the directory.'],
   ['Answer messages quickly', 'Open Messages to reply to members who reach out. A fast, friendly answer builds trust.'],
-  ['Track your referrals', 'The Referrals tab shows people who were sent to your business, so you can follow up and thank those who sent them.'],
+  ['Track your referrals', 'The Referrals tab shows the people who were sent to your business.'],
   ['Post jobs and events', 'Use Jobs to find help for your team and Community to post events you are hosting.'],
   ['Collect testimonials', 'Ask happy customers to Testify on your listing. Their words show up on your card and on your dashboard.'],
 ];
