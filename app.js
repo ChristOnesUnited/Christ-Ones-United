@@ -4365,7 +4365,14 @@ function renderLocNudge(){
       '<button type="button" id="nvRefresh" style="background:#c9973a;color:#1a1a2e;border:none;border-radius:8px;padding:.45rem .8rem;font-weight:700;font-family:inherit;font-size:.82rem;cursor:pointer;white-space:nowrap;">Refresh</button>'+
       '<button type="button" id="nvClose" aria-label="Dismiss" style="background:none;border:none;color:#bbb;font-size:1.2rem;line-height:1;cursor:pointer;padding:0 .2rem;">×</button>';
     document.body.appendChild(b);
-    document.getElementById('nvRefresh').onclick=function(){location.reload();};
+    document.getElementById('nvRefresh').onclick=function(){
+      // Safari can reuse its saved copy on a plain reload, so first force fresh copies of the app files, then reload
+      var btn=this;btn.disabled=true;btn.textContent='Updating…';
+      var files=['/','/index.html','/app.js','/logo-fallback.js'];
+      var done=false;function go(){if(done)return;done=true;location.reload();}
+      setTimeout(go,4000); // never leave someone stuck if the network is slow
+      Promise.all(files.map(function(f){return fetch(f,{cache:'reload'}).catch(function(){});})).then(go,go);
+    };
     document.getElementById('nvClose').onclick=function(){b.remove();shown=false;current=null;check();}; // dismissed until the next update
   }
   function start(){
