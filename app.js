@@ -1485,6 +1485,19 @@ function sendModalMsg(bizId){
   if(!thread){thread={bizId:bizId,bizName:biz?biz.name:'Business',messages:[],unread:false};state.messages.push(thread);}
   thread.messages.push({from:'user',text:text,time:'Now'});
 }
+// Delete a conversation from my own view; the other person keeps their copy
+function deleteConversation(bizId,memberId){
+  if(!confirm('Delete this conversation?\n\nIt will be removed from your messages. The other person will still have their copy. If they message you again, the conversation will come back with only the new messages.'))return;
+  apiFetch('/api/community','DELETE',{type:'thread',business_id:bizId,member_user_id:memberId}).then(function(d){
+    if(!d||d.error||d.success!==true){
+      if(!(d&&d.code==='session_expired'))alert((d&&d.error)||'The conversation could not be deleted. Please try again.');
+      return;
+    }
+    var onDash=state.myBiz&&String(state.myBiz.id)===String(bizId)&&String(memberId)!==String(state.user&&state.user.id);
+    if(onDash)renderDashMessages();else renderMessages('individual');
+    updateUnreadMsgBadge();
+  });
+}
 function renderMessages(role){
   var el=document.getElementById('messages-list');if(!el)return;
   // Load from Supabase for individuals
@@ -1502,7 +1515,7 @@ function renderMessages(role){
       if(!threadList.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><p>Tap 💬 Message on any business card to start a conversation.</p></div>';return;}
       el.innerHTML=threadList.map(function(t){
         var last=t.messages[t.messages.length-1];
-        return '<div class="msg-thread" onclick="openMsgModal(\''+t.bizId+'\')"><div class="msg-thread-head"><div class="msg-thread-name">'+t.bizName+'</div><div class="msg-thread-time">'+(last?new Date(last.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'</div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';
+        return '<div class="msg-thread" onclick="openMsgModal(\''+t.bizId+'\')"><div class="msg-thread-head"><div class="msg-thread-name">'+t.bizName+'</div><div class="msg-thread-time">'+(last?new Date(last.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'')+'<button type="button" class="msg-del-btn" title="Delete this conversation" aria-label="Delete this conversation" onclick="event.stopPropagation();deleteConversation(\''+t.bizId+'\',\''+state.user.id+'\')">🗑</button></div></div><div class="msg-thread-preview">'+(last?last.text:'')+'</div></div>';
       }).join('');
     }).catch(function(){
       el.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><p>Tap 💬 Message on any business card to start a conversation.</p></div>';
@@ -1958,6 +1971,7 @@ function renderDashMessages(){
               (isLastFromBiz?'<span style="color:#1a6b4a;font-weight:500;">You: </span>':'')+lastText+
             '</div>'+
           '</div>'+
+          (t.userId&&t.userId!=='anon'?'<button type="button" class="msg-del-btn" title="Delete this conversation" aria-label="Delete this conversation" onclick="event.stopPropagation();deleteConversation(\''+state.myBiz.id+'\',\''+t.userId+'\')">🗑</button>':'')+
           '<div style="color:#bbb;font-size:1.1rem;flex-shrink:0;">›</div>'+
         '</div>';
       }).join('');
