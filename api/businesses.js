@@ -77,7 +77,8 @@ module.exports = async (req, res) => {
           b.serves_area = type !== 'national' && d !== null && d <= radius;
         });
       }
-      return res.status(200).json({ success: true, businesses: rows });
+      const askedLoc = !!(req.query && (req.query.zip || req.query.lat));
+      return res.status(200).json({ success: true, businesses: rows, located: askedLoc ? !!here : undefined });
     } catch (err) {
       console.error('GET businesses error:', err.message);
       return res.status(500).json({ error: err.message });

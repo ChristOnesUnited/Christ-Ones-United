@@ -1,4 +1,5 @@
 const supabase = require('./supabase');
+const { lookupZip, distanceMiles } = require('./_lib/geo');
 const { requireMember, ownsBusiness } = require('./_lib/memberAuth');
 
 module.exports = async (req, res) => {
@@ -76,21 +77,37 @@ module.exports = async (req, res) => {
           .order('date', { ascending: true })
           .limit(50);
         if (error) throw error;
-        return res.status(200).json({ success: true, events: data || [] });
+        // Optional viewer ZIP (?zip=80421): add distance_mi to events that have a location
+        const qz = req.query && req.query.zip;
+        const qLat = parseFloat(req.query && req.query.lat), qLng = parseFloat(req.query && req.query.lng);
+        const hasGeo = !isNaN(qLat) && !isNaN(qLng) && Math.abs(qLat) <= 90 && Math.abs(qLng) <= 180;
+        const here = hasGeo ? { lat: qLat, lng: qLng } : (qz ? lookupZip(qz) : null);
+        const rows = (data || []).map(e => {
+          if (!here) return e;
+          const d = distanceMiles(here.lat, here.lng, e.lat, e.lng);
+          return { ...e, distance_mi: d === null ? null : Math.round(d * 10) / 10 };
+        });
+        return res.status(200).json({ success: true, events: rows, located: (qz || hasGeo) ? !!here : undefined });
       } catch (err) {
         return res.status(500).json({ error: err.message });
       }
     }
     if (req.method === 'POST') {
       const auth = await requireMember(req, res); if (!auth) return;
-      const { title, date, time, location, host, description } = req.body;
+      const { title, date, time, location, host, description, zip } = req.body;
       const user_id = auth.user.id;
       if (!title || !date) return res.status(400).json({ error: 'Title and date required.' });
       try {
-        const { data, error } = await supabase
+        const loc = lookupZip(zip);
+        const base = { title, date, time: time || 'TBD', location: location || 'TBD', host: host || 'Community', description: description || '', user_id: user_id || null };
+        let { data, error } = await supabase
           .from('events')
-          .insert([{ title, date, time: time || 'TBD', location: location || 'TBD', host: host || 'Community', description: description || '', user_id: user_id || null }])
+          .insert([{ ...base, zip: loc ? loc.zip : '', lat: loc ? loc.lat : null, lng: loc ? loc.lng : null }])
           .select().single();
+        if (error && /zip|lat|lng|column/i.test(error.message || '')) {
+          // events table doesn't have the location columns yet: save without them
+          ({ data, error } = await supabase.from('events').insert([base]).select().single());
+        }
         if (error) throw error;
         return res.status(200).json({ success: true, event: data });
       } catch (err) {
