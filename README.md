@@ -1,2 +1,1 @@
-# Christ-Ones-United 
-Version test
+# Christ-Ones-United
