@@ -58,7 +58,8 @@ module.exports = async (req, res) => {
         bodyHtml:
           '<p style="margin:0 0 12px 0;">Thanks' + (me.name ? ', ' + esc(me.name) : '') + '. Your message reached our team and we will reply by email.</p>' +
           '<p style="margin:0 0 6px 0;font-size:13px;color:#8a8070;">Here is a copy of what you sent (' + esc(topic) + '):</p>' +
-          '<div style="background:#faf7f1;border-radius:8px;padding:14px 16px;white-space:pre-line;">' + esc(message) + '</div>',
+          '<div style="background:#faf7f1;border-radius:8px;padding:14px 16px;white-space:pre-line;">' + esc(message) + '</div>' +
+          '<p style="font-size:12px;color:#8a8070;margin:14px 0 0 0;">Don&#8217;t see our reply? Check your spam or junk folder and mark us as not spam.</p>',
       }),
     });
     return res.status(200).json({ success: true });
