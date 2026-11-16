@@ -3082,7 +3082,7 @@ function renderAdminNewsletter(){
   el.innerHTML=
     '<div class="admin-page-title">Newsletter Management</div>'+
     '<div class="admin-page-sub">Weekly community digest · The Christ One\'s United Weekly</div>'+
-    '<div id="nl-setup-warn" class="hidden" style="background:#fdf3e3;border:1.5px solid var(--gold);border-radius:10px;padding:.875rem;margin-bottom:1rem;font-size:.82rem;color:#7a5c00;">⚠️ The newsletter database setup has not been run yet. Run <strong>newsletter-setup.sql</strong> in Supabase first.</div>'+
+    '<div id="nl-setup-warn" class="hidden" style="background:#fdf3e3;border:1.5px solid var(--gold);border-radius:10px;padding:.875rem;margin-bottom:1rem;font-size:.82rem;color:#7a5c00;">⚠️ The newsletter data could not be loaded. If you have not yet run <strong>newsletter-setup.sql</strong> in Supabase, run it first.</div>'+
     '<div class="admin-stats" style="margin-bottom:1.25rem;">'+
       mkStat(state.admin.nlSubscribers==null?'—':state.admin.nlSubscribers,'Subscribers','blue')+
       mkStat(state.admin.nlSentCount||0,'Editions Sent','green')+
@@ -3109,7 +3109,7 @@ function renderAdminNewsletter(){
   adminPost({action:'newsletter_overview'}).then(function(d){
     if(!d||!d.success)return;
     state.admin.nlSubscribers=d.subscribers;state.admin.nlSentCount=(d.editions||[]).length;
-    var w=document.getElementById('nl-setup-warn');if(w&&d.setup_needed)w.classList.remove('hidden');
+    var w=document.getElementById('nl-setup-warn');if(w&&d.setup_needed){w.classList.remove('hidden');if(d.detail)w.innerHTML+='<div style="margin-top:.4rem;font-size:.74rem;font-family:monospace;word-break:break-word;">Error: '+escHtml(d.detail)+'</div>';}
     var hist=document.getElementById('nl-history');
     if(hist)hist.innerHTML=(d.editions&&d.editions.length)?d.editions.map(function(e){return '<div style="display:flex;justify-content:space-between;gap:.5rem;padding:.4rem 0;border-bottom:1px solid #f0ece6;"><span style="color:var(--ink);">'+escHtml(e.subject)+'</span><span style="flex-shrink:0;">'+escHtml(new Date(e.sent_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+' · '+(e.recipient_count||0)+' sent</span></div>';}).join(''):'No editions sent yet.';
     // refresh the two counters without wiping what was typed
