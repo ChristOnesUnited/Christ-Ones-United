@@ -3079,6 +3079,7 @@ function adminPost(payload){
 function renderAdminNewsletter(){
   var el=document.getElementById('adm-tab-newsletter');
   var keep={};['nl-subject','nl-headline','nl-biz','nl-prayer','nl-msg'].forEach(function(id){var x=document.getElementById(id);if(x)keep[id]=x.value;});
+  var keepEv=nlSelectedEvents();
   el.innerHTML=
     '<div class="admin-page-title">Newsletter Management</div>'+
     '<div class="admin-page-sub">Weekly community digest · The Christ One\'s United Weekly</div>'+
@@ -3095,9 +3096,10 @@ function renderAdminNewsletter(){
         '<option value="">Select a business to feature…</option>'+
         state.businesses.filter(function(b){return b.approved;}).map(function(b){return '<option value="'+escHtml(b.id)+'">'+escHtml(b.name)+'</option>';}).join('')+
       '</select></div>'+
+      '<div class="form-group"><label class="lbl">Events to Include</label><div id="nl-events" style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .75rem;max-height:190px;overflow:auto;font-size:.8rem;color:var(--muted);">Loading events…</div><div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">Pick up to 5. Leave all unchecked and we include the next 3 upcoming events automatically.</div></div>'+
       '<div class="form-group"><label class="lbl">Prayer Highlight</label><textarea class="inp" id="nl-prayer" style="min-height:60px;background:#fff;" placeholder="Share a community prayer highlight or spotlight…"></textarea></div>'+
       '<div class="form-group"><label class="lbl">Admin Message (optional)</label><textarea class="inp" id="nl-msg" style="min-height:60px;background:#fff;" placeholder="A personal note from the Christ One\'s United team…"></textarea></div>'+
-      '<p style="font-size:.74rem;color:var(--muted);margin:.25rem 0 .75rem;">Upcoming events and the new-business count are added automatically when you send.</p>'+
+      '<p style="font-size:.74rem;color:var(--muted);margin:.25rem 0 .75rem;">The new-business count is added automatically when you send.</p>'+
       '<div style="display:flex;gap:.5rem;flex-wrap:wrap;">'+
         '<button class="btn btn-mt" id="nl-btn-preview" style="background:#fff;color:#1a1a2e;border:1.5px solid #1a1a2e;" onclick="previewNewsletter()">👁 Preview</button>'+
         '<button class="btn btn-mt" id="nl-btn-test" style="background:#fff;color:#1a1a2e;border:1.5px solid #1a1a2e;" onclick="sendNewsletterTest()">✉️ Send test to me</button>'+
@@ -3115,6 +3117,15 @@ function renderAdminNewsletter(){
   };
   if(state.businesses&&state.businesses.length)fillBiz(state.businesses);
   else apiFetch('/api/businesses').then(function(d){if(d&&d.businesses)fillBiz(d.businesses);});
+  apiFetch('/api/community?type=events').then(function(d){
+    var box=document.getElementById('nl-events');if(!box)return;
+    var today=new Date().toISOString().slice(0,10);
+    var list=((d&&d.events)||[]).filter(function(e){return String(e.date||'').slice(0,10)>=today;});
+    box.innerHTML=list.length?list.map(function(e){
+      var when=''; try{when=new Date(String(e.date).slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});}catch(x){}
+      return '<label style="display:flex;gap:.5rem;align-items:flex-start;padding:.3rem 0;cursor:pointer;color:var(--ink);"><input type="checkbox" class="nl-ev" value="'+escHtml(e.id)+'"'+(keepEv.indexOf(String(e.id))>-1?' checked':'')+' style="margin-top:.2rem;"/><span><strong>'+escHtml(e.title)+'</strong><br/><span style="color:var(--muted);font-size:.74rem;">'+escHtml(when)+(e.location?' · '+escHtml(e.location):'')+'</span></span></label>';
+    }).join(''):'No upcoming events yet.';
+  }).catch(function(){var box=document.getElementById('nl-events');if(box)box.textContent='Could not load events.';});
   adminPost({action:'newsletter_overview'}).then(function(d){
     if(!d||!d.success)return;
     state.admin.nlSubscribers=d.subscribers;state.admin.nlSentCount=(d.editions||[]).length;
@@ -3126,8 +3137,12 @@ function renderAdminNewsletter(){
     if(stats.length>=2){stats[0].textContent=d.subscribers;stats[1].textContent=(d.editions||[]).length;}
   });
 }
+function nlSelectedEvents(){
+  return Array.prototype.map.call(document.querySelectorAll('#nl-events .nl-ev:checked'),function(c){return String(c.value);});
+}
 function nlPayload(){
   return {
+    event_ids:nlSelectedEvents(),
     subject:document.getElementById('nl-subject').value.trim(),
     headline:document.getElementById('nl-headline').value.trim(),
     business_id:document.getElementById('nl-biz').value,
