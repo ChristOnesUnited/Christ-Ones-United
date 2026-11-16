@@ -2,6 +2,7 @@
 // make/check the personal unsubscribe links.
 const crypto = require('crypto');
 const { esc, brandedEmail } = require('./email');
+const { isOurImage, parseVideo } = require('./media');
 
 const APP_URL = (process.env.APP_URL || 'https://app.christonesunited.com').replace(/\/+$/, '');
 
@@ -23,6 +24,8 @@ function unsubscribeUrl(email) {
 async function buildContent(supabase, input) {
   input = input || {};
   const content = {
+    image: isOurImage(input.image_url) ? String(input.image_url) : '',
+    video: parseVideo(input.video_url),
     headline: String(input.headline || '').trim(),
     message: String(input.message || '').trim(),
     prayer: String(input.prayer || '').trim(),
@@ -65,7 +68,16 @@ function renderEmail(subject, content, email) {
     '<div style="background:' + bg + ';border-radius:10px;padding:14px 16px;margin:0 0 16px 0;' + (border ? 'border-left:3px solid ' + border + ';' : '') + '">' +
     '<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:bold;color:' + labelColor + ';margin-bottom:6px;">' + label + '</div>' + inner + '</div>';
   let body = '';
+  if (content.image) {
+    body += '<img src="' + esc(content.image) + '" alt="" width="520" style="display:block;width:100%;max-width:520px;height:auto;border-radius:10px;margin:0 auto 18px auto;" />';
+  }
   if (content.message) body += '<p style="margin:0 0 18px 0;white-space:pre-line;">' + esc(content.message) + '</p>';
+  if (content.video) {
+    const v = content.video;
+    body += '<div style="margin:0 0 18px 0;text-align:center;">' +
+      (v.thumb ? '<a href="' + esc(v.url) + '"><img src="' + esc(v.thumb) + '" alt="Watch the video" width="520" style="display:block;width:100%;max-width:520px;height:auto;border-radius:10px;margin:0 auto 8px auto;" /></a>' : '') +
+      '<a href="' + esc(v.url) + '" style="display:inline-block;padding:10px 20px;background:#1a1a2e;color:#ffffff;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;">&#9654; Watch the video</a></div>';
+  }
   if (content.featured) {
     const f = content.featured;
     body += card('#fdf6e7', '#c9973a', '&#11088; Featured Business', '#8a6a1f',
