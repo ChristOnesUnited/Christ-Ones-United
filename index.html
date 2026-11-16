@@ -42,6 +42,9 @@
 .biz-reach .nat{color:#8a5a00;}
 .loc-bar{font-size:.76rem;color:var(--muted);margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
 .loc-bar strong{color:var(--ink);}
+.zip-form{display:inline-flex;gap:.35rem;margin:0;}
+.zip-inp{width:5.4rem;border:1.5px solid var(--border);border-radius:8px;padding:5px 9px;font-size:16px;font-family:inherit;font-weight:600;color:var(--ink);background:#fff;}
+.loc-bar select{border:1.5px solid var(--border);border-radius:8px;padding:4px 8px;font-size:.76rem;font-family:inherit;background:#fff;color:var(--ink);}
 .loc-bar button{background:none;border:1.5px solid var(--border);border-radius:20px;padding:4px 11px;font-size:.72rem;font-weight:600;color:var(--green);cursor:pointer;font-family:inherit;}
 /* ── Search filters (Phase 3) */
 .dir-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:-.4rem 0 1rem;}
@@ -1012,6 +1015,7 @@ body.admin-mode{padding-bottom:0;}
         <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">📅 Community Events</div>
         <button onclick="openEventModal()" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;">+ Post Event</button>
       </div>
+      <div id="ev-loc-bar"></div>
       <div id="events-list"></div>
       <!-- REFERRAL REWARDS -->
       <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin:1.5rem 0 .75rem;">🏅 Referral Leaderboard</div>

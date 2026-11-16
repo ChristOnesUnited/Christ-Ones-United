@@ -58,6 +58,7 @@ async function loadBusinesses(opts) {
   var data = await apiFetch('/api/businesses'+(opts.query!==undefined?opts.query:dirLocQuery()));
   if(mySeq !== state.bizLoadSeq) return false; // a newer request has started — ignore this one
   if(data.success && data.businesses) {
+    state.dirLocated = data.located;
     var oldTms = {};
     (state.businesses||[]).forEach(function(b){ if(b.testimonials&&b.testimonials.length) oldTms[b.id]=b.testimonials; });
     state.businesses = data.businesses.map(function(b) {
@@ -1068,14 +1069,61 @@ function submitPrayer(){
 }
 
 // ═══════════════ EVENTS
+function evZipNow(){return state.evZip||(state.user&&state.user.zip)||'';}
+function renderEventsBar(){
+  var el=document.getElementById('ev-loc-bar');if(!el)return;
+  if(state.evGeoLoading){el.innerHTML='<div class="loc-bar">📍 Finding your location…</div>';return;}
+  var mine=(state.user&&state.user.zip)||'',cur=evZipNow();
+  var usingGeo=!!(state.evGeo&&state.evGeo.lat!=null);
+  var extra='';
+  if(!usingGeo)extra+='<button type="button" onclick="useEvLocation()">Use my current location</button>';
+  if(cur||usingGeo){
+    var m=state.evMaxMi||0;
+    extra+='<select onchange="setEvDist(this.value)" aria-label="Distance">'+[[0,'Any distance'],[10,'Within 10 mi'],[25,'Within 25 mi'],[50,'Within 50 mi'],[100,'Within 100 mi']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]===m?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>';
+  }
+  if((usingGeo||(state.evZip&&state.evZip!==mine))&&mine)extra+='<button type="button" onclick="resetEvZip()">Back to my ZIP '+escHtml(mine)+'</button>';
+  el.innerHTML=zipBarHtml(usingGeo?'Events near <strong>your current location</strong>':'Events near',usingGeo?'':cur,'setEvZip',extra);
+}
+function setEvZip(v){
+  var z=String(v||'').trim();
+  if(!/^\d{5}$/.test(z)){alert('Please enter a 5-digit ZIP code.');return;}
+  apiFetch('/api/community?type=events&zip='+z).then(function(d){
+    if(d&&d.located===false){alert('We couldn\'t find ZIP code '+z+'. Please check it and try again.');return;}
+    state.evZip=z;state.evGeo=null;renderEvents();
+  });
+}
+function resetEvZip(){state.evZip=null;state.evGeo=null;renderEvents();}
+// Uses the phone's location for this visit only: it is never saved
+function useEvLocation(){
+  if(!navigator.geolocation){alert('Location isn\'t available on this device. Please type a ZIP code instead.');return;}
+  state.evGeoLoading=true;renderEventsBar();
+  navigator.geolocation.getCurrentPosition(function(pos){
+    if(!state.evGeoLoading||!state.user)return; // signed out while waiting
+    state.evGeoLoading=false;
+    state.evGeo={lat:Math.round(pos.coords.latitude*1000)/1000,lng:Math.round(pos.coords.longitude*1000)/1000};
+    renderEvents();
+  },function(err){
+    if(!state.evGeoLoading)return;
+    state.evGeoLoading=false;renderEventsBar();
+    alert(err&&err.code===1?'Location permission was turned off. You can allow it in your browser settings, or type a ZIP code instead.':'We couldn\'t get your location. Please try again, or type a ZIP code.');
+  },{timeout:10000,maximumAge:600000});
+}
+function setEvDist(v){state.evMaxMi=parseInt(v,10)||0;renderEvents();}
 function renderEvents(){
   var el=document.getElementById('events-list');
   if(!el)return;
   el.innerHTML='<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Loading events…</p>';
-  apiFetch('/api/community?type=events').then(function(data){
+  renderEventsBar();
+  var evZ=evZipNow();
+  var evGeo=state.evGeo&&state.evGeo.lat!=null;
+  var evQ=evGeo?'&lat='+state.evGeo.lat+'&lng='+state.evGeo.lng:(evZ?'&zip='+encodeURIComponent(evZ):'');
+  apiFetch('/api/community?type=events'+evQ).then(function(data){
     var events=data.events||[];
     state.events=events;
-    if(!events.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events yet</div><p>Be the first to post a community event.</p></div>';return;}
+    var maxMi=state.evMaxMi||0;
+    if(maxMi>0&&(evZ||evGeo)&&data.located!==false)events=events.filter(function(e){return e.distance_mi!=null&&e.distance_mi<=maxMi;});
+    if(!events.length){
+      el.innerHTML=(maxMi>0&&state.events.length)?'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events within '+maxMi+' miles</div><p>Try a larger distance or a different ZIP.</p></div>':'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events yet</div><p>Be the first to post a community event.</p></div>';return;}
     el.innerHTML=events.map(function(e){
       var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
       var isOwner=!!(state.user&&e.user_id&&String(e.user_id)===String(state.user.id));
@@ -1086,7 +1134,7 @@ function renderEvents(){
             '<div class="event-title">'+e.title+'</div>'+
             (isOwner?'<button onclick="deleteEvent(\''+e.id+'\')" style="background:none;border:none;color:#ccc;font-size:.9rem;cursor:pointer;padding:0 0 0 8px;flex-shrink:0;" title="Delete event">🗑</button>':'')+
           '</div>'+
-          '<div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+'</div>'+
+          '<div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+(e.distance_mi!=null?' · '+e.distance_mi+' mi away':'')+'</div>'+
           '<div class="event-host">Hosted by '+(e.host||'Community')+'</div>'+
         '</div>'+
       '</div>';
@@ -1096,14 +1144,17 @@ function renderEvents(){
   });
 }
 function openEventModal(){
-  document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">Post an Event</div><div class="form-group"><label class="lbl">Event Title</label><input class="inp" id="ev-title" placeholder="e.g. Community Prayer Breakfast"/></div><div class="form-group"><label class="lbl">Date</label><input class="inp" type="date" id="ev-date"/></div><div class="form-group"><label class="lbl">Time</label><input class="inp" id="ev-time" placeholder="e.g. 10:00 AM – 12:00 PM"/></div><div class="form-group"><label class="lbl">Location</label><input class="inp" id="ev-loc" placeholder="Venue name and address"/></div><div class="form-group"><label class="lbl">Hosted By</label><input class="inp" id="ev-host" placeholder="Your name or organization"/></div><div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="ev-desc" placeholder="Tell people what to expect…"></textarea></div><button class="btn btn-green btn-mt" onclick="submitEvent()">Post Event</button>';
+  document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">Post an Event</div><div class="form-group"><label class="lbl">Event Title</label><input class="inp" id="ev-title" placeholder="e.g. Community Prayer Breakfast"/></div><div class="form-group"><label class="lbl">Date</label><input class="inp" type="date" id="ev-date"/></div><div class="form-group"><label class="lbl">Time</label><input class="inp" id="ev-time" placeholder="e.g. 10:00 AM – 12:00 PM"/></div><div class="form-group"><label class="lbl">Location</label><input class="inp" id="ev-loc" placeholder="Venue name and address"/></div><div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="ev-zip" inputmode="numeric" maxlength="5" placeholder="Event ZIP (so nearby members can find it)"/></div><div class="form-group"><label class="lbl">Hosted By</label><input class="inp" id="ev-host" placeholder="Your name or organization"/></div><div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="ev-desc" placeholder="Tell people what to expect…"></textarea></div><button class="btn btn-green btn-mt" onclick="submitEvent()">Post Event</button>';
   document.getElementById('eventModal').classList.add('open');
 }
 function submitEvent(){
   var title=document.getElementById('ev-title').value.trim();
   var date=document.getElementById('ev-date').value;
   if(!title||!date)return;
+  var evZip=(document.getElementById('ev-zip').value||'').trim();
+  if(!/^\d{5}$/.test(evZip)){alert('Please enter the 5-digit ZIP code where the event takes place.');return;}
   apiFetch('/api/community?type=events','POST',{
+    zip:evZip,
     title:title,date:date,
     time:document.getElementById('ev-time').value||'TBD',
     location:document.getElementById('ev-loc').value||'TBD',
@@ -3462,7 +3513,7 @@ function disbandGuild(){
 function doSignOut(){
   state.authToken=null;
   state.user=null;state.profileType=null;state.plan=null;state.faithAnswer=null;
-  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.geoLoading=false;state.showAllMore=false;state.dirFilter={maxMi:0,nationalOnly:false};
+  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.dirZip=null;state.evZip=null;state.evGeo=null;state.evGeoLoading=false;state.evMaxMi=0;state.geoLoading=false;state.showAllMore=false;state.dirFilter={maxMi:0,nationalOnly:false};
   // Clear saved session
   try {
     localStorage.removeItem('cou_user');
@@ -3572,14 +3623,16 @@ function isMyChurch(b){
   if(state.user.church_id&&b.church_id)return String(b.church_id)===String(state.user.church_id);
   return !!(state.user.church&&b.church&&b.church.toLowerCase()===state.user.church.toLowerCase());
 }
-function hasDirLocation(){return !!((state.geo&&state.geo.lat!=null)||(state.user&&state.user.zip));}
+function hasDirLocation(){return !!((state.geo&&state.geo.lat!=null)||state.dirZip||(state.user&&state.user.zip));}
 function dirLocQuery(){
   if(state.geo&&state.geo.lat!=null)return '?lat='+state.geo.lat+'&lng='+state.geo.lng;
+  if(state.dirZip)return '?zip='+encodeURIComponent(state.dirZip);
   if(state.user&&state.user.zip)return '?zip='+encodeURIComponent(state.user.zip);
   return '';
 }
 function dirLocLabel(){
   if(state.geo&&state.geo.lat!=null)return 'your current location';
+  if(state.dirZip)return 'ZIP '+state.dirZip;
   if(state.user&&state.user.zip)return 'ZIP '+state.user.zip;
   return 'your area';
 }
@@ -3617,16 +3670,34 @@ function feedHeader(sec,emptyNote){
   h.innerHTML='<div class="feed-sec-title">'+escHtml(sec.title)+'</div><div class="feed-sec-sub">'+escHtml(emptyNote||sec.sub)+'</div>';
   return h;
 }
+// A "near ZIP [____] [Update]" bar shared by the directory and events
+function zipBarHtml(label,cur,setFn,extra){
+  return '<div class="loc-bar">📍 '+label+' <form class="zip-form" onsubmit="'+setFn+'(this.z.value);return false;"><input name="z" class="zip-inp" inputmode="numeric" maxlength="5" placeholder="ZIP" value="'+escHtml(cur)+'" aria-label="ZIP code"/><button type="submit">Update</button></form>'+(extra||'')+'</div>';
+}
 function renderLocBar(){
   var el=document.getElementById('loc-bar');if(!el)return;
   if(state.geoLoading){el.innerHTML='<div class="loc-bar">📍 Finding your location…</div>';return;}
-  if(state.geo&&state.geo.lat!=null){
-    el.innerHTML='<div class="loc-bar">📍 Showing businesses near <strong>your current location</strong>'+(state.user&&state.user.zip?' <button onclick="useMyZip()">Use ZIP '+escHtml(state.user.zip)+' instead</button>':'')+'</div>';
-  } else if(state.user&&state.user.zip){
-    el.innerHTML='<div class="loc-bar">📍 Showing businesses near <strong>ZIP '+escHtml(state.user.zip)+'</strong> <button onclick="useMyLocation()">Use my current location</button></div>';
-  } else {
-    el.innerHTML='<div class="loc-bar"><button onclick="useMyLocation()">📍 Use my current location</button></div>';
-  }
+  var mine=(state.user&&state.user.zip)||'';
+  var usingGeo=!!(state.geo&&state.geo.lat!=null);
+  var changed=usingGeo||!!state.dirZip;
+  var extra='';
+  if(!usingGeo)extra+='<button type="button" onclick="useMyLocation()">Use my current location</button>';
+  if(changed&&mine)extra+='<button type="button" onclick="useMyZip()">Back to my ZIP '+escHtml(mine)+'</button>';
+  el.innerHTML=zipBarHtml(usingGeo?'Showing businesses near <strong>your current location</strong>':'Showing businesses near',usingGeo?'':(state.dirZip||mine),'setDirZip',extra);
+}
+// Type a ZIP (for example while traveling). Used for this visit only: never saved to the account
+function setDirZip(v){
+  var z=String(v||'').trim();
+  if(!/^\d{5}$/.test(z)){alert('Please enter a 5-digit ZIP code.');return;}
+  reloadDirectory('?zip='+z).then(function(ok){
+    if(!ok){alert('We couldn\'t load businesses for that ZIP. Please try again.');return;}
+    if(state.dirLocated===false){
+      alert('We couldn\'t find ZIP code '+z+'. Please check it and try again.');
+      reloadDirectory().then(function(){renderLocBar();});
+      return;
+    }
+    state.geo=null;state.dirZip=z;renderLocBar();renderDirectory();
+  });
 }
 function reloadDirectory(query){
   state.showAllMore=false;
@@ -3644,7 +3715,7 @@ function useMyLocation(){
     var geo={lat:Math.round(pos.coords.latitude*1000)/1000,lng:Math.round(pos.coords.longitude*1000)/1000};
     reloadDirectory('?lat='+geo.lat+'&lng='+geo.lng).then(function(ok){
       state.geoLoading=false;
-      if(ok){state.geo=geo;renderDirectory();}
+      if(ok){state.geo=geo;state.dirZip=null;renderDirectory();}
       else{renderLocBar();alert('We couldn\'t load businesses near you. Please try again.');}
     });
   },function(err){
@@ -3653,7 +3724,7 @@ function useMyLocation(){
     alert(err&&err.code===1?'Location permission was turned off. You can allow it in your browser settings, or add your ZIP code on the Account tab.':'We couldn\'t get your location. Please try again, or add your ZIP code on the Account tab.');
   },{timeout:10000,maximumAge:600000});
 }
-function useMyZip(){state.geo=null;state.geoLoading=false;reloadDirectory();}
+function useMyZip(){state.geo=null;state.dirZip=null;state.geoLoading=false;reloadDirectory().then(function(){renderLocBar();});}
 
 // ═══════════════ SEARCH FILTERS (distance + Nationally Available only)
 function dirFilter(){return state.dirFilter||(state.dirFilter={maxMi:0,nationalOnly:false});}
