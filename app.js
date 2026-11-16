@@ -3175,6 +3175,11 @@ function renderAdminNewsletter(){
         '<button class="btn btn-mt" id="nl-btn-send" style="background:#1a1a2e;color:#fff;" onclick="sendNewsletter()">📬 Send to all subscribers</button>'+
       '</div>'+
     '</div>'+
+    '<div class="nl-compose" style="margin-top:1rem;"><div class="nl-compose-title">👋 Welcome Email (sent automatically to new members)</div>'+
+      '<div style="font-size:.78rem;color:var(--muted);margin-bottom:.6rem;">Sent once, right after a new member\'s payment completes. Preview it or send yourself a test.</div>'+
+      '<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;"><select class="inp" id="wl-type" style="background:#fff;width:auto;"><option value="individual">As an individual member</option><option value="business">As a business member</option></select>'+
+      '<button class="btn btn-mt" id="wl-btn-preview" style="background:#fff;color:#1a1a2e;border:1.5px solid #1a1a2e;width:auto;" onclick="welcomeAdmin(\'welcome_preview\')">👁 Preview</button>'+
+      '<button class="btn btn-mt" id="wl-btn-test" style="background:#fff;color:#1a1a2e;border:1.5px solid #1a1a2e;width:auto;" onclick="welcomeAdmin(\'welcome_test\')">✉️ Send test to me</button></div></div>'+
     '<div class="nl-compose" style="margin-top:1rem;"><div class="nl-compose-title">📚 Editions sent</div><div id="nl-history" style="font-size:.8rem;color:var(--muted);">Loading…</div></div>';
   Object.keys(keep).forEach(function(id){var x=document.getElementById(id);if(x)x.value=keep[id];});
   // The admin page does not load the public directory, so fetch the approved businesses for the picker
@@ -3256,6 +3261,16 @@ function previewNewsletter(){
     document.getElementById('nlPreviewFrame').srcdoc=d.html;
     document.getElementById('nlPreviewModal').classList.add('open');
   }).catch(function(){nlBusy('nl-btn-preview',false);alert('Could not build the preview.');});
+}
+function welcomeAdmin(action){
+  var btn=action==='welcome_preview'?'wl-btn-preview':'wl-btn-test';
+  nlBusy(btn,true,action==='welcome_preview'?'Loading…':'Sending…');
+  adminPost({action:action,type:document.getElementById('wl-type').value}).then(function(d){
+    nlBusy(btn,false);
+    if(!d||!d.success){alert((d&&d.error)||'Something went wrong. Please try again.');return;}
+    if(action==='welcome_preview'){document.getElementById('nlPreviewFrame').srcdoc=d.html;document.getElementById('nlPreviewModal').classList.add('open');}
+    else alert('Test sent to '+d.to+'. Check your inbox (and spam folder).');
+  }).catch(function(){nlBusy(btn,false);alert('Something went wrong. Please try again.');});
 }
 function sendNewsletterTest(){
   var p=nlPayload();
