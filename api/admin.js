@@ -2,7 +2,8 @@ const supabase = require('./supabase');
 const { lookupZip, cleanZip, normalizeChurchName } = require('./_lib/geo');
 const { findOrCreateChurch } = require('./_lib/church-store');
 const { requireAdmin } = require('./_lib/adminAuth');
-const { sendEmail, esc, brandedEmail } = require('./_lib/email');
+const { sendEmail, sendBatch, esc, brandedEmail } = require('./_lib/email');
+const newsletter = require('./_lib/newsletter-email');
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 module.exports = async (req, res) => {
@@ -192,6 +193,74 @@ module.exports = async (req, res) => {
         .eq('id', job_id);
       if (error) throw error;
       return res.status(200).json({ success: true });
+    }
+
+    // ── NEWSLETTER ───────────────────────────────────────────
+    // Subscriber count + past editions for the Newsletter tab
+    if (action === 'newsletter_overview') {
+      const active = await supabase.from('newsletter_subscribers')
+        .select('id', { count: 'exact', head: true }).or('unsubscribed.is.null,unsubscribed.eq.false');
+      const eds = await supabase.from('newsletters')
+        .select('id, subject, sent_at, recipient_count').order('sent_at', { ascending: false }).limit(20);
+      if (active.error || eds.error) {
+        return res.status(200).json({ success: true, setup_needed: true, subscribers: 0, editions: [] });
+      }
+      return res.status(200).json({ success: true, subscribers: active.count || 0, editions: eds.data || [] });
+    }
+
+    // Shows exactly what the email will look like, without sending anything
+    if (action === 'newsletter_preview') {
+      const subject = String(req.body.subject || '').trim() || 'Your newsletter';
+      const content = await newsletter.buildContent(supabase, req.body);
+      return res.status(200).json({ success: true, html: newsletter.renderEmail(subject, content, null) });
+    }
+
+    // Sends a test to the admin only (test: true) or the real edition to every subscriber
+    if (action === 'send_newsletter') {
+      const subject = String(req.body.subject || '').trim();
+      if (!subject) return res.status(400).json({ error: 'Please enter a subject line.' });
+      if (subject.length > 150) return res.status(400).json({ error: 'Subject line is too long.' });
+      const content = await newsletter.buildContent(supabase, req.body);
+
+      if (req.body.test) {
+        const to = auth.admin.email;
+        const r = await sendEmail({ to, subject: '[TEST] ' + subject, html: newsletter.renderEmail(subject, content, to) });
+        if (!r.ok) return res.status(502).json({ error: 'The test email could not be sent. Check the Resend settings.' });
+        return res.status(200).json({ success: true, test: true, to });
+      }
+
+      if (req.body.confirm !== true) return res.status(400).json({ error: 'Please confirm before sending.' });
+      const dayAgo = new Date(Date.now() - 86400000).toISOString();
+      const { data: dup } = await supabase.from('newsletters').select('id').eq('subject', subject).gte('sent_at', dayAgo).limit(1);
+      if (dup && dup.length) return res.status(409).json({ error: 'An edition with this exact subject was already sent in the last 24 hours.' });
+
+      // Everyone who has not unsubscribed
+      let subs = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase.from('newsletter_subscribers')
+          .select('email, unsubscribed').range(from, from + 999);
+        if (error) throw error;
+        subs = subs.concat(data || []);
+        if (!data || data.length < 1000) break;
+      }
+      const emails = [...new Set(subs.filter(s => !s.unsubscribed && s.email).map(s => String(s.email).toLowerCase()))];
+      if (!emails.length) return res.status(400).json({ error: 'There are no subscribers to send to yet.' });
+
+      let sent = 0;
+      for (let i = 0; i < emails.length; i += 100) {
+        const chunk = emails.slice(i, i + 100).map(to => ({
+          to, subject,
+          html: newsletter.renderEmail(subject, content, to),
+          headers: { 'List-Unsubscribe': '<' + newsletter.unsubscribeUrl(to) + '>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+        }));
+        const r = await sendBatch(chunk, 'support@christonesunited.com');
+        sent += r.sent;
+      }
+      if (!sent) return res.status(502).json({ error: 'No emails could be sent. Check the Resend settings.' });
+      const { error: saveErr } = await supabase.from('newsletters')
+        .insert([{ subject, content, recipient_count: sent, sent_by: auth.admin.email }]);
+      if (saveErr) console.error('Saving newsletter edition failed:', saveErr.message);
+      return res.status(200).json({ success: true, sent, failed: emails.length - sent });
     }
 
     // ── CANCELLATIONS ────────────────────────────────────────
