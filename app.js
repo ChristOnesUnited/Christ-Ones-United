@@ -1351,7 +1351,7 @@ function sendSupport(){
   btn.disabled=true;btn.textContent='Sending…';st.textContent='';
   apiFetch('/api/support','POST',{topic:document.getElementById('help-topic').value,message:msg}).then(function(d){
     if(d&&d.success){
-      document.getElementById('help-form').innerHTML='<div style="text-align:center;padding:1rem 0;"><div style="font-size:2rem;margin-bottom:.5rem;">✅</div><div style="font-family:\'Playfair Display\',serif;font-size:1.05rem;margin-bottom:.35rem;">Message sent</div><p style="font-size:.82rem;color:var(--muted);line-height:1.6;">Thank you. We will reply to <strong>'+escHtml((state.user&&state.user.email)||'your email')+'</strong>. A copy is on its way to your inbox.</p></div>';
+      document.getElementById('help-form').innerHTML='<div style="text-align:center;padding:1rem 0;"><div style="font-size:2rem;margin-bottom:.5rem;">✅</div><div style="font-family:\'Playfair Display\',serif;font-size:1.05rem;margin-bottom:.35rem;">Message sent</div><p style="font-size:.82rem;color:var(--muted);line-height:1.6;">Thank you. We will reply to <strong>'+escHtml((state.user&&state.user.email)||'your email')+'</strong>. A copy is on its way to your inbox.</p><p style="font-size:.76rem;color:var(--muted);line-height:1.6;margin-top:.6rem;">Don\'t see our reply? Check your spam or junk folder and mark us as not spam.</p></div>';
       return;
     }
     if(d&&d.code==='session_expired')return;
