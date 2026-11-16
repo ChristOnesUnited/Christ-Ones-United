@@ -78,6 +78,7 @@ async function loadBusinesses(opts) {
         churchAddress: b.church_address || '',
         church_id: b.church_id || null,
         lat: b.lat, lng: b.lng,
+        logo_url: b.logo_url || '',
         service_type: b.service_type || 'storefront',
         service_radius: b.service_radius || null,
         distance_mi: (b.distance_mi===undefined?null:b.distance_mi),
@@ -954,7 +955,9 @@ function makeBizCard(b){
   var reachHtml=bizReachHtml(b);
   var metaHtml='<div class="biz-meta"><div class="biz-meta-row">📍 '+b.address+'</div><div class="biz-meta-row">📞 '+b.phone+'</div>'+(b.website?'<div class="biz-meta-row">🌐 <a href="https://'+b.website+'" target="_blank">'+b.website+'</a></div>':'')+(b.facebook?'<div class="biz-meta-row">👥 <a href="https://'+b.facebook+'" target="_blank">'+b.facebook+'</a></div>':'')+(b.linkedin?'<div class="biz-meta-row">💼 <a href="https://'+b.linkedin+'" target="_blank">'+b.linkedin+'</a></div>':'')+'<div class="biz-meta-row">✉️ '+b.email+'</div></div>';
   var tmsHtml=b.testimonials&&b.testimonials.length?'<div class="testimonials">'+b.testimonials.slice(0,2).map(t=>'<div class="testimonial"><div class="testimonial-text">"'+t.text+'"</div><div class="testimonial-author">— '+t.author+'</div></div>').join('')+'</div>':'';
-  div.innerHTML='<div class="biz-topbar" style="background:'+color+'"></div><div class="biz-head"><div class="biz-name">'+b.name+'</div><span class="biz-cat-badge" style="background:'+color+'1a;color:'+color+'">'+b.category+'</span></div>'+(badges?'<div class="biz-badges">'+badges+'</div>':'')+reachHtml+hoursHtml+'<p class="biz-desc">'+b.description+'</p>'+metaHtml+(b.tags&&b.tags.length?'<div class="biz-tags">'+b.tags.map(t=>'<span class="biz-tag">'+t+'</span>').join('')+'</div>':'')+tmsHtml+'<div class="biz-actions"><button class="biz-btn biz-btn-save'+(saved?' saved':'')+'" onclick="toggleSave(\''+b.id+'\')">'+(saved?'♥ Saved':'♡ Save')+'</button><button class="biz-btn biz-btn-ref" onclick="openRefModal(\''+b.id+'\')">🤝 Refer</button><button class="biz-btn biz-btn-testify" onclick="openRevModal(\''+b.id+'\')">✍️ Testify</button><button class="biz-btn biz-btn-msg" onclick="openMsgModal(\''+b.id+'\')">💬 Message</button></div>';
+  var mine=state.myBiz&&String(state.myBiz.id)===String(b.id);
+  var logoHtml=b.logo_url?'<div class="biz-logo-wrap"><img class="biz-logo" src="'+escHtml(b.logo_url)+'" alt="" loading="lazy" onerror="this.parentNode.style.display=\'none\'"/>'+(mine?'':'<button class="job-report-btn biz-logo-flag" type="button" data-biz-id="'+escHtml(b.id)+'" onclick="toggleJobReport(this)" title="Report this picture" aria-label="Report this picture">?</button>')+'</div>':'';
+  div.innerHTML='<div class="biz-topbar" style="background:'+color+'"></div><div class="biz-head"><div class="biz-name-row">'+logoHtml+'<div class="biz-name">'+b.name+'</div></div><span class="biz-cat-badge" style="background:'+color+'1a;color:'+color+'">'+b.category+'</span></div>'+(badges?'<div class="biz-badges">'+badges+'</div>':'')+reachHtml+hoursHtml+'<p class="biz-desc">'+b.description+'</p>'+metaHtml+(b.tags&&b.tags.length?'<div class="biz-tags">'+b.tags.map(t=>'<span class="biz-tag">'+t+'</span>').join('')+'</div>':'')+tmsHtml+'<div class="biz-actions"><button class="biz-btn biz-btn-save'+(saved?' saved':'')+'" onclick="toggleSave(\''+b.id+'\')">'+(saved?'♥ Saved':'♡ Save')+'</button><button class="biz-btn biz-btn-ref" onclick="openRefModal(\''+b.id+'\')">🤝 Refer</button><button class="biz-btn biz-btn-testify" onclick="openRevModal(\''+b.id+'\')">✍️ Testify</button><button class="biz-btn biz-btn-msg" onclick="openMsgModal(\''+b.id+'\')">💬 Message</button></div>';
   return div;
 }
 function toggleSave(id){var i=state.savedIds.indexOf(id);if(i>-1)state.savedIds.splice(i,1);else state.savedIds.push(id);renderDirectory();renderSaved();updateSavedCount();}
@@ -1241,7 +1244,9 @@ function renderNewsletterEdition(ed){
       '<div style="font-family:\'Playfair Display\',serif;font-size:1.25rem;color:#fff;margin-bottom:.2rem;">'+escHtml(c.headline||ed.subject)+'</div>'+
       '<div style="font-size:.72rem;color:#8a8278;">'+escHtml(sentOn)+'</div>'+
     '</div>'+
+    (c.image?'<img src="'+escHtml(c.image)+'" alt="" style="width:100%;height:auto;border-radius:10px;margin-bottom:1.25rem;display:block;"/>':'')+
     (c.message?'<p style="font-size:.86rem;color:var(--ink);line-height:1.65;margin-bottom:1.25rem;white-space:pre-line;">'+escHtml(c.message)+'</p>':'')+
+    (c.video&&c.video.embed?'<div style="position:relative;padding-top:56.25%;margin-bottom:1.25rem;border-radius:10px;overflow:hidden;background:#000;"><iframe src="'+escHtml(c.video.embed)+'" title="Video" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>':'')+
     (f?box('linear-gradient(135deg,#fdf9f0,#fdf3e3)','','⭐ Featured Business','#c9973a','<div style="font-family:\'Playfair Display\',serif;font-size:.95rem;color:var(--ink);margin-bottom:.2rem;">'+escHtml(f.name)+'</div><div style="font-size:.78rem;color:var(--muted);">'+escHtml(f.category)+(f.address?' · '+escHtml(f.address):'')+'</div>'+(f.blurb?'<p style="font-size:.78rem;color:var(--ink);margin-top:.4rem;line-height:1.5;">'+escHtml(f.blurb)+'</p>':'')):'')+
     (c.prayer?box('#f8f4ff','#7c3aed','🙏 Prayer Highlight','#7c3aed','<p style="font-size:.82rem;color:var(--ink);font-style:italic;line-height:1.6;white-space:pre-line;">'+escHtml(c.prayer)+'</p>'):'')+
     ((c.events&&c.events.length)?box('#e0f0ea','','📅 Upcoming Events','var(--green)',c.events.map(function(e){return '<div style="margin-bottom:.5rem;"><div style="font-family:\'Playfair Display\',serif;font-size:.9rem;color:var(--ink);">'+escHtml(e.title)+'</div><div style="font-size:.76rem;color:var(--muted);">'+escHtml(new Date(e.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}))+(e.time?' · '+escHtml(e.time):'')+'</div>'+(e.location?'<div style="font-size:.74rem;color:var(--green);">📍 '+escHtml(e.location)+'</div>':'')+'</div>';}).join('')):'')+
@@ -2004,12 +2009,60 @@ function sendBizReply(bizId, memberName){
     member_user_id:thread?thread.userId:null
   }).catch(function(){});
 }
+// Shrinks a chosen picture in the browser (so uploads are small and quick), then hands back a data URL
+function shrinkImage(file,maxDim,cb){
+  if(!file||!/^image\/(jpeg|png|webp|gif|heic|heif)$/i.test(file.type||'')&&!/\.(jpe?g|png|webp)$/i.test(file.name||'')){cb(null,'Please choose a JPG, PNG or WebP picture.');return;}
+  var url=URL.createObjectURL(file),img=new Image();
+  img.onload=function(){
+    var w=img.naturalWidth,h=img.naturalHeight,sc=Math.min(1,maxDim/Math.max(w,h));
+    var c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*sc));c.height=Math.max(1,Math.round(h*sc));
+    var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);
+    URL.revokeObjectURL(url);
+    cb(c.toDataURL('image/jpeg',0.85));
+  };
+  img.onerror=function(){URL.revokeObjectURL(url);cb(null,'That picture could not be read. Please try another.');};
+  img.src=url;
+}
+function logoPreviewHtml(biz){
+  return biz.logo_url
+    ?'<img src="'+escHtml(biz.logo_url)+'" alt="Your logo" style="width:72px;height:72px;border-radius:12px;object-fit:cover;border:1px solid var(--border);"/>'
+    :'<div style="width:72px;height:72px;border-radius:12px;background:#f3efe7;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--muted);text-align:center;">No logo</div>';
+}
+function chooseLogo(inp){
+  var biz=state.myBiz,msg=document.getElementById('logo-msg'),f=inp.files&&inp.files[0];
+  inp.value='';
+  if(!f||!biz)return;
+  if(!state.authToken){msg.style.color='var(--red)';msg.textContent='Please sign in again.';return;}
+  msg.style.color='var(--muted)';msg.textContent='Uploading…';
+  shrinkImage(f,512,function(data,err){
+    if(!data){msg.style.color='var(--red)';msg.textContent=err;return;}
+    apiFetch('/api/upload','POST',{kind:'logo',business_id:biz.id,image:data}).then(function(d){
+      if(!d||!d.success){msg.style.color='var(--red)';msg.textContent=(d&&d.error)||'Could not save the logo.';return;}
+      setMyLogo(d.logo_url);msg.style.color='var(--green)';msg.textContent='✓ Logo saved';
+    }).catch(function(){msg.style.color='var(--red)';msg.textContent='Could not save the logo. Please try again.';});
+  });
+}
+function removeLogo(){
+  var biz=state.myBiz,msg=document.getElementById('logo-msg');
+  if(!biz||!confirm('Remove your logo?'))return;
+  apiFetch('/api/upload','POST',{kind:'logo_remove',business_id:biz.id}).then(function(d){
+    if(!d||!d.success){msg.style.color='var(--red)';msg.textContent=(d&&d.error)||'Could not remove the logo.';return;}
+    setMyLogo('');msg.style.color='var(--green)';msg.textContent='Logo removed';
+  }).catch(function(){msg.style.color='var(--red)';msg.textContent='Could not remove the logo. Please try again.';});
+}
+function setMyLogo(url){
+  var biz=state.myBiz;biz.logo_url=url;
+  var b=state.businesses.find(function(x){return String(x.id)===String(biz.id);});if(b)b.logo_url=url;
+  var box=document.getElementById('logo-preview');if(box)box.innerHTML=logoPreviewHtml(biz);
+  var rm=document.getElementById('logo-remove');if(rm)rm.style.display=url?'inline-block':'none';
+}
 function renderDashListing(){
   var biz=state.myBiz;
   var panel=document.getElementById('dash-panel-listing');
   if(!biz){panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Your Listing</div><p style="font-size:.84rem;color:var(--muted);">No listing yet.</p></div>';return;}
   var svc=biz.service_type||'storefront';
   panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Your Listing '+(!biz.approved?'<span class="biz-pending">⏳ Pending Review</span>':'<span class="biz-verified">✓ Live</span>')+'</div>'+
+    '<div class="form-group"><label class="lbl">Business Logo</label><div style="display:flex;gap:.9rem;align-items:center;"><div id="logo-preview">'+logoPreviewHtml(biz)+'</div><div><label class="btn btn-green" style="display:inline-block;width:auto;cursor:pointer;padding:.5rem .9rem;font-size:.8rem;">Choose picture<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="chooseLogo(this)"/></label> <button type="button" id="logo-remove" class="btn" style="width:auto;padding:.5rem .9rem;font-size:.8rem;background:#fff;border:1.5px solid var(--border);color:var(--ink);'+(biz.logo_url?'display:inline-block;':'display:none;')+'" onclick="removeLogo()">Remove</button><div class="hint-msg" id="logo-msg" style="margin-top:.35rem;"></div></div></div><div class="hint-msg">Shown on your directory listing. Pictures that break our community guidelines can be reported and removed.</div></div>'+
     '<div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="edit-desc" style="min-height:72px;">'+escHtml(biz.description||'')+'</textarea></div>'+
     '<div class="form-group"><label class="lbl">Business ZIP Code</label><input class="inp" id="edit-zip" maxlength="10" value="'+escHtml(biz.zip||'')+'"/></div>'+
     '<div class="form-group"><label class="lbl">How do you serve customers?</label><div class="svc-opts" id="ed-svc-opts"></div></div>'+
@@ -2158,8 +2211,11 @@ function closeJobReport(){
 function toggleJobReport(btn){
   if(jobReportAnchor===btn){closeJobReport();return;}
   var pop=getJobReportPop();
-  pop.innerHTML='If any inappropriate information or activity is found in or through this job posting, please report for immediate administrative review.'+
-    '<button type="button" onclick="submitJobReport(\''+btn.dataset.jobId+'\')">Report This Post</button>';
+  pop.innerHTML=btn.dataset.bizId
+    ?'If this picture is inappropriate, please report it for immediate administrative review.'+
+      '<button type="button" onclick="submitLogoReport(\''+btn.dataset.bizId+'\')">Report This Picture</button>'
+    :'If any inappropriate information or activity is found in or through this job posting, please report for immediate administrative review.'+
+      '<button type="button" onclick="submitJobReport(\''+btn.dataset.jobId+'\')">Report This Post</button>';
   pop.classList.add('open');
   jobReportAnchor=btn;
   var r=btn.getBoundingClientRect(),p=pop.getBoundingClientRect();
@@ -2196,6 +2252,16 @@ function submitJobReport(jobId){
   }).catch(function(){
     alert('Sorry, your report could not be sent. Please check your connection and try again.');
   });
+}
+function submitLogoReport(bizId){
+  closeJobReport();
+  if(!state.user||!state.authToken){alert('Please sign in to report a picture.');return;}
+  apiFetch('/api/reports','POST',{business_id:bizId}).then(function(data){
+    if(data&&data.success){
+      addNotif('⚠️ Thank you. This picture has been reported and flagged for administrative review.');
+      showReportConfirmation(!!data.duplicate);
+    }else alert((data&&data.error)||'Sorry, your report could not be sent. Please try again.');
+  }).catch(function(){alert('Sorry, your report could not be sent. Please check your connection and try again.');});
 }
 // Visible confirmation after a report is saved (uses the app's normal popup style)
 function showReportConfirmation(alreadyReported){
@@ -2549,7 +2615,8 @@ function loadAdminReports(done){
       id:r.id,
       jobId:r.content_id,
       title:r.content_title||'(untitled posting)',
-      type:'Job Posting',
+      type:r.content_type==='logo'?'Business Logo':'Job Posting',
+      imageUrl:r.content_type==='logo'?(r.content_snippet||''):'',
       reportedBy:r.reporter_name||r.reporter_email||'a member',
       time:r.created_at?new Date(r.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'',
       content:(r.content_company?r.content_company+' · ':'')+(r.content_snippet||''),
@@ -2868,7 +2935,7 @@ function drawAdminReports(){
       return '<div class="admin-card flagged">'+
         '<div class="admin-card-head"><div class="admin-card-title">'+escHtml(r.title)+'</div><span class="admin-card-badge ab-red">🚨 '+escHtml(r.type)+'</span></div>'+
         '<div class="admin-card-meta">Reported by '+escHtml(r.reportedBy)+' · '+escHtml(r.time)+'</div>'+
-        '<div class="admin-card-content">'+escHtml(r.content)+'</div>'+
+        (r.imageUrl?'<div class="admin-card-content"><img src="'+escHtml(r.imageUrl)+'" alt="Reported logo" style="max-width:160px;max-height:160px;border-radius:8px;display:block;"/></div>':'<div class="admin-card-content">'+escHtml(r.content)+'</div>')+
         '<div class="admin-actions">'+
           '<button class="adm-remove" onclick="adminRemoveContent('+r.id+')">🗑 Remove Content</button>'+
           '<button class="adm-warn" onclick="adminWarnUser('+r.id+')">⚠️ Warn User</button>'+
@@ -3078,7 +3145,7 @@ function adminPost(payload){
 }
 function renderAdminNewsletter(){
   var el=document.getElementById('adm-tab-newsletter');
-  var keep={};['nl-subject','nl-headline','nl-biz','nl-prayer','nl-msg'].forEach(function(id){var x=document.getElementById(id);if(x)keep[id]=x.value;});
+  var keep={};['nl-subject','nl-headline','nl-biz','nl-prayer','nl-msg','nl-video'].forEach(function(id){var x=document.getElementById(id);if(x)keep[id]=x.value;});
   var keepEv=nlSelectedEvents();
   el.innerHTML=
     '<div class="admin-page-title">Newsletter Management</div>'+
@@ -3092,6 +3159,8 @@ function renderAdminNewsletter(){
       '<div class="nl-compose-title">✍️ Compose This Week\'s Edition</div>'+
       '<div class="form-group"><label class="lbl">Subject Line</label><input class="inp" id="nl-subject" placeholder="e.g. This Week in Christ One\'s United — Apr 29" style="background:#fff;"/></div>'+
       '<div class="form-group"><label class="lbl">Headline</label><input class="inp" id="nl-headline" placeholder="e.g. 3 New Businesses, 2 Events & This Week\'s Prayer Highlight" style="background:#fff;"/></div>'+
+      '<div class="form-group"><label class="lbl">Banner Picture (optional)</label><div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;"><div id="nl-img-preview">'+nlImgPreview()+'</div><div><label class="btn btn-mt" style="display:inline-block;width:auto;cursor:pointer;background:#fff;color:#1a1a2e;border:1.5px solid #1a1a2e;padding:.45rem .8rem;font-size:.78rem;">Choose picture<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="nlChooseImage(this)"/></label> <button type="button" id="nl-img-remove" class="btn" style="width:auto;padding:.45rem .8rem;font-size:.78rem;background:#fff;border:1.5px solid var(--border);color:var(--ink);'+(state.admin.nlImage?'display:inline-block;':'display:none;')+'" onclick="nlRemoveImage()">Remove</button><div id="nl-img-msg" style="font-size:.72rem;color:var(--muted);margin-top:.3rem;"></div></div></div></div>'+
+      '<div class="form-group"><label class="lbl">Video Link (optional)</label><input class="inp" id="nl-video" placeholder="Paste a YouTube or Vimeo link" style="background:#fff;"/><div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">Plays inside the app. In the email it shows a thumbnail and a Watch button.</div></div>'+
       '<div class="form-group"><label class="lbl">Featured Business</label><select class="inp" id="nl-biz" style="background:#fff;">'+
         '<option value="">Select a business to feature…</option>'+
         state.businesses.filter(function(b){return b.approved;}).map(function(b){return '<option value="'+escHtml(b.id)+'">'+escHtml(b.name)+'</option>';}).join('')+
@@ -3140,8 +3209,35 @@ function renderAdminNewsletter(){
 function nlSelectedEvents(){
   return Array.prototype.map.call(document.querySelectorAll('#nl-events .nl-ev:checked'),function(c){return String(c.value);});
 }
+function nlImgPreview(){
+  return state.admin.nlImage?'<img src="'+escHtml(state.admin.nlImage)+'" alt="Banner" style="width:120px;height:68px;object-fit:cover;border-radius:8px;border:1px solid var(--border);"/>':'<div style="width:120px;height:68px;border-radius:8px;background:#f3efe7;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--muted);">No banner</div>';
+}
+function nlChooseImage(inp){
+  var f=inp.files&&inp.files[0],msg=document.getElementById('nl-img-msg');inp.value='';
+  if(!f)return;
+  msg.textContent='Uploading…';
+  shrinkImage(f,1040,function(data,err){
+    if(!data){msg.style.color='var(--red)';msg.textContent=err;return;}
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify({kind:'newsletter',image:data})})
+      .then(function(r){return r.json();}).then(function(d){
+        if(!d||!d.success){msg.style.color='var(--red)';msg.textContent=(d&&d.error)||'Could not upload.';return;}
+        state.admin.nlImage=d.url;
+        document.getElementById('nl-img-preview').innerHTML=nlImgPreview();
+        document.getElementById('nl-img-remove').style.display='inline-block';
+        msg.style.color='var(--green)';msg.textContent='✓ Uploaded';
+      }).catch(function(){msg.style.color='var(--red)';msg.textContent='Could not upload. Please try again.';});
+  });
+}
+function nlRemoveImage(){
+  state.admin.nlImage='';
+  document.getElementById('nl-img-preview').innerHTML=nlImgPreview();
+  document.getElementById('nl-img-remove').style.display='none';
+  document.getElementById('nl-img-msg').textContent='';
+}
 function nlPayload(){
   return {
+    image_url:state.admin.nlImage||'',
+    video_url:(document.getElementById('nl-video')||{}).value?document.getElementById('nl-video').value.trim():'',
     event_ids:nlSelectedEvents(),
     subject:document.getElementById('nl-subject').value.trim(),
     headline:document.getElementById('nl-headline').value.trim(),
