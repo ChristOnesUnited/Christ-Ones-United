@@ -846,6 +846,8 @@ function enterDirectory(){
   renderLocNudge();
   // Load sponsors for banner
   loadSponsors();
+  // Bring back this member's saved favorites
+  loadFavorites();
   // Check for unread messages
   setTimeout(updateUnreadMsgBadge, 1500);
   // Show loading state then load real data
@@ -960,7 +962,35 @@ function makeBizCard(b){
   div.innerHTML='<div class="biz-topbar" style="background:'+color+'"></div><div class="biz-head"><div class="biz-name-row">'+logoHtml+'<div class="biz-name">'+b.name+'</div></div><span class="biz-cat-badge" style="background:'+color+'1a;color:'+color+'">'+b.category+'</span></div>'+(badges?'<div class="biz-badges">'+badges+'</div>':'')+reachHtml+hoursHtml+'<p class="biz-desc">'+b.description+'</p>'+metaHtml+(b.tags&&b.tags.length?'<div class="biz-tags">'+b.tags.map(t=>'<span class="biz-tag">'+t+'</span>').join('')+'</div>':'')+tmsHtml+'<div class="biz-actions"><button class="biz-btn biz-btn-save'+(saved?' saved':'')+'" onclick="toggleSave(\''+b.id+'\')">'+(saved?'♥ Saved':'♡ Save')+'</button><button class="biz-btn biz-btn-ref" onclick="openRefModal(\''+b.id+'\')">🤝 Refer</button><button class="biz-btn biz-btn-testify" onclick="openRevModal(\''+b.id+'\')">✍️ Testify</button><button class="biz-btn biz-btn-msg" onclick="openMsgModal(\''+b.id+'\')">💬 Message</button></div>';
   return div;
 }
-function toggleSave(id){var i=state.savedIds.indexOf(id);if(i>-1)state.savedIds.splice(i,1);else state.savedIds.push(id);renderDirectory();renderSaved();updateSavedCount();}
+// Favorites are kept on the server so they follow the member to every device.
+// The heart changes at once; if the server can't be reached it changes back.
+function saveFavorite(kind,id,saved,undo){
+  apiFetch('/api/favorites','POST',{kind:kind,item_id:String(id),saved:saved}).then(function(d){
+    if(!d||d.error||d.success!==true){
+      undo();
+      if(!(d&&d.code==='session_expired'))alert((d&&d.error)||'Your favorite could not be saved. Please check your connection and try again.');
+    }
+  });
+}
+function loadFavorites(){
+  return apiFetch('/api/favorites').then(function(d){
+    if(!d||d.success!==true)return;
+    state.savedIds=(d.business||[]).map(String);
+    state.savedJobIds=(d.job||[]).map(String);
+    updateSavedCount();renderSaved();renderDirectory();
+    if(typeof renderJobs==='function'&&document.getElementById('job-type-filter'))renderJobs();
+  });
+}
+function toggleSave(id){
+  var i=state.savedIds.indexOf(id),adding=i<0;
+  if(adding)state.savedIds.push(id);else state.savedIds.splice(i,1);
+  renderDirectory();renderSaved();updateSavedCount();
+  saveFavorite('business',id,adding,function(){
+    var j=state.savedIds.indexOf(id);
+    if(adding){if(j>-1)state.savedIds.splice(j,1);}else if(j<0)state.savedIds.push(id);
+    renderDirectory();renderSaved();updateSavedCount();
+  });
+}
 function renderSaved(){
   var grid=document.getElementById('saved-grid'),saved=state.businesses.filter(b=>state.savedIds.includes(b.id));
   document.getElementById('saved-sub').textContent=saved.length+' saved listing'+(saved.length!==1?'s':'');
@@ -2193,8 +2223,14 @@ function makeJobCard(j){
   return div;
 }
 function toggleJobSave(id){
-  var i=state.savedJobIds.indexOf(id);if(i>-1)state.savedJobIds.splice(i,1);else state.savedJobIds.push(id);
+  var i=state.savedJobIds.indexOf(id),adding=i<0;
+  if(adding)state.savedJobIds.push(id);else state.savedJobIds.splice(i,1);
   renderJobs();
+  saveFavorite('job',id,adding,function(){
+    var j=state.savedJobIds.indexOf(id);
+    if(adding){if(j>-1)state.savedJobIds.splice(j,1);}else if(j<0)state.savedJobIds.push(id);
+    renderJobs();
+  });
 }
 // Report popup: one shared box attached to <body>, positioned next to the tapped "?"
 var jobReportAnchor=null;
@@ -3804,7 +3840,7 @@ function disbandGuild(){
 function doSignOut(){
   state.authToken=null;
   state.user=null;state.profileType=null;state.plan=null;state.faithAnswer=null;
-  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.dirZip=null;state.evZip=null;state.evGeo=null;state.evGeoLoading=false;state.evMaxMi=0;state.geoLoading=false;state.showAllMore=false;state.dirFilter={maxMi:0,nationalOnly:false};
+  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.savedJobIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.dirZip=null;state.evZip=null;state.evGeo=null;state.evGeoLoading=false;state.evMaxMi=0;state.geoLoading=false;state.showAllMore=false;state.dirFilter={maxMi:0,nationalOnly:false};
   // Clear saved session
   try {
     localStorage.removeItem('cou_user');
