@@ -4,6 +4,7 @@ const { findOrCreateChurch } = require('./_lib/church-store');
 const { requireAdmin } = require('./_lib/adminAuth');
 const { sendEmail, sendBatch, esc, brandedEmail } = require('./_lib/email');
 const newsletter = require('./_lib/newsletter-email');
+const { removeImage } = require('./_lib/media');
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 module.exports = async (req, res) => {
@@ -295,9 +296,45 @@ module.exports = async (req, res) => {
       if (!['dismissed', 'warned', 'removed', 'suspended'].includes(resolution)) {
         return res.status(400).json({ error: 'Unknown resolution.' });
       }
+      let emailedLogo = false, warnedLogoName = '';
       const { data: report, error: rErr } = await supabase
         .from('reports').select('*').eq('id', report_id).single();
       if (rErr || !report) return res.status(404).json({ error: 'Report not found.' });
+
+      // Logo reports: look up the business owner; "removed" clears the picture
+      if (report.content_type === 'logo') {
+        const { data: lb } = await supabase.from('businesses').select('id, user_id, name, logo_url').eq('id', report.content_id).single();
+        if (resolution === 'removed' && lb) {
+          const { error } = await supabase.from('businesses').update({ logo_url: '' }).eq('id', lb.id);
+          if (error) throw error;
+          await removeImage(supabase, lb.logo_url);
+        }
+        if (resolution === 'suspended') {
+          if (!lb || !lb.user_id) return res.status(404).json({ error: 'Could not find the member who owns this logo.' });
+          const { error } = await supabase.from('users').update({ status: 'suspended' }).eq('id', lb.user_id);
+          if (error) throw error;
+        }
+        if (resolution === 'warned' && lb && lb.user_id) {
+          const { data: owner } = await supabase.from('users').select('name, email').eq('id', lb.user_id).single();
+          if (owner && owner.email) {
+            warnedLogoName = owner.name || '';
+            const result = await sendEmail({
+              to: owner.email,
+              replyTo: 'support@christonesunited.com',
+              subject: 'A notice about your business logo on Christ One\'s United',
+              html: brandedEmail({
+                title: 'A notice about your logo',
+                bodyHtml:
+                  '<p style="margin:0 0 14px 0;">Hello ' + esc(owner.name || 'friend') + ',</p>' +
+                  '<p style="margin:0 0 14px 0;">A member raised a concern about the logo for <strong>' + esc(lb.name || 'your business') + '</strong>, and our team has reviewed it.</p>' +
+                  '<p style="margin:0 0 14px 0;">This is a friendly warning. Please make sure your picture follows our community guidelines.</p>' +
+                  '<p style="margin:0;color:#5a564e;font-size:14px;">If you have questions, just reply to this email.</p>',
+              }),
+            });
+            emailedLogo = !!(result && result.ok);
+          }
+        }
+      }
 
       if (resolution === 'removed' && report.content_type === 'job') {
         const { error } = await supabase.from('jobs').update({ active: false }).eq('id', report.content_id);
@@ -351,7 +388,7 @@ module.exports = async (req, res) => {
         .update({ status: 'resolved', resolution, resolved_at: new Date().toISOString() })
         .eq('id', report_id);
       if (uErr) throw uErr;
-      return res.status(200).json({ success: true, emailed, warned_name: warnedName });
+      return res.status(200).json({ success: true, emailed: emailed || emailedLogo, warned_name: warnedName || warnedLogoName });
     }
 
     // ── CHURCHES ─────────────────────────────────────────────

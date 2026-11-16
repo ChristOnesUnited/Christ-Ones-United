@@ -14,9 +14,10 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const auth = await requireMember(req, res); if (!auth) return;
-  const { job_id } = req.body || {};
+  const { job_id, business_id } = req.body || {};
   const reporter_id = auth.user.id;
-  if (!job_id)      return res.status(400).json({ error: 'Job ID required.' });
+  if (!job_id && !business_id) return res.status(400).json({ error: 'Job ID required.' });
+  if (!job_id) return reportLogo(req, res, auth, business_id);
 
   try {
     // Reporter must be a real member
@@ -67,3 +68,43 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'Could not submit the report. Please try again.' });
   }
 };
+
+// A member reports a business logo picture (saved as content_type "logo"; the admin Reports tab shows it)
+async function reportLogo(req, res, auth, business_id) {
+  try {
+    const reporter = auth.user;
+    const { data: biz } = await supabase.from('businesses').select('id, name, logo_url').eq('id', business_id).single();
+    if (!biz || !biz.logo_url) return res.status(404).json({ error: 'That picture could not be found.' });
+
+    const { data: existing } = await supabase.from('reports').select('id')
+      .eq('content_type', 'logo').eq('content_id', String(biz.id))
+      .eq('reporter_user_id', String(reporter.id)).eq('status', 'open').limit(1);
+    if (existing && existing.length) return res.status(200).json({ success: true, duplicate: true });
+
+    const { error } = await supabase.from('reports').insert([{
+      content_type: 'logo',
+      content_id: String(biz.id),
+      content_title: (biz.name || 'Business') + ' (logo)',
+      content_company: biz.name || '',
+      content_snippet: biz.logo_url,
+      reporter_user_id: String(reporter.id),
+      reporter_name: reporter.name || '',
+      reporter_email: reporter.email || '',
+    }]);
+    if (error) throw error;
+
+    await sendEmail({
+      to: process.env.ADMIN_ALERT_EMAIL,
+      subject: 'Business logo reported: ' + (biz.name || 'Untitled'),
+      html:
+        '<p>A member reported a business logo on Christ One\'s United.</p>' +
+        '<p><strong>Business:</strong> ' + esc(biz.name) + '<br/>' +
+        '<strong>Reported by:</strong> ' + esc(reporter.name) + ' (' + esc(reporter.email) + ')</p>' +
+        '<p>Review it in the Admin panel under <strong>Reports</strong>: <a href="' + esc(siteUrl(req)) + '">' + esc(siteUrl(req)) + '</a></p>',
+    });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Logo report error:', err.message);
+    return res.status(500).json({ error: 'Could not submit the report. Please try again.' });
+  }
+}
