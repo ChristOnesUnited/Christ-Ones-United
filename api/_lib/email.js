@@ -26,6 +26,30 @@ async function sendEmail({ to, subject, html, replyTo }) {
   }
 }
 
+// Sends up to 100 different emails in one Resend request (used for the newsletter).
+// messages: [{ to, subject, html, headers? }]. Returns { ok, sent } and never throws.
+async function sendBatch(messages, replyTo) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) { console.warn('sendBatch skipped: RESEND_API_KEY is not set.'); return { ok: false, sent: 0, skipped: true }; }
+  if (!messages.length) return { ok: true, sent: 0 };
+  try {
+    const r = await fetch('https://api.resend.com/emails/batch', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify(messages.map(m => Object.assign(
+        { from: FROM, to: [m.to], subject: m.subject, html: m.html },
+        m.headers ? { headers: m.headers } : {},
+        replyTo ? { reply_to: replyTo } : {}
+      ))),
+    });
+    if (!r.ok) { console.error('Resend batch error', r.status, await r.text()); return { ok: false, sent: 0 }; }
+    return { ok: true, sent: messages.length };
+  } catch (err) {
+    console.error('sendBatch failed:', err.message);
+    return { ok: false, sent: 0 };
+  }
+}
+
 function esc(v) {
   return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -33,7 +57,7 @@ function esc(v) {
 // Wraps message content in the same branded layout as the password-reset email
 // (navy header, gold accent, warm footer). Pass trusted HTML for `bodyHtml`:
 // escape any member-supplied text with esc() before putting it in.
-function brandedEmail({ title, bodyHtml }) {
+function brandedEmail({ title, bodyHtml, footerHtml }) {
   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="color-scheme" content="light"/>' +
     '<title>' + esc(title) + '</title></head>' +
@@ -51,7 +75,8 @@ function brandedEmail({ title, bodyHtml }) {
     '<tr><td align="center" style="background:#faf7f1;padding:18px 24px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#8a8070;">' +
       'Blessings,<br/>The Christ One&#8217;s United Team<br/>' +
       '<a href="https://app.christonesunited.com" style="color:#8a6a1f;text-decoration:none;">app.christonesunited.com</a>' +
+      (footerHtml || '') +
     '</td></tr></table></td></tr></table></body></html>';
 }
 
-module.exports = { sendEmail, esc, brandedEmail };
+module.exports = { sendEmail, sendBatch, esc, brandedEmail };
