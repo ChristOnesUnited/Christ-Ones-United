@@ -198,14 +198,22 @@ module.exports = async (req, res) => {
     // ── NEWSLETTER ───────────────────────────────────────────
     // Subscriber count + past editions for the Newsletter tab
     if (action === 'newsletter_overview') {
-      const active = await supabase.from('newsletter_subscribers')
-        .select('id', { count: 'exact', head: true }).or('unsubscribed.is.null,unsubscribed.eq.false');
+      // Count active subscribers (not unsubscribed) by reading the list in pages
+      let activeCount = 0, subErr = null;
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase.from('newsletter_subscribers').select('id, unsubscribed').range(from, from + 999);
+        if (error) { subErr = error; break; }
+        activeCount += (data || []).filter(s => !s.unsubscribed).length;
+        if (!data || data.length < 1000) break;
+      }
       const eds = await supabase.from('newsletters')
         .select('id, subject, sent_at, recipient_count').order('sent_at', { ascending: false }).limit(20);
-      if (active.error || eds.error) {
-        return res.status(200).json({ success: true, setup_needed: true, subscribers: 0, editions: [] });
+      const err = subErr || eds.error;
+      if (err) {
+        console.error('newsletter_overview error:', err.message);
+        return res.status(200).json({ success: true, setup_needed: true, detail: String(err.message || err.code || 'unknown error'), subscribers: 0, editions: [] });
       }
-      return res.status(200).json({ success: true, subscribers: active.count || 0, editions: eds.data || [] });
+      return res.status(200).json({ success: true, subscribers: activeCount, editions: eds.data || [] });
     }
 
     // Shows exactly what the email will look like, without sending anything
