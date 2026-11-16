@@ -842,7 +842,7 @@ function enterDirectory(){
   showScreen('screen-directory');
   switchDirTab('home');
   state.showAllMore=false;
-  state.dirFilter={maxMi:0,nationalOnly:false};
+  state.dirFilter={maxMi:0,nationalOnly:false,savedOnly:false};
   renderLocNudge();
   // Load sponsors for banner
   loadSponsors();
@@ -898,7 +898,7 @@ function renderDirectory(){
   renderLocBar();
   syncDirFilterControls();
   var df=dirFilter();
-  var filterOn=df.nationalOnly||df.maxMi>0;
+  var filterOn=df.nationalOnly||df.maxMi>0||df.savedOnly;
   var grid=document.getElementById('biz-grid');
   var browsing=!q&&!cf&&state.activeCat==='All'&&!filterOn;
   document.getElementById('feat-strip').classList[browsing?'remove':'add']('hidden');
@@ -906,7 +906,7 @@ function renderDirectory(){
 
   if(!filtered.length){
     document.getElementById('result-meta').innerHTML='Showing <strong>0</strong> results'+(q?' for "<strong>'+escHtml(q)+'</strong>"':'')+dirFilterMeta();
-    grid.innerHTML='<div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-title">No results found</div><p>'+(df.maxMi>0?'Try a larger distance, or ':'Try ')+'a different search or filter.</p></div>';
+    grid.innerHTML=(df.savedOnly&&!state.savedIds.length)?'<div class="empty-state"><div class="empty-icon">♡</div><div class="empty-title">No favorites yet</div><p>Tap ♡ Save on any business and it will show up here.</p></div>':'<div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-title">No results found</div><p>'+(df.maxMi>0?'Try a larger distance, or ':'Try ')+'a different search or filter.</p></div>';
     return;
   }
 
@@ -4018,24 +4018,30 @@ function useMyLocation(){
 function useMyZip(){state.geo=null;state.dirZip=null;state.geoLoading=false;reloadDirectory().then(function(){renderLocBar();});}
 
 // ═══════════════ SEARCH FILTERS (distance + Nationally Available only)
-function dirFilter(){return state.dirFilter||(state.dirFilter={maxMi:0,nationalOnly:false});}
+function dirFilter(){return state.dirFilter||(state.dirFilter={maxMi:0,nationalOnly:false,savedOnly:false});}
 function dirHasDistances(){return (state.businesses||[]).some(function(b){return b.distance_mi!=null;});}
 function passesDirFilters(b){
   var f=dirFilter();
+  if(f.savedOnly&&state.savedIds.indexOf(b.id)<0)return false;
   if(f.nationalOnly)return b.service_type==='national';
   if(f.maxMi>0&&dirHasDistances())return b.distance_mi!=null&&b.distance_mi<=f.maxMi;
   return true;
 }
 function dirFilterMeta(){
-  var f=dirFilter();
-  if(f.nationalOnly)return ' · <strong>Nationally Available</strong>';
-  if(f.maxMi>0&&dirHasDistances())return ' · within <strong>'+f.maxMi+' mi</strong>';
-  return '';
+  var f=dirFilter(),m=f.savedOnly?' · <strong>My Favorites</strong>':'';
+  if(f.nationalOnly)return m+' · <strong>Nationally Available</strong>';
+  if(f.maxMi>0&&dirHasDistances())return m+' · within <strong>'+f.maxMi+' mi</strong>';
+  return m;
 }
 function setDistFilter(v){
   var f=dirFilter();
   f.maxMi=parseInt(v,10)||0;
   if(f.maxMi>0)f.nationalOnly=false;
+  renderDirectory();
+}
+function toggleSavedOnly(){
+  var f=dirFilter();
+  f.savedOnly=!f.savedOnly;
   renderDirectory();
 }
 function toggleNationalOnly(){
@@ -4047,6 +4053,8 @@ function toggleNationalOnly(){
 // Keeps the controls in step with the current filter and location
 function syncDirFilterControls(){
   var sel=document.getElementById('dist-filter'),btn=document.getElementById('nat-filter');
+  var sbtn=document.getElementById('saved-filter');
+  if(sbtn){var on=!!dirFilter().savedOnly;sbtn.classList[on?'add':'remove']('on');sbtn.setAttribute('aria-pressed',on?'true':'false');}
   if(!sel||!btn)return;
   var f=dirFilter(),hasDist=dirHasDistances();
   if(!hasDist&&f.maxMi>0)f.maxMi=0;
