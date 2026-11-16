@@ -41,7 +41,15 @@ async function buildContent(supabase, input) {
   const { data: nb } = await supabase.from('businesses').select('id').eq('approved', true).gte('created_at', weekAgo);
   content.newBizCount = (nb || []).length;
   const today = new Date().toISOString().slice(0, 10);
-  const { data: ev } = await supabase.from('events').select('title, date, time, location').gte('date', today).order('date', { ascending: true }).limit(3);
+  const ids = Array.isArray(input.event_ids) ? input.event_ids.map(String).filter(Boolean).slice(0, 5) : [];
+  let ev;
+  if (ids.length) {
+    // The admin picked specific events
+    ({ data: ev } = await supabase.from('events').select('id, title, date, time, location').in('id', ids).order('date', { ascending: true }));
+  } else {
+    // Default: the next three upcoming events
+    ({ data: ev } = await supabase.from('events').select('title, date, time, location').gte('date', today).order('date', { ascending: true }).limit(3));
+  }
   content.events = (ev || []).map(e => ({ title: e.title, date: e.date, time: e.time || '', location: e.location || '' }));
   return content;
 }
