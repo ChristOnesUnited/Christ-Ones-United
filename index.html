@@ -83,6 +83,10 @@ body{font-family:'DM Sans',sans-serif;background:#f7f4ef;color:#0f0e0c;padding-b
 .topnav-right{display:flex;align-items:center;gap:8px;}
 .badge-ind{font-size:.68rem;background:var(--red);color:#fff;padding:2px 8px;border-radius:20px;font-weight:600;}
 .badge-biz{font-size:.68rem;background:var(--green);color:#fff;padding:2px 8px;border-radius:20px;font-weight:600;}
+.help-pill{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1.5px solid var(--gold);border-radius:999px;padding:2px 10px 2px 2px;cursor:pointer;color:#f2e3c0;font-family:inherit;font-size:.68rem;font-weight:600;letter-spacing:.02em;}
+.help-pill:hover{background:rgba(201,151,58,.15);}
+.help-pill-q{width:20px;height:20px;border-radius:50%;background:var(--gold);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;line-height:1;}
+@media(max-width:360px){.help-pill-t{display:none;}.help-pill{padding:2px;}}
 .bell-btn{background:none;border:none;cursor:pointer;color:#888;font-size:1rem;position:relative;padding:4px;}
 .bell-dot{position:absolute;top:2px;right:2px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--ink);}
 .signout-btn{font-size:.72rem;background:none;border:1px solid #444;border-radius:6px;padding:4px 10px;cursor:pointer;color:#bbb;}
@@ -946,7 +950,7 @@ body.admin-mode{padding-bottom:0;}
     <div class="topnav-logo-wrap" style="background:#fff;border-radius:8px;padding:3px 8px;"><img src="/logo.png" onerror="this.style.display='none'" alt="Christ One's United" class="logo-img"/></div>
     <div class="topnav-right">
       <span class="badge-ind">Member</span>
-      <button class="bell-btn" onclick="openHelp()" title="Help &amp; Support" aria-label="Help and Support">❓</button>
+      <button class="help-pill" onclick="openHelp()" title="Help &amp; Support" aria-label="Help and Support"><span class="help-pill-q">?</span><span class="help-pill-t">Support</span></button>
       <button class="bell-btn" onclick="toggleNotifs()">🔔<span class="bell-dot hidden" id="bell-dot-dir"></span></button>
       <button class="signout-btn" onclick="doSignOut()">Sign Out</button>
     </div>
@@ -1093,7 +1097,7 @@ body.admin-mode{padding-bottom:0;}
     <div class="topnav-logo-wrap" style="background:#fff;border-radius:8px;padding:3px 8px;"><img src="/logo.png" onerror="this.style.display='none'" alt="Christ One's United" class="logo-img"/></div>
     <div class="topnav-right">
       <span class="badge-biz">Business</span>
-      <button class="bell-btn" onclick="openHelp()" title="Help &amp; Support" aria-label="Help and Support">❓</button>
+      <button class="help-pill" onclick="openHelp()" title="Help &amp; Support" aria-label="Help and Support"><span class="help-pill-q">?</span><span class="help-pill-t">Support</span></button>
       <button class="bell-btn" onclick="toggleNotifs()">🔔<span class="bell-dot hidden" id="bell-dot-dash"></span></button>
       <button class="signout-btn" onclick="doSignOut()">Sign Out</button>
     </div>

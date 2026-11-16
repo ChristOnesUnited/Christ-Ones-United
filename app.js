@@ -1314,20 +1314,53 @@ function renderLiveNewsletter(){
 var SUPPORT_EMAIL='support@christonesunited.com';
 function openHelp(){
   var u=state.user||{};
-  var body='Hi Christ One\'s United team,\n\n(Please tell us how we can help)\n\n---\nName: '+(u.name||'')+'\nAccount email: '+(u.email||'')+'\nAccount type: '+(state.profileType||'');
-  var mailto='mailto:'+SUPPORT_EMAIL+'?subject='+encodeURIComponent('Support request')+'&body='+encodeURIComponent(body);
   var faq=function(q,a){return '<div style="margin-bottom:.8rem;"><div style="font-weight:600;font-size:.84rem;color:var(--ink);">'+q+'</div><div style="font-size:.8rem;color:var(--muted);line-height:1.55;">'+a+'</div></div>';};
-  document.getElementById('helpModalContent').innerHTML=
-    '<div class="modal-icon">🙋</div><div class="modal-title">Help &amp; Support</div>'+
-    '<p style="font-size:.84rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">Have a question or something not working? Email us and we will get back to you.</p>'+
-    '<a href="'+mailto+'" class="btn btn-green" style="display:block;text-align:center;text-decoration:none;margin-bottom:.5rem;">✉️ Email Support</a>'+
-    '<div style="text-align:center;font-size:.78rem;color:var(--muted);margin-bottom:1.25rem;">'+SUPPORT_EMAIL+'</div>'+
-    '<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:.6rem;">Quick answers</div>'+
+  var topics=['Account & membership','Billing','My business listing','Report a problem','Something is not working','Other'];
+  var isBiz=state.profileType==='business';
+  var acct=isBiz?('Business'+(state.myBiz&&state.myBiz.name?' · '+escHtml(state.myBiz.name):'')):'Individual member';
+  var top='<div class="modal-icon">🙋</div><div class="modal-title">Help &amp; Support</div>';
+  var formHtml;
+  if(!u.id){
+    formHtml='<p style="font-size:.84rem;color:var(--muted);line-height:1.6;">Please sign in to send us a message, or email <strong>'+SUPPORT_EMAIL+'</strong>.</p>';
+  } else {
+    formHtml=
+      '<p style="font-size:.84rem;color:var(--muted);line-height:1.6;margin-bottom:.9rem;">Tell us how we can help and we will reply by email.</p>'+
+      '<div style="background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:.7rem .85rem;margin-bottom:.9rem;font-size:.8rem;line-height:1.6;">'+
+        '<div><span style="color:var(--muted);">Name:</span> <strong>'+escHtml(u.name||'')+'</strong></div>'+
+        '<div><span style="color:var(--muted);">Email:</span> <strong>'+escHtml(u.email||'')+'</strong></div>'+
+        '<div><span style="color:var(--muted);">Account:</span> <strong>'+acct+'</strong></div>'+
+      '</div>'+
+      '<div class="form-group"><label class="lbl">What do you need help with?</label><select class="inp" id="help-topic">'+topics.map(function(t){return '<option>'+escHtml(t)+'</option>';}).join('')+'</select></div>'+
+      '<div class="form-group"><label class="lbl">Your message</label><textarea class="inp" id="help-msg" maxlength="3000" style="min-height:110px;" placeholder="Tell us what is going on…"></textarea></div>'+
+      '<button class="btn btn-green" id="help-send" onclick="sendSupport()">Send Message</button>'+
+      '<div id="help-status" style="font-size:.78rem;margin-top:.6rem;text-align:center;"></div>';
+  }
+  document.getElementById('helpModalContent').innerHTML=top+
+    '<div id="help-form">'+formHtml+'</div>'+
+    '<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin:1.25rem 0 .6rem;">Quick answers</div>'+
     faq('How do I cancel or change my membership?','Open your <strong>Account</strong> (or Dashboard) and tap <strong>Manage subscription</strong>.')+
     faq('I forgot my password.','On the sign-in screen, tap <strong>Forgot password</strong> and we will email you a reset link.')+
     faq('How do I report a problem with a job posting?','Tap the <strong>?</strong> button on the posting and choose Report.')+
-    faq('How do I delete my account?','Email us from the address on your account and we will take care of it.');
+    faq('How do I delete my account?','Send us a message here and we will take care of it.');
   document.getElementById('helpModal').classList.add('open');
+}
+function sendSupport(){
+  var msg=(document.getElementById('help-msg').value||'').trim();
+  var st=document.getElementById('help-status'),btn=document.getElementById('help-send');
+  if(msg.length<5){st.style.color='var(--red)';st.textContent='Please tell us a little more about how we can help.';return;}
+  btn.disabled=true;btn.textContent='Sending…';st.textContent='';
+  apiFetch('/api/support','POST',{topic:document.getElementById('help-topic').value,message:msg}).then(function(d){
+    if(d&&d.success){
+      document.getElementById('help-form').innerHTML='<div style="text-align:center;padding:1rem 0;"><div style="font-size:2rem;margin-bottom:.5rem;">✅</div><div style="font-family:\'Playfair Display\',serif;font-size:1.05rem;margin-bottom:.35rem;">Message sent</div><p style="font-size:.82rem;color:var(--muted);line-height:1.6;">Thank you. We will reply to <strong>'+escHtml((state.user&&state.user.email)||'your email')+'</strong>. A copy is on its way to your inbox.</p></div>';
+      return;
+    }
+    if(d&&d.code==='session_expired')return;
+    btn.disabled=false;btn.textContent='Send Message';
+    st.style.color='var(--red)';st.textContent=(d&&d.error)||'We could not send your message. Please try again, or email '+SUPPORT_EMAIL+'.';
+  }).catch(function(){
+    btn.disabled=false;btn.textContent='Send Message';
+    st.style.color='var(--red)';st.textContent='We could not send your message. Please check your connection and try again.';
+  });
 }
 
 // ═══════════════ LEADERBOARD
