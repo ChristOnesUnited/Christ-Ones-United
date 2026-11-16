@@ -53,13 +53,16 @@ async function buildContent(supabase, input) {
     // Default: the next three upcoming events
     ({ data: ev } = await supabase.from('events').select('title, date, time, location').gte('date', today).order('date', { ascending: true }).limit(3));
   }
-  content.events = (ev || []).map(e => ({ title: e.title, date: e.date, time: e.time || '', location: e.location || '' }));
+  content.events = (ev || []).map(e => ({ title: e.title, date: String(e.date || '').slice(0, 10), time: e.time || '', location: e.location || '' }));
   return content;
 }
 
 function fmtDate(d) {
-  try { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); }
-  catch (e) { return String(d || ''); }
+  // The events table may hand back a plain date or a full timestamp; only the day part is used
+  const day = String(d || '').slice(0, 10);
+  const dt = new Date(day + 'T12:00:00');
+  if (isNaN(dt.getTime())) return '';
+  return dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 // Renders one edition as a full email. `email` (optional) personalises the unsubscribe link.
