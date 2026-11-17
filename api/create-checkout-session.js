@@ -1,12 +1,12 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { siteUrl } = require('./_lib/site');
 
-// Price ID map — TEST MODE
+// Price ID map — LIVE MODE (live Stripe account; needs the live STRIPE_SECRET_KEY in Vercel)
 const PRICE_IDS = {
-  individual_monthly: 'price_1TdwP70y6d4OkteyNMLAFfgB',
-  individual_annual:  'price_1TdwPR0y6d4OkteyfEZL39qu',
-  business_monthly:   'price_1TdwPi0y6d4Oktey8MmLbci1',
-  business_annual:    'price_1TdwPy0y6d4OkteygfSfLRYV',
+  individual_monthly: 'price_1TaJSN0y6d4Oktey4ILnwsxS',
+  individual_annual:  'price_1SxDBT0y6d4Oktey6u44DeKV',
+  business_monthly:   'price_1TaJT60y6d4OkteydQi90G7q',
+  business_annual:    'price_1TaJTv0y6d4OkteykaibXj7S',
 };
 
 module.exports = async (req, res) => {
