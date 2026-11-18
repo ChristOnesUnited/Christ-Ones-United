@@ -1049,9 +1049,10 @@ body.admin-mode{padding-bottom:0;}
     <div class="page-body" style="max-width:760px;">
       <div class="page-title">Job Board</div>
       <div class="page-sub">Faith-based employment opportunities from verified businesses</div>
+      <div id="job-loc-bar"></div>
       <div class="job-search-bar">
         <input class="job-search-inp" id="job-search" placeholder="🔍  Job title, keyword, or company…" oninput="renderJobs()"/>
-        <input class="job-loc-inp" id="job-loc" placeholder="📍  City, State or ZIP" oninput="renderJobs()"/>
+        <input class="job-loc-inp" id="job-loc" placeholder="📍  City or state" oninput="renderJobs()"/>
       </div>
       <div class="job-filters">
         <select class="job-filter-sel" id="job-type-filter" onchange="renderJobs()">
@@ -1063,6 +1064,7 @@ body.admin-mode{padding-bottom:0;}
         </select>
         <select class="job-filter-sel" id="job-sort" onchange="renderJobs()">
           <option value="newest">Newest First</option>
+          <option value="nearest">Nearest First</option>
           <option value="relevant">Most Relevant</option>
         </select>
       </div>
