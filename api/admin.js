@@ -64,6 +64,56 @@ module.exports = async (req, res) => {
       return res.status(200).json({ success: true });
     }
 
+    // Get every listing (approved or pending) so an admin can review and correct them
+    if (action === 'get_businesses') {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return res.status(200).json({ success: true, businesses: data || [] });
+    }
+
+    // Correct the text of a listing (typos, bad formatting). Owner, plan and approval are not touched here.
+    if (action === 'edit_business') {
+      const { business_id, fields } = req.body;
+      if (!business_id || !fields || typeof fields !== 'object') return res.status(400).json({ error: 'Listing and fields required.' });
+      const text = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
+      const updates = {};
+      if (fields.name !== undefined) { updates.name = text(fields.name, 120); if (!updates.name) return res.status(400).json({ error: 'Business name is required.' }); }
+      if (fields.category !== undefined) updates.category = text(fields.category, 80);
+      if (fields.description !== undefined) { updates.description = text(fields.description, 4000); if (!updates.description) return res.status(400).json({ error: 'Description is required.' }); }
+      if (fields.address !== undefined) updates.address = text(fields.address, 200);
+      if (fields.phone !== undefined) updates.phone = text(fields.phone, 40);
+      if (fields.email !== undefined) {
+        updates.email = text(fields.email, 200);
+        if (updates.email && !/^\S+@\S+\.\S+$/.test(updates.email)) return res.status(400).json({ error: 'Enter a valid business email.' });
+      }
+      if (fields.website !== undefined) updates.website = text(fields.website, 300);
+      if (fields.facebook !== undefined) updates.facebook = text(fields.facebook, 300);
+      if (fields.linkedin !== undefined) updates.linkedin = text(fields.linkedin, 300);
+      if (fields.zip !== undefined) {
+        const loc = lookupZip(fields.zip);
+        updates.zip = loc ? loc.zip : text(fields.zip, 10);
+        updates.lat = loc ? loc.lat : null;
+        updates.lng = loc ? loc.lng : null;
+      }
+      if (fields.tags !== undefined) {
+        updates.tags = (Array.isArray(fields.tags) ? fields.tags : []).map(t => text(t, 40)).filter((t, i, a) => t && a.indexOf(t) === i).slice(0, 8);
+      }
+      if (fields.hours !== undefined && fields.hours && typeof fields.hours === 'object' && !Array.isArray(fields.hours)) {
+        const hours = {};
+        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(d => { hours[d] = text(fields.hours[d], 60) || 'Closed'; });
+        updates.hours = hours;
+      }
+      if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to change.' });
+      const { data, error } = await supabase
+        .from('businesses').update(updates).eq('id', business_id).select().single();
+      if (error) throw error;
+      console.log('[admin] ' + auth.admin.email + ' edited listing ' + business_id + ' fields: ' + Object.keys(updates).join(', '));
+      return res.status(200).json({ success: true, business: data });
+    }
+
     // Get all members
     if (action === 'get_members') {
       const { data, error } = await supabase
