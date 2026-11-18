@@ -120,8 +120,19 @@ async function loadAllTestimonials() {
 
 // Load jobs from Supabase
 async function loadJobs() {
-  var data = await apiFetch('/api/jobs');
-  if(data.success && data.jobs) {
+  var data = await apiFetch('/api/jobs'+jobQuery());
+  applyJobsData(data);
+}
+// The viewer's location for the Job Board: a typed ZIP, this visit's GPS, or their own ZIP
+function jobZipNow(){return state.jobZip||(state.user&&state.user.zip)||'';}
+function jobQuery(){
+  if(state.jobGeo&&state.jobGeo.lat!=null)return '?lat='+state.jobGeo.lat+'&lng='+state.jobGeo.lng;
+  var z=jobZipNow();
+  return z?'?zip='+encodeURIComponent(z):'';
+}
+function applyJobsData(data) {
+  if(data && data.success && data.jobs) {
+    state.jobsLocated = data.located;
     state.jobs = data.jobs.map(function(j) {
       return {
         id: j.id,
@@ -132,6 +143,7 @@ async function loadJobs() {
         type: j.type,
         location: j.location,
         zip: j.zip || '',
+        distanceMi: (j.distance_mi===undefined||j.distance_mi===null)?null:j.distance_mi,
         pay: j.pay || '',
         description: j.description,
         faithNote: j.faith_note || '',
@@ -2180,8 +2192,52 @@ function initJobFilters(){
   var cats=[...new Set(state.jobs.map(j=>j.category))].sort();
   cats.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
 }
+// "Jobs near ZIP [____]" bar: same behavior as the Events Board bar
+function renderJobsBar(){
+  var el=document.getElementById('job-loc-bar');if(!el)return;
+  if(state.jobGeoLoading){el.innerHTML='<div class="loc-bar">📍 Finding your location…</div>';return;}
+  var mine=(state.user&&state.user.zip)||'',cur=jobZipNow();
+  var usingGeo=!!(state.jobGeo&&state.jobGeo.lat!=null);
+  var extra='';
+  if(!usingGeo)extra+='<button type="button" onclick="useJobLocation()">Use my current location</button>';
+  if(cur||usingGeo){
+    var m=state.jobMaxMi||0;
+    extra+='<select onchange="setJobDist(this.value)" aria-label="Distance">'+[[0,'Any distance'],[10,'Within 10 mi'],[25,'Within 25 mi'],[50,'Within 50 mi'],[100,'Within 100 mi']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]===m?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>';
+  }
+  if((usingGeo||(state.jobZip&&state.jobZip!==mine))&&mine)extra+='<button type="button" onclick="resetJobZip()">Back to my ZIP '+escHtml(mine)+'</button>';
+  el.innerHTML=zipBarHtml(usingGeo?'Jobs near <strong>your current location</strong>':'Jobs near',usingGeo?'':cur,'setJobZip',extra);
+}
+function setJobZip(v){
+  var z=String(v||'').trim();
+  if(!/^\d{5}$/.test(z)){alert('Please enter a 5-digit ZIP code.');return;}
+  apiFetch('/api/jobs?zip='+z).then(function(d){
+    if(d&&d.located===false){alert('We couldn\'t find ZIP code '+z+'. Please check it and try again.');return;}
+    state.jobZip=z;state.jobGeo=null;applyJobsData(d);renderJobs();
+  });
+}
+function resetJobZip(){
+  state.jobZip=null;state.jobGeo=null;
+  loadJobs().then(renderJobs);
+}
+// Uses the phone's location for this visit only: it is never saved
+function useJobLocation(){
+  if(!navigator.geolocation){alert('Location isn\'t available on this device. Please type a ZIP code instead.');return;}
+  state.jobGeoLoading=true;renderJobsBar();
+  navigator.geolocation.getCurrentPosition(function(pos){
+    if(!state.jobGeoLoading||!state.user)return; // signed out while waiting
+    state.jobGeoLoading=false;
+    state.jobGeo={lat:Math.round(pos.coords.latitude*1000)/1000,lng:Math.round(pos.coords.longitude*1000)/1000};
+    loadJobs().then(renderJobs);
+  },function(err){
+    if(!state.jobGeoLoading)return;
+    state.jobGeoLoading=false;renderJobsBar();
+    alert(err&&err.code===1?'Location permission was turned off. You can allow it in your browser settings, or type a ZIP code instead.':'We couldn\'t get your location. Please try again, or type a ZIP code.');
+  },{timeout:10000,maximumAge:600000});
+}
+function setJobDist(v){state.jobMaxMi=parseInt(v,10)||0;renderJobs();}
 function renderJobs(){
   initJobFilters();
+  renderJobsBar();
   var q=(document.getElementById('job-search').value||'').toLowerCase();
   var loc=(document.getElementById('job-loc').value||'').toLowerCase();
   var type=document.getElementById('job-type-filter').value;
@@ -2194,10 +2250,21 @@ function renderJobs(){
     var mc=!cat||j.category===cat;
     return mq&&ml&&mt&&mc;
   });
+  // Distance filter (only when we know where the viewer is). Jobs with no known ZIP are left out of it.
+  var maxMi=state.jobMaxMi||0;
+  var haveHere=!!((state.jobGeo&&state.jobGeo.lat!=null)||jobZipNow())&&state.jobsLocated!==false;
+  var beforeDist=filtered.length;
+  if(maxMi>0&&haveHere)filtered=filtered.filter(function(j){return j.distanceMi!=null&&j.distanceMi<=maxMi;});
   if(sort==='newest')filtered.sort((a,b)=>new Date(b.postedDate)-new Date(a.postedDate));
-  document.getElementById('job-result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> position'+(filtered.length!==1?'s':'')+(q?' matching "<strong>'+q+'</strong>"':'')+(loc?' near "<strong>'+loc+'</strong>"':'');
+  if(sort==='nearest')filtered.sort(function(a,b){
+    var da=a.distanceMi,db=b.distanceMi;
+    if(da==null&&db==null)return new Date(b.postedDate)-new Date(a.postedDate);
+    if(da==null)return 1;if(db==null)return -1;
+    return da-db||(new Date(b.postedDate)-new Date(a.postedDate));
+  });
+  document.getElementById('job-result-meta').innerHTML='Showing <strong>'+filtered.length+'</strong> position'+(filtered.length!==1?'s':'')+(q?' matching "<strong>'+escHtml(q)+'</strong>"':'')+(loc?' near "<strong>'+escHtml(loc)+'</strong>"':'')+((maxMi>0&&haveHere)?' within <strong>'+maxMi+' miles</strong>':'');
   var grid=document.getElementById('jobs-grid');
-  if(!filtered.length){grid.innerHTML='<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No positions found</div><p>Try different keywords or a broader location.</p></div>';return;}
+  if(!filtered.length){grid.innerHTML=(maxMi>0&&haveHere&&beforeDist)?'<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No positions within '+maxMi+' miles</div><p>Try a larger distance or a different ZIP.</p></div>':'<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No positions found</div><p>Try different keywords or a broader location.</p></div>';return;}
   grid.innerHTML='';filtered.forEach(function(j){grid.appendChild(makeJobCard(j));});
 }
 function makeJobCard(j){
@@ -2213,7 +2280,7 @@ function makeJobCard(j){
     (ntw?'<div class="job-new-badge">🆕 New This Week</div>':'')+
     '<div class="job-card-head"><div class="job-title">'+j.title+'</div><span class="job-type-badge '+typeClass+'">'+j.type+'</span></div>'+
     '<div class="job-company">🏢 '+j.company+'</div>'+
-    '<div class="job-meta-row"><span class="job-meta-item">📍 '+j.location+'</span>'+(j.pay?'<span class="job-meta-item">💵 '+j.pay+'</span>':'')+'<span class="job-meta-item">🗓 '+posted+'</span></div>'+
+    '<div class="job-meta-row"><span class="job-meta-item">📍 '+j.location+(j.distanceMi!=null?' · '+j.distanceMi+' mi away':'')+'</span>'+(j.pay?'<span class="job-meta-item">💵 '+j.pay+'</span>':'')+'<span class="job-meta-item">🗓 '+posted+'</span></div>'+
     '<p class="job-desc">'+j.description+'</p>'+
     (j.faithNote?'<div class="job-faith-note">✝️ '+j.faithNote+'</div>':'')+
     (j.tags&&j.tags.length?'<div class="job-tags">'+j.tags.map(t=>'<span class="job-tag">'+t+'</span>').join('')+'</div>':'')+
@@ -2425,7 +2492,7 @@ function openPostJobModal(){
     '<div class="form-group"><label class="lbl">Job Type <span class="req">*</span></label><select class="inp" id="pj-type"><option value="">Select…</option><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Volunteer</option></select></div>'+
     '<div class="form-group"><label class="lbl">Category</label><select class="inp" id="pj-cat">'+['Restaurant','Retail','Health & Wellness','Technology','Legal','Finance','Education','Home Services','Beauty','Fitness','Other'].map(c=>'<option>'+c+'</option>').join('')+'</select></div>'+
     '<div class="form-group"><label class="lbl">Location <span class="req">*</span></label><input class="inp" id="pj-loc" placeholder="City, State"/></div>'+
-    '<div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="pj-zip" placeholder="e.g. 90210" maxlength="10"/></div>'+
+    '<div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="pj-zip" inputmode="numeric" placeholder="ZIP where the job is located" maxlength="5"/></div>'+
     '<div class="form-group"><label class="lbl">Pay Range</label><input class="inp" id="pj-pay" placeholder="e.g. $18–$22/hr (optional)"/></div>'+
     '<div class="form-group"><label class="lbl">Job Description <span class="req">*</span></label><textarea class="inp" id="pj-desc" style="min-height:90px;" placeholder="Describe the role, responsibilities, and requirements…"></textarea></div>'+
     '<div class="form-group"><label class="lbl">Faith Note <span style="color:var(--muted);font-weight:400;">(optional)</span></label><input class="inp" id="pj-faith" placeholder="e.g. We open every shift with prayer…"/></div>'+
@@ -2449,6 +2516,8 @@ function submitPostJob(){
   if(!title||!type||!loc||!desc||!bizName||!contactPhone||!contactEmail){
     alert('Please fill in all required fields.');return;
   }
+  var pjZip=(document.getElementById('pj-zip').value||'').trim();
+  if(!/^\d{5}$/.test(pjZip)){alert('Please enter the 5-digit ZIP code where the job is located.');return;}
   var biz=state.myBiz||state.businesses[0];
   var newJob={
     id:Date.now(),
@@ -2457,7 +2526,7 @@ function submitPostJob(){
     bizId:biz?biz.id:0,
     category:document.getElementById('pj-cat').value,
     type:type,location:loc,
-    zip:document.getElementById('pj-zip').value,
+    zip:pjZip,
     pay:document.getElementById('pj-pay').value,
     description:desc,
     faithNote:document.getElementById('pj-faith').value,
@@ -3848,7 +3917,7 @@ function disbandGuild(){
 function doSignOut(){
   state.authToken=null;
   state.user=null;state.profileType=null;state.plan=null;state.faithAnswer=null;
-  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.savedJobIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.dirZip=null;state.evZip=null;state.evGeo=null;state.evGeoLoading=false;state.evMaxMi=0;state.geoLoading=false;state.showAllMore=false;state.dirFilter={maxMi:0,nationalOnly:false};
+  state.bizTags=[];state.activeCat='All';state.savedIds=[];state.savedJobIds=[];state.myBiz=null;state.messages=[];state.myReferralCount=0;state.guild=null;state.geo=null;state.dirZip=null;state.evZip=null;state.evGeo=null;state.evGeoLoading=false;state.evMaxMi=0;state.jobZip=null;state.jobGeo=null;state.jobGeoLoading=false;state.jobMaxMi=0;state.jobsLocated=undefined;state.geoLoading=false;state.showAllMore=false;state.dirFilter={maxMi:0,nationalOnly:false};
   // Clear saved session
   try {
     localStorage.removeItem('cou_user');
