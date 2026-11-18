@@ -230,6 +230,18 @@ function showScreen(id,fromPop){
 }
 // ── Back button: move between in-app screens instead of leaving the app or looking signed out.
 // Signed-in members never get sent back to sign-in/landing/signup screens with Back.
+// ── Member / Business view toggle: a business account is one login that can switch between
+// the business dashboard and the regular member experience (directory, events, prayer, jobs).
+function onDashboardScreen(){var s=document.getElementById('screen-dashboard');return !!(s&&s.classList.contains('active'));}
+function syncViewToggle(){
+  var show=state.profileType==='business';
+  ['vt-dir','vt-dash'].forEach(function(i){var el=document.getElementById(i);if(el)el.style.display=show?'inline-flex':'none';});
+  document.querySelectorAll('.topnav').forEach(function(n){n.classList.toggle('has-toggle',show);});
+}
+function switchView(v){
+  if(state.profileType!=='business')return;
+  if(v==='member'){enterDirectory();}else{enterDashboard();}
+}
 var MAIN_SCREENS=['screen-directory','screen-dashboard','screen-admin'];
 function currentScreenId(){var a=document.querySelector('.screen.active');return a?a.id:'screen-landing';}
 try{window.history.replaceState({screen:currentScreenId()},'');}catch(e){}
@@ -550,10 +562,12 @@ function updateUnreadMsgBadge(){
         else badge.classList.add('hidden');
       }
     }).catch(function(){});
-  } else {
-    // Individual — count unread replies from businesses
+  }
+  {
+    // Member inbox — count unread replies from businesses (a business owner's own business is not part of this inbox)
     apiFetch('/api/community?type=messages&user_id='+state.user.id).then(function(data){
       var msgs=(data.messages||[]).filter(function(m){
+        if(state.myBiz&&String(m.business_id)===String(state.myBiz.id))return false;
         return m.from_role==='business'&&(!lastRead||new Date(m.created_at)>new Date(lastRead));
       });
       var cnt=msgs.length;
@@ -884,6 +898,7 @@ function enterDirectory(){
   document.getElementById('acc-plan').textContent=planType+' · '+(state.plan==='annual'?'Annual':'Monthly');
   updateNotifUI();
   showScreen('screen-directory');
+  syncViewToggle();
   switchDirTab('home');
   state.showAllMore=false;
   state.dirFilter={maxMi:0,nationalOnly:false,savedOnly:false};
@@ -1134,7 +1149,7 @@ function submitPrayer(){
     closeModal('prayerModal');
     addNotif('Your prayer request has been posted. 🙏');
     // Refresh the correct panel based on active screen
-    if(state.profileType==='business'){
+    if(onDashboardScreen()){
       renderBizCommunity();
     } else {
       renderPrayerBoard();
@@ -1214,15 +1229,15 @@ function renderEvents(){
     show(events.map(function(e){
       var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
       var isOwner=!!(state.user&&e.user_id&&String(e.user_id)===String(state.user.id));
-      return '<div class="event-card" id="event-card-'+e.id+'">'+
+      return '<div class="event-card" id="event-card-'+e.id+'" style="cursor:pointer;" onclick="openEventDetail(\''+e.id+'\')">'+
         '<div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div>'+
         '<div class="event-body">'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
-            '<div class="event-title">'+e.title+'</div>'+
-            (isOwner?'<button onclick="deleteEvent(\''+e.id+'\')" style="background:none;border:none;color:#ccc;font-size:.9rem;cursor:pointer;padding:0 0 0 8px;flex-shrink:0;" title="Delete event">🗑</button>':'')+
+            '<div class="event-title">'+escHtml(e.title)+'</div>'+
+            (isOwner?'<span style="flex-shrink:0;white-space:nowrap;"><button onclick="event.stopPropagation();openEventModal(\''+e.id+'\')" style="background:none;border:none;color:#999;font-size:.9rem;cursor:pointer;padding:0 0 0 8px;" title="Edit event">✏️</button><button onclick="event.stopPropagation();deleteEvent(\''+e.id+'\')" style="background:none;border:none;color:#ccc;font-size:.9rem;cursor:pointer;padding:0 0 0 8px;" title="Delete event">🗑</button></span>':'')+
           '</div>'+
-          '<div class="event-meta">🕐 '+(e.time||'TBD')+'<br/>📍 '+(e.location||'TBD')+(e.distance_mi!=null?' · '+e.distance_mi+' mi away':'')+'</div>'+
-          '<div class="event-host">Hosted by '+(e.host||'Community')+'</div>'+
+          '<div class="event-meta">🕐 '+escHtml(e.time||'TBD')+'<br/>📍 '+escHtml(e.location||'TBD')+(e.distance_mi!=null?' · '+e.distance_mi+' mi away':'')+'</div>'+
+          '<div class="event-host">Hosted by '+escHtml(e.host||'Community')+' · <span style="color:var(--red);font-weight:600;">Details →</span></div>'+
         '</div>'+
       '</div>';
     }).join(''));
@@ -1230,8 +1245,31 @@ function renderEvents(){
     show('<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1rem;">Could not load events. Please refresh.</p>');
   });
 }
-function openEventModal(){
-  document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">Post an Event</div>'+
+// Full details for one event (opens when a card is tapped)
+function openEventDetail(id){
+  var e=(state.events||[]).find(function(x){return String(x.id)===String(id);});
+  if(!e)return;
+  var d=new Date(e.date+'T12:00:00');
+  var when=isNaN(d)?escHtml(e.date||''):d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var isOwner=!!(state.user&&e.user_id&&String(e.user_id)===String(state.user.id));
+  var maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.location||'');
+  document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">'+escHtml(e.title)+'</div>'+
+    '<div style="font-size:.86rem;line-height:1.7;margin-bottom:.9rem;">'+
+      '<div><strong>'+when+'</strong></div>'+
+      '<div>🕐 '+escHtml(e.time||'TBD')+'</div>'+
+      '<div>📍 '+escHtml(e.location||'TBD')+(e.distance_mi!=null?' · '+e.distance_mi+' mi away':'')+'</div>'+
+      '<div style="color:var(--muted);">Hosted by '+escHtml(e.host||'Community')+'</div>'+
+    '</div>'+
+    (e.description?'<div style="font-size:.86rem;line-height:1.6;white-space:pre-wrap;margin-bottom:1rem;">'+escHtml(e.description)+'</div>':'<div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;">No description was added for this event.</div>')+
+    (e.location&&e.location!=='TBD'?'<a class="btn btn-ink btn-mt" style="display:block;text-align:center;text-decoration:none;" href="'+maps+'" target="_blank" rel="noopener">Open in Maps →</a>':'')+
+    (isOwner?'<button class="btn btn-green btn-mt" onclick="openEventModal(\''+e.id+'\')">Edit this event</button>':'');
+  document.getElementById('eventModal').classList.add('open');
+}
+function openEventModal(editId){
+  var editing=null;
+  if(editId&&typeof editId==='string'){editing=(state.events||[]).find(function(x){return String(x.id)===String(editId);})||null;}
+  window._editEventId=editing?editing.id:null;
+  document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">'+(editing?'Edit Event':'Post an Event')+'</div>'+
     '<div class="form-group"><label class="lbl">Event Title</label><input class="inp" id="ev-title" placeholder="e.g. Community Prayer Breakfast"/></div>'+
     '<div class="form-group"><label class="lbl">Date</label><input class="inp" type="date" id="ev-date"/></div>'+
     '<div class="form-group"><label class="lbl">Time</label><input class="inp" id="ev-time" placeholder="e.g. 10:00 AM – 12:00 PM"/></div>'+
@@ -1242,7 +1280,17 @@ function openEventModal(){
     '<div class="form-group"><label class="lbl">ZIP Code</label><input class="inp" id="ev-zip" inputmode="numeric" maxlength="5" placeholder="ZIP code"/></div>'+
     '<div class="form-group"><label class="lbl">Hosted By</label><input class="inp" id="ev-host" placeholder="Your name or organization"/></div>'+
     '<div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="ev-desc" placeholder="Tell people what to expect…"></textarea></div>'+
-    '<button class="btn btn-green btn-mt" onclick="submitEvent()">Post Event</button>';
+    '<button class="btn btn-green btn-mt" onclick="submitEvent()">'+(editing?'Save Changes':'Post Event')+'</button>';
+  if(editing){
+    var set=function(i,v){var el=document.getElementById(i);if(el)el.value=v==null?'':v;};
+    set('ev-title',editing.title);set('ev-date',String(editing.date||'').slice(0,10));
+    set('ev-time',editing.time==='TBD'?'':editing.time);set('ev-host',editing.host);set('ev-desc',editing.description);
+    set('ev-zip',editing.zip);
+    // The address is saved as one line: "Venue · Street, City, ST 12345". Split it back into the boxes.
+    var m=/^(.*?) · (.*), ([^,]+), ([A-Z]{2}) (\d{5})$/.exec(editing.location||'');
+    if(m){set('ev-venue',m[1]);set('ev-street',m[2]);set('ev-city',m[3]);set('ev-state',m[4]);set('ev-zip',m[5]);}
+    else{set('ev-venue',editing.location==='TBD'?'':editing.location);}
+  }
   document.getElementById('eventModal').classList.add('open');
 }
 function submitEvent(){
@@ -1255,6 +1303,23 @@ function submitEvent(){
   if(!venue||!street||!city||!st){alert('Please fill in the venue name, street address, city and state.');return;}
   if(!/^\d{5}$/.test(evZip)){alert('Please enter the 5-digit ZIP code where the event takes place.');return;}
   var locationText=venue+' · '+street+', '+city+', '+st+' '+evZip;
+  if(window._editEventId){
+    var editId=window._editEventId;
+    apiFetch('/api/community?type=events','PUT',{
+      id:editId,zip:evZip,title:title,date:date,
+      time:document.getElementById('ev-time').value||'TBD',
+      location:locationText,
+      host:document.getElementById('ev-host').value||(state.user?state.user.name:'Community'),
+      description:document.getElementById('ev-desc').value
+    }).then(function(d){
+      if(!d||!d.success){alert((d&&d.error)||'Could not save your changes. Please try again.');return;}
+      window._editEventId=null;
+      closeModal('eventModal');
+      addNotif('Your event has been updated. 📅');
+      if(onDashboardScreen()){renderBizCommunity();}else{renderEvents();}
+    }).catch(function(){alert('Could not save your changes. Please try again.');});
+    return;
+  }
   apiFetch('/api/community?type=events','POST',{
     zip:evZip,
     title:title,date:date,
@@ -1267,7 +1332,7 @@ function submitEvent(){
     closeModal('eventModal');
     addNotif('Your event has been posted! 📅');
     // Refresh the correct panel based on active screen
-    if(state.profileType==='business'){
+    if(onDashboardScreen()){
       renderBizCommunity();
     } else {
       renderEvents();
@@ -1556,7 +1621,10 @@ function renderMessages(role){
   // Load from Supabase for individuals
   if(state.user&&state.user.id&&role!=='biz'){
     apiFetch('/api/community?type=messages&user_id='+state.user.id).then(function(data){
-      var msgs=data.messages||[];
+      var msgs=(data.messages||[]).filter(function(m){
+        // A business owner's own business conversations live in the Business dashboard, not the member inbox
+        return !(state.myBiz&&String(m.business_id)===String(state.myBiz.id));
+      });
       // Group by business
       var threads={};
       msgs.forEach(function(m){
@@ -1649,6 +1717,7 @@ function enterDashboard(){
     renderDashOverview();
     renderDashMessages();
     showScreen('screen-dashboard');
+    syncViewToggle();
     switchDashTab('overview');
     // Load sponsors for banner
     loadSponsors();
@@ -3818,7 +3887,7 @@ function formatGuildCode(el){
   el.value=v;
 }
 function guildRefresh(){
-  if(state.profileType==="business"){renderBizGuild();}else{renderGuild();}
+  if(onDashboardScreen()){renderBizGuild();}else{renderGuild();}
 }
 function joinGuild(){
   var code=document.getElementById('guild-code-input').value.trim().toUpperCase();

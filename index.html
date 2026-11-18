@@ -305,6 +305,20 @@ textarea.inp{resize:vertical;min-height:72px;}
 .event-month{font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.8);font-weight:600;}
 .event-day{font-family:'Playfair Display',serif;font-size:1.4rem;color:#fff;line-height:1;}
 .event-body{flex:1;}
+.view-toggle{display:none;align-items:center;background:#ece8de;border-radius:999px;padding:2px;margin-right:6px;}
+.view-toggle button{border:none;background:transparent;color:#0f0e0c;font-family:inherit;font-size:.7rem;font-weight:600;padding:5px 11px;border-radius:999px;cursor:pointer;}
+.view-toggle button.on{background:#0f0e0c;color:#fff;cursor:default;}
+/* With the Member|Business switch showing, the old badge is redundant; on phones keep the top bar from overflowing */
+.topnav.has-toggle .badge-ind,.topnav.has-toggle .badge-biz{display:none;}
+@media(max-width:520px){
+  .topnav.has-toggle{padding:0 .6rem;}
+  .topnav.has-toggle .topnav-right{gap:4px;}
+  .topnav.has-toggle .view-toggle{margin-right:0;}
+  .topnav.has-toggle .view-toggle button{padding:4px 9px;font-size:.66rem;}
+  .topnav.has-toggle .help-pill-t{display:none;}
+  .topnav.has-toggle .help-pill{padding:2px;}
+  .topnav.has-toggle .signout-btn{padding:4px 8px;}
+}
 .event-title{font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:.2rem;}
 .event-meta{font-size:.74rem;color:var(--muted);line-height:1.5;}
 .event-host{font-size:.68rem;color:var(--green);font-weight:600;margin-top:.2rem;}
@@ -955,6 +969,7 @@ body.admin-mode{padding-bottom:0;}
   <div class="topnav">
     <div class="topnav-logo-wrap" style="background:#fff;border-radius:8px;padding:3px 8px;"><img src="/logo.png" onerror="this.style.display='none'" alt="Christ One's United" class="logo-img"/></div>
     <div class="topnav-right">
+      <span class="view-toggle" id="vt-dir"><button class="on" type="button">Member</button><button type="button" onclick="switchView('business')">Business</button></span>
       <span class="badge-ind">Member</span>
       <button class="help-pill" onclick="openHelp()" title="Help &amp; Support" aria-label="Help and Support"><span class="help-pill-q">?</span><span class="help-pill-t">Support</span></button>
       <button class="bell-btn" onclick="toggleNotifs()">🔔<span class="bell-dot hidden" id="bell-dot-dir"></span></button>
@@ -1107,6 +1122,7 @@ body.admin-mode{padding-bottom:0;}
   <div class="topnav">
     <div class="topnav-logo-wrap" style="background:#fff;border-radius:8px;padding:3px 8px;"><img src="/logo.png" onerror="this.style.display='none'" alt="Christ One's United" class="logo-img"/></div>
     <div class="topnav-right">
+      <span class="view-toggle" id="vt-dash"><button type="button" onclick="switchView('member')">Member</button><button class="on" type="button">Business</button></span>
       <span class="badge-biz">Business</span>
       <button class="help-pill" onclick="openHelp()" title="Help &amp; Support" aria-label="Help and Support"><span class="help-pill-q">?</span><span class="help-pill-t">Support</span></button>
       <button class="bell-btn" onclick="toggleNotifs()">🔔<span class="bell-dot hidden" id="bell-dot-dash"></span></button>
