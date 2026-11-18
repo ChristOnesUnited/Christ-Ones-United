@@ -2145,11 +2145,24 @@ function renderDashListing(){
   var svc=biz.service_type||'storefront';
   panel.innerHTML='<div class="dash-card"><div class="dash-card-title">Your Listing '+(!biz.approved?'<span class="biz-pending">⏳ Pending Review</span>':'<span class="biz-verified">✓ Live</span>')+'</div>'+
     '<div class="form-group"><label class="lbl">Business Logo</label><div style="display:flex;gap:.9rem;align-items:center;"><div id="logo-preview">'+logoPreviewHtml(biz)+'</div><div><label class="btn btn-green" style="display:inline-block;width:auto;cursor:pointer;padding:.5rem .9rem;font-size:.8rem;">Choose picture<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="chooseLogo(this)"/></label> <button type="button" id="logo-remove" class="btn" style="width:auto;padding:.5rem .9rem;font-size:.8rem;background:#fff;border:1.5px solid var(--border);color:var(--ink);'+(biz.logo_url?'display:inline-block;':'display:none;')+'" onclick="removeLogo()">Remove</button><div class="hint-msg" id="logo-msg" style="margin-top:.35rem;"></div></div></div><div class="hint-msg">Shown on your directory listing. Pictures that break our community guidelines can be reported and removed.</div></div>'+
+    '<div class="form-group"><label class="lbl">Business Name</label><input class="inp" id="edit-name" maxlength="120" value="'+escHtml(biz.name||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">Category</label><select class="inp" id="edit-cat">'+CATS.filter(function(c){return c!=='All';}).map(function(c){return '<option value="'+escHtml(c)+'"'+(c===biz.category?' selected':'')+'>'+escHtml(c)+'</option>';}).join('')+'</select></div>'+
     '<div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="edit-desc" style="min-height:72px;">'+escHtml(biz.description||'')+'</textarea></div>'+
+    '<div class="form-group"><label class="lbl">Phone</label><input class="inp" id="edit-phone" type="tel" value="'+escHtml(biz.phone||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">Business Email</label><input class="inp" id="edit-email" type="email" value="'+escHtml(biz.email||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">Street Address</label><input class="inp" id="edit-addr" value="'+escHtml(biz.address||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">Website</label><input class="inp" id="edit-web" value="'+escHtml(biz.website||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">Facebook</label><input class="inp" id="edit-facebook" value="'+escHtml(biz.facebook||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">LinkedIn</label><input class="inp" id="edit-linkedin" value="'+escHtml(biz.linkedin||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">Tags</label><input class="inp" id="edit-tags" placeholder="Separate with commas (up to 8)" value="'+escHtml(Array.isArray(biz.tags)?biz.tags.join(', '):'')+'"/></div>'+
     '<div class="form-group"><label class="lbl">Business ZIP Code</label><input class="inp" id="edit-zip" maxlength="10" value="'+escHtml(biz.zip||'')+'"/></div>'+
     '<div class="form-group"><label class="lbl">How do you serve customers?</label><div class="svc-opts" id="ed-svc-opts"></div></div>'+
     '<div class="form-group hidden" id="ed-radius-wrap"><label class="lbl">How far do you travel? (miles)</label><input class="inp" id="ed-radius" type="number" min="1" max="500" value="'+(svc==='service_area'&&biz.service_radius?biz.service_radius:30)+'"/></div>'+
     '<div class="form-group"><label class="lbl">Church</label><input class="inp" id="edit-church" autocomplete="off" placeholder="Start typing your church name…" value="'+escHtml(biz.church||'')+'"/></div>'+
+    '<div class="form-group"><label class="lbl">Business Hours</label>'+DAYS.map(function(d){
+      var cur=(biz.hours&&typeof biz.hours==='object'&&biz.hours[d])||'';
+      return '<div style="display:grid;grid-template-columns:60px 1fr;gap:8px;margin-bottom:6px;align-items:center;"><label style="font-size:.76rem;font-weight:600;color:var(--muted);">'+d+'</label><input class="inp" id="ed-hr-'+d+'" value="'+escHtml(cur)+'" placeholder="e.g. 9am–5pm or Closed" style="padding:7px 10px;font-size:.8rem;"/></div>';
+    }).join('')+'</div>'+
     '<button class="btn btn-green btn-mt" id="edit-save-btn" onclick="saveListing()">Save Changes</button>'+
     '<div class="hint-msg" id="edit-msg" style="margin-top:.45rem;"></div></div>';
   renderSvcOpts('ed',svc);
@@ -2164,9 +2177,22 @@ function saveListing(){
   var zip=document.getElementById('edit-zip').value.trim();
   var svc=document.getElementById('ed-svc-opts').dataset.value||'storefront';
   var chInp=document.getElementById('edit-church');
+  var name=document.getElementById('edit-name').value.trim();
+  var cat=document.getElementById('edit-cat').value;
+  var phone=document.getElementById('edit-phone').value.trim();
+  var email=document.getElementById('edit-email').value.trim();
+  var addr=document.getElementById('edit-addr').value.trim();
+  var tags=document.getElementById('edit-tags').value.split(',').map(function(t){return t.trim();}).filter(function(t,i,a){return t&&a.indexOf(t)===i;}).slice(0,8);
+  if(!name){fail('Business name is required.');return;}
+  if(!phone){fail('Phone is required.');return;}
+  if(!email||!/\S+@\S+\.\S+/.test(email)){fail('Enter a valid business email.');return;}
+  if(!addr){fail('Street address is required.');return;}
   if(!desc){fail('Description is required.');return;}
   if(svc!=='national'&&!/^\d{5}(-\d{4})?$/.test(zip)){fail('Enter a valid 5-digit ZIP code.');return;}
-  var payload={id:biz.id,user_id:state.user?state.user.id:null,description:desc,zip:zip,service_type:svc,
+  var hours={};DAYS.forEach(function(d){var el=document.getElementById('ed-hr-'+d);hours[d]=(el&&el.value.trim())||'Closed';});
+  var payload={id:biz.id,user_id:state.user?state.user.id:null,name:name,category:cat,description:desc,phone:phone,email:email,address:addr,
+    website:document.getElementById('edit-web').value.trim(),facebook:document.getElementById('edit-facebook').value.trim(),linkedin:document.getElementById('edit-linkedin').value.trim(),
+    tags:tags,zip:zip,service_type:svc,hours:hours,
     service_radius:svc==='service_area'?(parseInt(document.getElementById('ed-radius').value,10)||30):(svc==='storefront'?25:null)};
   if(chInp.dataset.churchId){if(String(chInp.dataset.churchId)!==String(biz.church_id||''))payload.church_id=chInp.dataset.churchId;}
   else if(chInp.value.trim()!==(biz.church||'')){fail('Please pick your church from the list, or tap "Add" to add it.');return;}
@@ -2175,9 +2201,10 @@ function saveListing(){
     btn.disabled=false;btn.textContent='Save Changes';
     if(!d.success||!d.business){fail(d.error||'Could not save. Please try again.');return;}
     var u=d.business;
-    ['description','zip','service_type','service_radius','church','church_id','lat','lng'].forEach(function(k){biz[k]=u[k];});
+    var KEYS=['name','category','description','phone','email','address','website','facebook','linkedin','tags','zip','service_type','service_radius','church','church_id','lat','lng','hours'];
+    KEYS.forEach(function(k){biz[k]=u[k];});
     var b=state.businesses.find(function(x){return x.id===biz.id;});
-    if(b)['description','zip','service_type','service_radius','church','church_id','lat','lng'].forEach(function(k){b[k]=u[k];});
+    if(b)KEYS.forEach(function(k){b[k]=u[k];});
     msg.style.color='var(--green)';msg.textContent='✓ Saved';
   });
 }
