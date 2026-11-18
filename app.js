@@ -210,7 +210,7 @@ async function saveNewsletterToAPI(email, name) {
 }
 
 // ═══════════════ UTILS
-function showScreen(id){
+function showScreen(id,fromPop){
   // Close the iPhone keyboard first. If the text box being typed in is hidden while
   // the keyboard is still up, iOS can leave the view shifted (bottom nav floats mid-screen).
   var ae=document.activeElement;
@@ -220,7 +220,39 @@ function showScreen(id){
   window.scrollTo(0,0);
   // Scroll to the top again once iOS has finished closing the keyboard
   setTimeout(function(){window.scrollTo(0,0);},350);
+  // Record the screen in the browser history so Back stays inside the app
+  try{
+    if(!fromPop){
+      var cur=window.history.state;
+      if(!cur||cur.screen!==id)window.history.pushState({screen:id},'');
+    }
+  }catch(e){}
 }
+// ── Back button: move between in-app screens instead of leaving the app or looking signed out.
+// Signed-in members never get sent back to sign-in/landing/signup screens with Back.
+var MAIN_SCREENS=['screen-directory','screen-dashboard','screen-admin'];
+function currentScreenId(){var a=document.querySelector('.screen.active');return a?a.id:'screen-landing';}
+try{window.history.replaceState({screen:currentScreenId()},'');}catch(e){}
+window.addEventListener('popstate',function(e){
+  try{
+    var target=e.state&&e.state.screen;
+    var signedIn=!!(state.user||state.adminToken);
+    var here=currentScreenId();
+    if(signedIn){
+      if(target&&MAIN_SCREENS.indexOf(target)>-1&&document.getElementById(target)){
+        // Admin screen only for admins, dashboard only for businesses, directory for everyone else
+        showScreen(target,true);
+      } else {
+        // Backed into a sign-in/landing/signup screen: stay where we are
+        window.history.pushState({screen:here},'');
+      }
+    } else {
+      // Signed out: never show a members-only screen
+      if(!target||MAIN_SCREENS.indexOf(target)>-1||!document.getElementById(target))target='screen-landing';
+      showScreen(target,true);
+    }
+  }catch(err){}
+});
 function toggleInfo(btn){
   var isActive=btn.classList.contains('active');
   document.querySelectorAll('.info-btn.active').forEach(function(b){b.classList.remove('active');});
