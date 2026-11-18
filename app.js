@@ -1208,6 +1208,11 @@ function useEvLocation(){
     alert(err&&err.code===1?'Location permission was turned off. You can allow it in your browser settings, or type a ZIP code instead.':'We couldn\'t get your location. Please try again, or type a ZIP code.');
   },{timeout:10000,maximumAge:600000});
 }
+// Event dates can arrive as "2026-12-19" or "2026-12-19T00:00:00+00:00". Use only the calendar day so it never slips a day in local time.
+function evDate(v){
+  var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(v||''));
+  return m?new Date(+m[1],+m[2]-1,+m[3],12):new Date(v);
+}
 function setEvDist(v){state.evMaxMi=parseInt(v,10)||0;renderEvents();}
 function renderEvents(){
   var targets=evTargets();
@@ -1227,7 +1232,7 @@ function renderEvents(){
     if(!events.length){
       show((maxMi>0&&state.events.length)?'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events within '+maxMi+' miles</div><p>Try a larger distance or a different ZIP.</p></div>':'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events yet</div><p>Be the first to post a community event.</p></div>');return;}
     show(events.map(function(e){
-      var d=new Date(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
+      var d=evDate(e.date),month=d.toLocaleString('default',{month:'short'}).toUpperCase(),day=d.getDate();
       var isOwner=!!(state.user&&e.user_id&&String(e.user_id)===String(state.user.id));
       return '<div class="event-card" id="event-card-'+e.id+'" style="cursor:pointer;" onclick="openEventDetail(\''+e.id+'\')">'+
         '<div class="event-date-box"><div class="event-month">'+month+'</div><div class="event-day">'+day+'</div></div>'+
@@ -1249,8 +1254,8 @@ function renderEvents(){
 function openEventDetail(id){
   var e=(state.events||[]).find(function(x){return String(x.id)===String(id);});
   if(!e)return;
-  var d=new Date(e.date+'T12:00:00');
-  var when=isNaN(d)?escHtml(e.date||''):d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var d=evDate(e.date);
+  var when=isNaN(d)?escHtml(String(e.date||'').slice(0,10)):d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   var isOwner=!!(state.user&&e.user_id&&String(e.user_id)===String(state.user.id));
   var maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.location||'');
   document.getElementById('eventModalContent').innerHTML='<div class="modal-icon">📅</div><div class="modal-title">'+escHtml(e.title)+'</div>'+
@@ -1411,7 +1416,8 @@ function renderLiveNewsletter(){
   }).length;
   var featuredBiz = state.businesses.filter(b=>b.approved&&b.featured).slice(0,1)[0];
   var latestPrayer = state.prayerRequests && state.prayerRequests[0];
-  var nextEvent = state.events && state.events.find(function(e){return new Date(e.date)>new Date();});
+  var todayStr = new Date().toLocaleDateString('en-CA');
+  var nextEvent = state.events && state.events.find(function(e){return String(e.date||'').slice(0,10)>=todayStr;});
 
   document.getElementById('newsletterModalContent').innerHTML=
     '<div style="background:linear-gradient(135deg,#1a1a2e,#0f1923);margin:-1.6rem -1.6rem 1.25rem;padding:1.5rem 1.6rem;border-radius:14px 14px 0 0;">'+
@@ -1450,7 +1456,7 @@ function renderLiveNewsletter(){
       '<div style="background:#e0f0ea;border-radius:10px;padding:1rem;margin-bottom:1.25rem;">'+
         '<div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:700;margin-bottom:.35rem;">📅 Upcoming Event</div>'+
         '<div style="font-family:\'Playfair Display\',serif;font-size:.9rem;color:var(--ink);margin-bottom:.2rem;">'+nextEvent.title+'</div>'+
-        '<div style="font-size:.76rem;color:var(--muted);">'+new Date(nextEvent.date).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+' · '+nextEvent.time+'</div>'+
+        '<div style="font-size:.76rem;color:var(--muted);">'+evDate(nextEvent.date).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+' · '+nextEvent.time+'</div>'+
         '<div style="font-size:.74rem;color:var(--green);margin-top:.2rem;">📍 '+nextEvent.location+'</div>'+
       '</div>':'')+ 
 
