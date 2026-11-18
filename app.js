@@ -2891,11 +2891,11 @@ function updateAdminBadges(){
   });
 }
 function switchAdminTab(tab){
-  ['overview','approvals','reports','members','jobs','sponsors','newsletter','appeals','audit','churches'].forEach(function(t){
+  ['overview','approvals','reports','listings','members','jobs','sponsors','newsletter','appeals','audit','churches'].forEach(function(t){
     document.getElementById('adm-tab-'+t).classList[t===tab?'remove':'add']('hidden');
     document.getElementById('adm-btn-'+t).classList[t===tab?'add':'remove']('on');
   });
-  var renders={overview:renderAdminOverview,approvals:renderAdminApprovals,reports:renderAdminReports,members:renderAdminMembers,jobs:renderAdminJobs,sponsors:renderAdminSponsors,newsletter:renderAdminNewsletter,appeals:renderAdminAppeals,audit:renderAdminAudit,churches:renderAdminChurches};
+  var renders={overview:renderAdminOverview,approvals:renderAdminApprovals,reports:renderAdminReports,listings:renderAdminListings,members:renderAdminMembers,jobs:renderAdminJobs,sponsors:renderAdminSponsors,newsletter:renderAdminNewsletter,appeals:renderAdminAppeals,audit:renderAdminAudit,churches:renderAdminChurches};
   if(renders[tab])renders[tab]();
 }
 function addAuditLog(icon,text){state.admin.auditLog.unshift({icon:icon,text:text,time:'Just now'});}
@@ -3220,6 +3220,83 @@ function adminSuspendFromReport(id){adminReportAction(id,'suspended','🚫','Use
 function adminDismissReport(id){adminReportAction(id,'dismissed','✓','Report dismissed:');}
 
 // ═══════════════ ADMIN MEMBERS
+// ── ADMIN: Listings (view every business and correct typos)
+function admCall(payload){
+  return fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(state.adminToken||'')},body:JSON.stringify(payload)})
+    .then(function(r){return r.json();});
+}
+function renderAdminListings(){
+  var el=document.getElementById('adm-tab-listings');
+  el.innerHTML='<div class="admin-page-title">Listings</div><div class="admin-page-sub">Loading listings…</div>';
+  admCall({action:'get_businesses'}).then(function(data){
+    state.admin.listings=data.businesses||[];
+    el.innerHTML=
+      '<div class="admin-page-title">Listings</div>'+
+      '<div class="admin-page-sub">'+state.admin.listings.length+' total listings · tap Edit to correct a typo</div>'+
+      '<input class="member-search" id="adm-listing-search" placeholder="Search by business name, category or ZIP…" oninput="filterAdminListings()"/>'+
+      '<div id="adm-listing-table-wrap">'+buildListingTable(state.admin.listings)+'</div>';
+  }).catch(function(){
+    el.innerHTML='<div class="admin-page-title">Listings</div><div class="admin-page-sub">Could not load listings. Please refresh.</div>';
+  });
+}
+function filterAdminListings(){
+  var q=(document.getElementById('adm-listing-search').value||'').toLowerCase();
+  var rows=(state.admin.listings||[]).filter(function(b){return !q||[b.name,b.category,b.zip,b.email].join(' ').toLowerCase().indexOf(q)>-1;});
+  document.getElementById('adm-listing-table-wrap').innerHTML=buildListingTable(rows);
+}
+function buildListingTable(rows){
+  if(!rows.length)return '<div class="empty-state" style="padding:2rem;"><div class="empty-icon">🏢</div><p>No listings match your search.</p></div>';
+  return '<div style="overflow-x:auto;"><table class="member-table"><thead><tr><th>Business</th><th>Category</th><th>ZIP</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
+    rows.map(function(b){
+      return '<tr><td><strong>'+escHtml(b.name)+'</strong><br/><span style="font-size:.68rem;color:var(--muted);">'+escHtml(b.email||'')+'</span></td><td>'+escHtml(b.category||'')+'</td><td>'+escHtml(b.zip||'—')+'</td>'+
+        '<td><span class="member-status '+(b.approved?'ms-active':'ms-pending')+'">'+(b.approved?'live':'pending')+'</span></td>'+
+        '<td><button class="adm-restore" style="padding:4px 10px;font-size:.7rem;" data-id="'+escHtml(b.id)+'" onclick="adminEditListing(this.dataset.id)">Edit</button></td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function adminEditListing(id){
+  var b=(state.admin.listings||[]).find(function(x){return String(x.id)===String(id);});
+  if(!b)return;
+  var hrs=(b.hours&&typeof b.hours==='object')?b.hours:{};
+  var f=function(label,idn,val,extra){return '<div class="form-group"><label class="lbl">'+label+'</label><input class="inp" id="'+idn+'" value="'+escHtml(val||'')+'" '+(extra||'')+'/></div>';};
+  document.getElementById('refModalContent').innerHTML=
+    '<div class="modal-icon">✏️</div><div class="modal-title">Edit listing</div>'+
+    '<div style="font-size:.74rem;color:var(--muted);margin-bottom:.8rem;">Changes go live right away. The owner, plan and approval status are not changed.</div>'+
+    f('Business Name','al-name',b.name)+
+    '<div class="form-group"><label class="lbl">Category</label><select class="inp" id="al-cat">'+CATS.filter(function(c){return c!=='All';}).map(function(c){return '<option value="'+escHtml(c)+'"'+(c===b.category?' selected':'')+'>'+escHtml(c)+'</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label class="lbl">Description</label><textarea class="inp" id="al-desc" style="min-height:90px;">'+escHtml(b.description||'')+'</textarea></div>'+
+    f('Phone','al-phone',b.phone)+f('Business Email','al-email',b.email)+f('Street Address','al-addr',b.address)+f('ZIP Code','al-zip',b.zip,'maxlength="10"')+
+    f('Website','al-web',b.website)+f('Facebook','al-fb',b.facebook)+f('LinkedIn','al-li',b.linkedin)+
+    f('Tags (comma-separated, up to 8)','al-tags',Array.isArray(b.tags)?b.tags.join(', '):'')+
+    '<div class="form-group"><label class="lbl">Business Hours</label>'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(function(d){
+      return '<div style="display:grid;grid-template-columns:60px 1fr;gap:8px;margin-bottom:6px;align-items:center;"><label style="font-size:.76rem;font-weight:600;color:var(--muted);">'+d+'</label><input class="inp" id="al-hr-'+d+'" value="'+escHtml(hrs[d]||'')+'" placeholder="e.g. 9am–5pm or Closed" style="padding:7px 10px;font-size:.8rem;"/></div>';
+    }).join('')+'</div>'+
+    '<div id="al-msg" style="display:none;font-size:.76rem;margin-bottom:.5rem;"></div>'+
+    '<button class="btn btn-green btn-mt" id="al-save" data-id="'+escHtml(b.id)+'" onclick="adminSaveListing(this.dataset.id)">Save Changes</button>';
+  document.getElementById('refModal').classList.add('open');
+}
+function adminSaveListing(id){
+  var msg=document.getElementById('al-msg'),btn=document.getElementById('al-save');
+  var v=function(i){return document.getElementById(i).value;};
+  function fail(t){msg.style.color='var(--red)';msg.textContent=t;msg.style.display='block';}
+  if(!v('al-name').trim()){fail('Business name is required.');return;}
+  if(!v('al-desc').trim()){fail('Description is required.');return;}
+  var hours={};['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function(d){hours[d]=v('al-hr-'+d).trim()||'Closed';});
+  var fields={name:v('al-name'),category:v('al-cat'),description:v('al-desc'),phone:v('al-phone'),email:v('al-email'),address:v('al-addr'),zip:v('al-zip'),
+    website:v('al-web'),facebook:v('al-fb'),linkedin:v('al-li'),tags:v('al-tags').split(',').map(function(t){return t.trim();}).filter(Boolean),hours:hours};
+  btn.disabled=true;btn.textContent='Saving…';msg.style.display='none';
+  admCall({action:'edit_business',business_id:id,fields:fields}).then(function(d){
+    btn.disabled=false;btn.textContent='Save Changes';
+    if(!d||!d.success||!d.business){fail((d&&d.error)||'Could not save. Please try again.');return;}
+    var i=(state.admin.listings||[]).findIndex(function(x){return String(x.id)===String(id);});
+    if(i>-1)state.admin.listings[i]=d.business;
+    var cached=(state.businesses||[]).find(function(x){return String(x.id)===String(id);});
+    if(cached)Object.keys(fields).forEach(function(k){cached[k]=d.business[k];});
+    addAuditLog('✏️','Listing corrected: '+d.business.name+'.');
+    closeModal('refModal');
+    filterAdminListings();
+  }).catch(function(){btn.disabled=false;btn.textContent='Save Changes';fail('Connection error. Please try again.');});
+}
+
 function renderAdminMembers(){
   var el=document.getElementById('adm-tab-members');
   el.innerHTML='<div class="admin-page-title">Member Management</div><div class="admin-page-sub">Loading members…</div>';
