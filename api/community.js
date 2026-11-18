@@ -135,6 +135,33 @@ module.exports = async (req, res) => {
         return res.status(500).json({ error: err.message });
       }
     }
+    // PUT — the member who posted an event can edit it
+    if (req.method === 'PUT') {
+      const auth = await requireMember(req, res); if (!auth) return;
+      const { id, title, date, time, location, host, description, zip } = req.body || {};
+      if (!id) return res.status(400).json({ error: 'Event ID required.' });
+      if (!title || !date) return res.status(400).json({ error: 'Title and date required.' });
+      try {
+        const { data: row } = await supabase.from('events').select('id, user_id').eq('id', id).single();
+        if (!row) return res.status(404).json({ error: 'Event not found.' });
+        if (!row.user_id || String(row.user_id) !== String(auth.user.id)) {
+          return res.status(403).json({ error: 'You can only edit your own events.' });
+        }
+        const loc = lookupZip(zip);
+        const base = { title, date, time: time || 'TBD', location: location || 'TBD', host: host || 'Community', description: description || '' };
+        let { data, error } = await supabase
+          .from('events')
+          .update({ ...base, zip: loc ? loc.zip : '', lat: loc ? loc.lat : null, lng: loc ? loc.lng : null })
+          .eq('id', id).select().single();
+        if (error && /zip|lat|lng|column/i.test(error.message || '')) {
+          ({ data, error } = await supabase.from('events').update(base).eq('id', id).select().single());
+        }
+        if (error) throw error;
+        return res.status(200).json({ success: true, event: data });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
   }
 
   // ── MESSAGES ─────────────────────────────────────
