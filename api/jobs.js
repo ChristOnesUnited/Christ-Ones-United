@@ -1,5 +1,6 @@
 const supabase = require('./supabase');
 const { requireMember, ownsBusiness } = require('./_lib/memberAuth');
+const { lookupZip, distanceMiles } = require('./_lib/geo');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,7 +20,20 @@ module.exports = async (req, res) => {
       }
       const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
-      return res.status(200).json({ success: true, jobs: data });
+
+      // Optional viewer location (?zip=80421 or ?lat=..&lng=..): add distance_mi to each job
+      // that has a known ZIP. Jobs with no usable ZIP simply get no distance.
+      const qz = req.query && req.query.zip;
+      const qLat = parseFloat(req.query && req.query.lat), qLng = parseFloat(req.query && req.query.lng);
+      const hasGeo = !isNaN(qLat) && !isNaN(qLng) && Math.abs(qLat) <= 90 && Math.abs(qLng) <= 180;
+      const here = hasGeo ? { lat: qLat, lng: qLng } : (qz ? lookupZip(qz) : null);
+      const jobs = (data || []).map(j => {
+        if (!here) return j;
+        const at = lookupZip(j.zip);
+        const d = at ? distanceMiles(here.lat, here.lng, at.lat, at.lng) : null;
+        return { ...j, distance_mi: d === null ? null : Math.round(d * 10) / 10 };
+      });
+      return res.status(200).json({ success: true, jobs, located: (qz || hasGeo) ? !!here : undefined });
 
     } catch (err) {
       console.error('Get jobs error:', err.message);
@@ -46,6 +60,7 @@ module.exports = async (req, res) => {
     }
 
     try {
+      const jobLoc = lookupZip(zip);
       const { data, error } = await supabase
         .from('jobs')
         .insert([{
@@ -54,7 +69,7 @@ module.exports = async (req, res) => {
           type,
           category: category || '',
           location,
-          zip: zip || '',
+          zip: jobLoc ? jobLoc.zip : (zip || ''),
           pay: pay || '',
           description,
           faith_note: faith_note || '',
