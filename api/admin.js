@@ -250,6 +250,57 @@ module.exports = async (req, res) => {
       return res.status(200).json({ success: true });
     }
 
+    // Permanently delete one listing (any status) along with the things attached to it
+    if (action === 'delete_business') {
+      const { business_id } = req.body;
+      if (!business_id) return res.status(400).json({ error: 'Listing ID required.' });
+      const { data: biz } = await supabase.from('businesses').select('id, name, logo_url').eq('id', business_id).single();
+      if (!biz) return res.status(404).json({ error: 'Listing not found.' });
+      const failed = [];
+      const step = async (label, fn) => {
+        try { const r = await fn(); if (r && r.error) failed.push(label + ': ' + r.error.message); }
+        catch (e) { failed.push(label + ': ' + (e && e.message)); }
+      };
+      await step('jobs', () => supabase.from('jobs').delete().eq('business_id', business_id));
+      await step('referrals', () => supabase.from('referrals').delete().eq('business_id', business_id));
+      await step('messages', () => supabase.from('messages').delete().eq('business_id', business_id));
+      const { data: gm } = await supabase.from('guild_members').select('guild_id').eq('business_id', business_id);
+      await step('guild_members', () => supabase.from('guild_members').delete().eq('business_id', business_id));
+      for (const g of (gm || [])) {
+        const { data: left } = await supabase.from('guild_members').select('guild_id').eq('guild_id', g.guild_id).limit(1);
+        if (!left || !left.length) {
+          await step('guild_codes', () => supabase.from('guild_codes').delete().eq('guild_id', g.guild_id));
+          await step('guilds', () => supabase.from('guilds').delete().eq('id', g.guild_id));
+        }
+      }
+      const { error } = await supabase.from('businesses').delete().eq('id', business_id);
+      if (error) throw error;
+      if (biz.logo_url) { try { await removeImage(supabase, biz.logo_url); } catch (e) { /* ignore */ } }
+      console.log('[admin] ' + auth.admin.email + ' deleted listing ' + business_id + ' (' + biz.name + ')' + (failed.length ? ' with issues: ' + failed.join('; ') : ''));
+      return res.status(200).json({ success: true, failed });
+    }
+
+    // Prayer requests and community events (newest first) so an admin can moderate them
+    if (action === 'get_community') {
+      const pr = await supabase.from('prayer_requests').select('*').order('created_at', { ascending: false }).limit(200);
+      if (pr.error) throw pr.error;
+      const ev = await supabase.from('events').select('*').order('date', { ascending: false }).limit(200);
+      if (ev.error) throw ev.error;
+      return res.status(200).json({ success: true, prayers: pr.data || [], events: ev.data || [] });
+    }
+
+    if (action === 'delete_prayer' || action === 'delete_event') {
+      const { id } = req.body;
+      if (!id) return res.status(400).json({ error: 'ID required.' });
+      const table = action === 'delete_prayer' ? 'prayer_requests' : 'events';
+      const { data: row } = await supabase.from(table).select('id').eq('id', id).single();
+      if (!row) return res.status(404).json({ error: 'Not found. It may already be deleted.' });
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) throw error;
+      console.log('[admin] ' + auth.admin.email + ' deleted ' + table + ' id ' + id);
+      return res.status(200).json({ success: true });
+    }
+
     // ── NEWSLETTER ───────────────────────────────────────────
     // Subscriber count + past editions for the Newsletter tab
     if (action === 'newsletter_overview') {
