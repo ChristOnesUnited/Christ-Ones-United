@@ -2928,11 +2928,11 @@ function updateAdminBadges(){
   });
 }
 function switchAdminTab(tab){
-  ['overview','approvals','reports','listings','members','jobs','sponsors','newsletter','appeals','audit','churches'].forEach(function(t){
+  ['overview','approvals','reports','listings','members','jobs','community','sponsors','newsletter','appeals','audit','churches'].forEach(function(t){
     document.getElementById('adm-tab-'+t).classList[t===tab?'remove':'add']('hidden');
     document.getElementById('adm-btn-'+t).classList[t===tab?'add':'remove']('on');
   });
-  var renders={overview:renderAdminOverview,approvals:renderAdminApprovals,reports:renderAdminReports,listings:renderAdminListings,members:renderAdminMembers,jobs:renderAdminJobs,sponsors:renderAdminSponsors,newsletter:renderAdminNewsletter,appeals:renderAdminAppeals,audit:renderAdminAudit,churches:renderAdminChurches};
+  var renders={overview:renderAdminOverview,approvals:renderAdminApprovals,reports:renderAdminReports,listings:renderAdminListings,community:renderAdminCommunity,members:renderAdminMembers,jobs:renderAdminJobs,sponsors:renderAdminSponsors,newsletter:renderAdminNewsletter,appeals:renderAdminAppeals,audit:renderAdminAudit,churches:renderAdminChurches};
   if(renders[tab])renders[tab]();
 }
 function addAuditLog(icon,text){state.admin.auditLog.unshift({icon:icon,text:text,time:'Just now'});}
@@ -3287,8 +3287,66 @@ function buildListingTable(rows){
     rows.map(function(b){
       return '<tr><td><strong>'+escHtml(b.name)+'</strong><br/><span style="font-size:.68rem;color:var(--muted);">'+escHtml(b.email||'')+'</span></td><td>'+escHtml(b.category||'')+'</td><td>'+escHtml(b.zip||'—')+'</td>'+
         '<td><span class="member-status '+(b.approved?'ms-active':'ms-pending')+'">'+(b.approved?'live':'pending')+'</span></td>'+
-        '<td><button class="adm-restore" style="padding:4px 10px;font-size:.7rem;" data-id="'+escHtml(b.id)+'" onclick="adminEditListing(this.dataset.id)">Edit</button></td></tr>';
+        '<td><button class="adm-restore" style="padding:4px 10px;font-size:.7rem;" data-id="'+escHtml(b.id)+'" onclick="adminEditListing(this.dataset.id)">Edit</button> <button class="adm-remove" style="padding:4px 10px;font-size:.7rem;" data-id="'+escHtml(b.id)+'" onclick="adminDeleteListing(this.dataset.id)">Delete</button></td></tr>';
     }).join('')+'</tbody></table></div>';
+}
+function adminDeleteListing(id){
+  var b=(state.admin.listings||[]).find(function(x){return String(x.id)===String(id);});
+  if(!b)return;
+  if(!confirm('PERMANENTLY DELETE the listing "'+b.name+'"?\n\nThis also removes its job postings and messages. The member\'s account and membership are NOT affected. It cannot be undone.'))return;
+  admCall({action:'delete_business',business_id:id}).then(function(d){
+    if(!d||!d.success){alert((d&&d.error)||'Could not delete this listing.');return;}
+    state.admin.listings=(state.admin.listings||[]).filter(function(x){return String(x.id)!==String(id);});
+    state.businesses=(state.businesses||[]).filter(function(x){return String(x.id)!==String(id);});
+    if(state.myBiz&&String(state.myBiz.id)===String(id))state.myBiz=null;
+    addAuditLog('🗑️','Listing deleted: '+b.name+'.');
+    if(d.failed&&d.failed.length)alert('Listing deleted, but these parts need a look:\n- '+d.failed.join('\n- '));
+    filterAdminListings();
+  }).catch(function(){alert('Could not reach the server. Nothing was changed.');});
+}
+
+// ── ADMIN: Community (prayer requests and events)
+function renderAdminCommunity(){
+  var el=document.getElementById('adm-tab-community');
+  el.innerHTML='<div class="admin-page-title">Community</div><div class="admin-page-sub">Loading…</div>';
+  admCall({action:'get_community'}).then(function(d){
+    if(!d||!d.success){el.innerHTML='<div class="admin-page-title">Community</div><div class="admin-page-sub">Could not load. Please refresh.</div>';return;}
+    state.admin.prayers=d.prayers||[];state.admin.events=d.events||[];drawAdminCommunity();
+  }).catch(function(){el.innerHTML='<div class="admin-page-title">Community</div><div class="admin-page-sub">Could not load. Please refresh.</div>';});
+}
+function drawAdminCommunity(){
+  var el=document.getElementById('adm-tab-community');
+  var P=state.admin.prayers||[],E=state.admin.events||[];
+  var when=function(v){return v?new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';};
+  el.innerHTML=
+    '<div class="admin-page-title">Community</div>'+
+    '<div class="admin-page-sub">'+P.length+' prayer requests · '+E.length+' events · tap Delete to remove one permanently</div>'+
+    '<div class="admin-page-title" style="font-size:1rem;margin-top:1rem;">🙏 Prayer Requests</div>'+
+    (P.length?P.map(function(p){
+      return '<div class="admin-card"><div class="admin-card-head"><div class="admin-card-title">'+escHtml(p.author||'Anonymous')+'</div></div>'+
+        '<div class="admin-card-meta">Posted '+escHtml(when(p.created_at))+'</div>'+
+        '<div class="admin-card-content" style="font-size:.78rem;">'+escHtml(p.text||'')+'</div>'+
+        '<div class="admin-actions"><button class="adm-remove" data-id="'+escHtml(p.id)+'" onclick="adminDeleteCommunity(\'prayer\',this.dataset.id)">🗑 Delete</button></div></div>';
+    }).join(''):'<div class="empty-state" style="padding:1.2rem;"><p>No prayer requests.</p></div>')+
+    '<div class="admin-page-title" style="font-size:1rem;margin-top:1.4rem;">📅 Events</div>'+
+    (E.length?E.map(function(e){
+      var ds=String(e.date||'').slice(0,10),d=ds?new Date(ds+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+      return '<div class="admin-card"><div class="admin-card-head"><div class="admin-card-title">'+escHtml(e.title||'(untitled)')+'</div></div>'+
+        '<div class="admin-card-meta">'+escHtml(d)+(e.location?' · 📍 '+escHtml(e.location):'')+'</div>'+
+        '<div class="admin-card-content" style="font-size:.78rem;">'+escHtml(String(e.description||'').substring(0,160))+'</div>'+
+        '<div class="admin-actions"><button class="adm-remove" data-id="'+escHtml(e.id)+'" onclick="adminDeleteCommunity(\'event\',this.dataset.id)">🗑 Delete</button></div></div>';
+    }).join(''):'<div class="empty-state" style="padding:1.2rem;"><p>No events.</p></div>');
+}
+function adminDeleteCommunity(kind,id){
+  var label=kind==='prayer'?'this prayer request':'this event';
+  if(!confirm('Permanently delete '+label+'? It cannot be undone.'))return;
+  admCall({action:kind==='prayer'?'delete_prayer':'delete_event',id:id}).then(function(d){
+    if(!d||!d.success){alert((d&&d.error)||'Could not delete.');return;}
+    var key=kind==='prayer'?'prayers':'events';
+    state.admin[key]=(state.admin[key]||[]).filter(function(x){return String(x.id)!==String(id);});
+    addAuditLog('🗑️',(kind==='prayer'?'Prayer request':'Event')+' deleted by Admin.');
+    drawAdminCommunity();
+  }).catch(function(){alert('Could not reach the server. Nothing was changed.');});
 }
 function adminEditListing(id){
   var b=(state.admin.listings||[]).find(function(x){return String(x.id)===String(id);});
