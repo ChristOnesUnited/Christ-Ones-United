@@ -2734,8 +2734,45 @@ function adminOpenLogin(){
   adminShowStep('login');
   var m=document.getElementById('adminSignInModal');if(m)m.classList.add('open');
 }
+// Keep the admin signed in through a page refresh or a new site version. The sign-in is kept in this
+// browser tab only (sessionStorage): closing the tab ends it, and it is dropped after 12 hours idle.
+var ADMIN_SESS_KEY='cou_admin_sess',ADMIN_SESS_MAX_MS=12*60*60*1000;
+function adminSaveSession(){
+  try{
+    if(state.adminToken&&state.adminRefresh)sessionStorage.setItem(ADMIN_SESS_KEY,JSON.stringify({a:state.adminToken,r:state.adminRefresh,t:Date.now()}));
+  }catch(e){}
+}
+function adminForgetSession(){try{sessionStorage.removeItem(ADMIN_SESS_KEY);}catch(e){}}
+function adminStartKeepAlive(){
+  if(adminRefreshTimer)clearInterval(adminRefreshTimer);
+  adminRefreshTimer=setInterval(function(){
+    adminAuthCall({action:'refresh',access_token:state.adminToken,refresh_token:state.adminRefresh}).then(function(d){
+      if(d.success){state.adminToken=d.access_token;state.adminRefresh=d.refresh_token;adminSaveSession();}
+    });
+  },40*60*1000);
+}
+// On page load: if this tab already had a verified admin sign-in, confirm it is still good and go straight in
+function adminRestoreSession(){
+  var saved=null;
+  try{saved=JSON.parse(sessionStorage.getItem(ADMIN_SESS_KEY)||'null');}catch(e){}
+  if(!saved||!saved.a||!saved.r||!saved.t||Date.now()-saved.t>ADMIN_SESS_MAX_MS){adminForgetSession();return;}
+  var m=document.getElementById('adminSignInModal');if(m)m.classList.remove('open');
+  adminAuthCall({action:'refresh',access_token:saved.a,refresh_token:saved.r}).then(function(d){
+    if(d.success){
+      state.adminToken=d.access_token;state.adminRefresh=d.refresh_token;adminSaveSession();
+      closeModal('adminSignInModal');
+      enterAdmin();adminStartKeepAlive();
+    }else if(d.__status===0){
+      // Could not reach the server (offline) - keep the saved sign-in and ask for a refresh later
+      adminOpenLogin();adminErr('Could not reach the server. Refresh the page to try again.');
+    }else{
+      adminForgetSession();adminOpenLogin();
+    }
+  });
+}
 function adminClearSession(){
   state.adminToken='';state.adminRefresh='';state.adminFactor='';
+  adminForgetSession();
   if(adminRefreshTimer){clearInterval(adminRefreshTimer);adminRefreshTimer=null;}
 }
 // Step 1: email + password
@@ -2800,13 +2837,9 @@ function adminFinishLogin(){
   ['adm-email','adm-pass','adm-code','adm-enroll-code'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   closeModal('adminSignInModal');
   enterAdmin();
-  // Keep the session alive while the admin page stays open
-  if(adminRefreshTimer)clearInterval(adminRefreshTimer);
-  adminRefreshTimer=setInterval(function(){
-    adminAuthCall({action:'refresh',access_token:state.adminToken,refresh_token:state.adminRefresh}).then(function(d){
-      if(d.success){state.adminToken=d.access_token;state.adminRefresh=d.refresh_token;}
-    });
-  },40*60*1000);
+  // Remember this sign-in for page refreshes, and keep it alive while the admin page stays open
+  adminSaveSession();
+  adminStartKeepAlive();
 }
 function adminBackToLogin(){
   adminClearSession();
@@ -2841,7 +2874,11 @@ function adminSessionExpired(){
 })();
 // On the admin address, open the admin sign-in straight away and hide everything else
 document.addEventListener('DOMContentLoaded',function(){
-  if(ADMIN_HOST){document.body.classList.add('admin-host');adminOpenLogin();}
+  if(ADMIN_HOST){
+    document.body.classList.add('admin-host');
+    var has=false;try{has=!!sessionStorage.getItem(ADMIN_SESS_KEY);}catch(e){}
+    if(has)adminRestoreSession();else adminOpenLogin();
+  }
 });
 function enterAdmin(){
   document.body.classList.add('admin-mode');
